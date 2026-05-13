@@ -1,0 +1,21 @@
+
+> sheep-gestao@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3001
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.1s
+ ○ Compiling / ...
+ ✓ Compiled / in 4.3s (591 modules)
+ ✓ Compiled in 335ms (285 modules)
+ ✓ Compiled in 213ms (285 modules)
+ GET / 200 in 79ms
+ ✓ Compiled in 154ms (285 modules)
+ ✓ Compiled in 117ms (285 modules)
+ ✓ Compiled in 132ms (285 modules)
+ ✓ Compiled in 176ms (285 modules)
+ GET / 200 in 123ms

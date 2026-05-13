@@ -1,0 +1,934 @@
+
+> sheep-gestao@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ⚠ Invalid next.config.mjs options detected: 
+ ⚠     Unrecognized key(s) in object: 'serverExternalPackages'
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ✓ Ready in 2.3s
+ ✓ Compiled /api/clients in 497ms (59 modules)
+ GET /api/clients 200 in 653ms
+ ✓ Compiled /api/seed in 186ms (61 modules)
+ POST /api/seed 200 in 221ms
+ GET /api/clients 200 in 15ms
+ GET /api/clients 200 in 28ms
+ ○ Compiling /clients ...
+ ✓ Compiled /clients in 2.4s (1113 modules)
+ GET /clients 200 in 2987ms
+ GET /api/clients 200 in 112ms
+ ✓ Compiled /api/projects in 512ms (592 modules)
+ GET /api/clients 200 in 697ms
+ GET /api/projects 200 in 823ms
+ GET /api/projects 200 in 15ms
+ ✓ Compiled in 2.3s (1095 modules)
+ ✓ Compiled in 400ms (537 modules)
+ ⨯ ./app/clients/page.tsx
+Error: 
+  [31mx[0m the name `useRef` is defined multiple times
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\clients\page.tsx[0m:1:1]
+ [2m  1[0m | 'use client'
+ [2m  2[0m | import { useState, useEffect, useRef } from 'react'
+     : [31;1m                              ^^^|^^[0m
+     :                                  [31;1m`-- [31;1mprevious definition of `useRef` here[0m[0m
+ [2m  3[0m | import type { Client, ClientStatus, Project } from '@/lib/types'
+ [2m  4[0m | 
+ [2m  5[0m | // ── Config ────────────────────────────────────────────────────────────────────
+ [2m  6[0m | 
+ [2m  7[0m | const COLOR_PRESETS = [
+ [2m  8[0m |   '#84CC16','#6366F1','#F59E0B','#EC4899','#14B8A6',
+ [2m  9[0m |   '#8B5CF6','#3B82F6','#D93025','#1E8A3E','#F97316',
+ [2m 10[0m | ]
+ [2m 11[0m | 
+ [2m 12[0m | const CLIENT_STATUS: Record<ClientStatus, { label: string; color: string; bg: string; border: string }> = {
+ [2m 13[0m |   active:    { label: 'Ativo',      color: '#1E8A3E', bg: 'rgba(30,138,62,0.10)',  border: 'rgba(30,138,62,0.25)'  },
+ [2m 14[0m |   inactive:  { label: 'Inativo',    color: '#666666', bg: 'rgba(18,19,22,0.06)',   border: 'var(--gray3)'          },
+ [2m 15[0m |   paused:    { label: 'Pausado',    color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', border: 'rgba(124,58,237,0.25)' },
+ [2m 16[0m |   cancelled: { label: 'Encerrado', color: '#D93025', bg: 'rgba(217,48,37,0.10)',  border: 'rgba(217,48,37,0.25)'  },
+ [2m 17[0m | }
+ [2m 18[0m | 
+ [2m 19[0m | function fmt(date?: string | null) {
+ [2m 20[0m |   if (!date) return '—'
+ [2m 21[0m |   const [y, m, d] = date.split('-')
+ [2m 22[0m |   return `${d}/${m}/${y}`
+ [2m 23[0m | }
+ [2m 24[0m | 
+ [2m 25[0m | function newEmptyClient(): Client {
+ [2m 26[0m |   return {
+ [2m 27[0m |     id: `c-${Date.now()}`,
+ [2m 28[0m |     name: '',
+ [2m 29[0m |     contact_name: '',
+ [2m 30[0m |     contact_email: '',
+ [2m 31[0m |     created_at: new Date().toISOString().split('T')[0],
+ [2m 32[0m |     data_entrada: new Date().toISOString().split('T')[0],
+ [2m 33[0m |   }
+ [2m 34[0m | }
+ [2m 35[0m | 
+ [2m 36[0m | // ── Edit Drawer ───────────────────────────────────────────────────────────────
+ [2m 37[0m | 
+ [2m 38[0m | const inputStyle: React.CSSProperties = {
+ [2m 39[0m |   width: '100%', padding: '8px 11px', borderRadius: 8,
+ [2m 40[0m |   border: '1px solid var(--gray3)', background: 'var(--bg)',
+ [2m 41[0m |   fontSize: 13, color: 'var(--black)', fontFamily: 'inherit',
+ [2m 42[0m |   outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+ [2m 43[0m |   boxSizing: 'border-box',
+ [2m 44[0m | }
+ [2m 45[0m | 
+ [2m 46[0m | function Field({ label, children }: { label: string; children: React.ReactNode }) {
+ [2m 47[0m |   return (
+ [2m 48[0m |     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+ [2m 49[0m |       <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+ [2m 50[0m |         {label}
+ [2m 51[0m |       </label>
+ [2m 52[0m |       {children}
+ [2m 53[0m |     </div>
+ [2m 54[0m |   )
+ [2m 55[0m | }
+ [2m 56[0m | 
+ [2m 57[0m | function SectionTitle({ children }: { children: React.ReactNode }) {
+ [2m 58[0m |   return (
+ [2m 59[0m |     <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid var(--gray3)', paddingBottom: 6, marginBottom: 2 }}>
+ [2m 60[0m |       {children}
+ [2m 61[0m |     </div>
+ [2m 62[0m |   )
+ [2m 63[0m | }
+ [2m 64[0m | 
+ [2m 65[0m | function EditDrawer({ client, onSave, onClose, isNew, color }: {
+ [2m 66[0m |   client: Client
+ [2m 67[0m |   onSave: (c: Client) => void
+ [2m 68[0m |   onClose: () => void
+ [2m 69[0m |   isNew: boolean
+ [2m 70[0m |   color: string
+ [2m 71[0m | }) {
+ [2m 72[0m |   const [form, setForm] = useState<Client>({ ...client })
+ [2m 73[0m |   const [focused, setFocused] = useState<string | null>(null)
+ [2m 74[0m | 
+ [2m 75[0m |   useEffect(() => {
+ [2m 76[0m |     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+ [2m 77[0m |     document.addEventListener('keydown', h)
+ [2m 78[0m |     return () => document.removeEventListener('keydown', h)
+ [2m 79[0m |   }, [onClose])
+ [2m 80[0m | 
+ [2m 81[0m |   const focusStyle = (field: string): React.CSSProperties => ({
+ [2m 82[0m |     ...inputStyle,
+ [2m 83[0m |     borderColor: focused === field ? 'var(--primary)' : 'var(--gray3)',
+ [2m 84[0m |     boxShadow: focused === field ? '0 0 0 3px rgba(132,204,22,0.14)' : 'none',
+ [2m 85[0m |   })
+ [2m 86[0m | 
+ [2m 87[0m |   const set = (key: keyof Client, val: string | undefined) => setForm(f => ({ ...f, [key]: val || undefined }))
+ [2m 88[0m |   const canSave = form.name.trim().length > 0
+ [2m 89[0m | 
+ [2m 90[0m |   return (
+ [2m 91[0m |     <>
+ [2m 92[0m |       <div
+ [2m 93[0m |         onClick={onClose}
+ [2m 94[0m |         style={{
+ [2m 95[0m |           position: 'fixed', inset: 0, zIndex: 3000,
+ [2m 96[0m |           background: 'rgba(18,19,22,0.22)', backdropFilter: 'blur(2px)',
+ [2m 97[0m |           animation: 'fadeIn 0.18s ease both',
+ [2m 98[0m |         }}
+ [2m 99[0m |       />
+ [2m100[0m |       <div style={{
+ [2m101[0m |         position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
+ [2m102[0m |         zIndex: 3001, background: 'var(--white)',
+ [2m103[0m |         boxShadow: '-8px 0 40px rgba(0,0,0,0.14)',
+ [2m104[0m |         display: 'flex', flexDirection: 'column',
+ [2m105[0m |         animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
+ [2m106[0m |       }}>
+ [2m107[0m |         {/* Header */}
+ [2m108[0m |         <div style={{
+ [2m109[0m |           padding: '20px 24px 16px', borderBottom: '1px solid var(--gray3)',
+ [2m110[0m |           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+ [2m111[0m |         }}>
+ [2m112[0m |           <div style={{
+ [2m113[0m |             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+ [2m114[0m |             background: color + '20', border: `1.5px solid ${color}40`,
+ [2m115[0m |             display: 'flex', alignItems: 'center', justifyContent: 'center',
+ [2m116[0m |             fontSize: 16, fontWeight: 800, color: color,
+ [2m117[0m |           }}>
+ [2m118[0m |             {form.name.charAt(0).toUpperCase() || '?'}
+ [2m119[0m |           </div>
+ [2m120[0m |           <div style={{ flex: 1, minWidth: 0 }}>
+ [2m121[0m |             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray2)', marginBottom: 2 }}>
+ [2m122[0m |               {isNew ? 'Novo cliente' : 'Editar cliente'}
+ [2m123[0m |             </div>
+ [2m124[0m |             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+ [2m125[0m |               {form.name || 'Sem nome'}
+ [2m126[0m |             </div>
+ [2m127[0m |           </div>
+ [2m128[0m |           <button
+ [2m129[0m |             onClick={onClose}
+ [2m130[0m |             style={{
+ [2m131[0m |               width: 32, height: 32, borderRadius: 10, border: '1px solid var(--gray3)',
+ [2m132[0m |               background: 'transparent', cursor: 'pointer', display: 'flex',
+ [2m133[0m |               alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+ [2m134[0m |               flexShrink: 0, transition: 'all 0.15s',
+ [2m135[0m |             }}
+ [2m136[0m |             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.08)'; e.currentTarget.style.borderColor = '#D93025'; e.currentTarget.style.color = '#D93025' }}
+ [2m137[0m |             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+ [2m138[0m |           >
+ [2m139[0m |             <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+ [2m140[0m |               <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
+ [2m141[0m |             </svg>
+ [2m142[0m |           </button>
+ [2m143[0m |         </div>
+ [2m144[0m | 
+ [2m145[0m |         {/* Body */}
+ [2m146[0m |         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+ [2m147[0m | 
+ [2m148[0m |           <SectionTitle>Identificação</SectionTitle>
+ [2m149[0m |           <Field label="Nome do cliente *">
+ [2m150[0m |             <input
+ [2m151[0m |               value={form.name}
+ [2m152[0m |               onChange={e => set('name', e.target.value)}
+ [2m153[0m |               onFocus={() => setFocused('name')}
+ [2m154[0m |               onBlur={() => setFocused(null)}
+ [2m155[0m |               placeholder="Ex: Nexum Digital"
+ [2m156[0m |               style={focusStyle('name')}
+ [2m157[0m |             />
+ [2m158[0m |           </Field>
+ [2m159[0m |           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+ [2m160[0m |             <Field label="Status">
+ [2m161[0m |               <select
+ [2m162[0m |                 value={form.status ?? ''}
+ [2m163[0m |                 onChange={e => setForm(f => ({ ...f, status: (e.target.value as ClientStatus) || undefined }))}
+ [2m164[0m |                 style={{ ...inputStyle, cursor: 'pointer' }}
+ [2m165[0m |               >
+ [2m166[0m |                 <option value="">— Sem status —</option>
+ [2m167[0m |                 {Object.entries(CLIENT_STATUS).map(([k, v]) => (
+ [2m168[0m |                   <option key={k} value={k}>{v.label}</option>
+ [2m169[0m |                 ))}
+ [2m170[0m |               </select>
+ [2m171[0m |             </Field>
+ [2m172[0m |             <Field label="CNPJ / CPF">
+ [2m173[0m |               <input
+ [2m174[0m |                 value={form.cnpj_cpf ?? ''}
+ [2m175[0m |                 onChange={e => set('cnpj_cpf', e.target.value)}
+ [2m176[0m |                 onFocus={() => setFocused('cnpj_cpf')}
+ [2m177[0m |                 onBlur={() => setFocused(null)}
+ [2m178[0m |                 placeholder="00.000.000/0001-00"
+ [2m179[0m |                 style={focusStyle('cnpj_cpf')}
+ [2m180[0m |               />
+ [2m181[0m |             </Field>
+ [2m182[0m |           </div>
+ [2m183[0m |           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+ [2m184[0m |             <Field label="Segmento">
+ [2m185[0m |               <input
+ [2m186[0m |                 value={form.segmento ?? ''}
+ [2m187[0m |                 onChange={e => set('segmento', e.target.value)}
+ [2m188[0m |                 onFocus={() => setFocused('segmento')}
+ [2m189[0m |                 onBlur={() => setFocused(null)}
+ [2m190[0m |                 placeholder="Ex: Financeiro"
+ [2m191[0m |                 list="segmentos-list"
+ [2m192[0m |                 style={focusStyle('segmento')}
+ [2m193[0m |               />
+ [2m194[0m |               <datalist id="segmentos-list">
+ [2m195[0m |                 {['Financeiro','Marketing','Alimentação','Produtos','Saúde','Franquias','Advocacia','Mineradora','Diesel','Madeira','Contabilidade','Pet','TI','Educação','Varejo'].map(s => (
+ [2m196[0m |                   <option key={s} value={s} />
+ [2m197[0m |                 ))}
+ [2m198[0m |               </datalist>
+ [2m199[0m |             </Field>
+ [2m200[0m |             <Field label="Sub-segmento">
+ [2m201[0m |               <input
+ [2m202[0m |                 value={form.sub_segmento ?? ''}
+ [2m203[0m |                 onChange={e => set('sub_segmento', e.target.value)}
+ [2m204[0m |                 onFocus={() => setFocused('sub_segmento')}
+ [2m205[0m |                 onBlur={() => setFocused(null)}
+ [2m206[0m |                 placeholder="Ex: Plano de benefícios"
+ [2m207[0m |                 style={focusStyle('sub_segmento')}
+ [2m208[0m |               />
+ [2m209[0m |             </Field>
+ [2m210[0m |           </div>
+ [2m211[0m | 
+ [2m212[0m |           <SectionTitle>Datas</SectionTitle>
+ [2m213[0m |           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+ [2m214[0m |             <Field label="Data de entrada">
+ [2m215[0m |               <input
+ [2m216[0m |                 type="date"
+ [2m217[0m |                 value={form.data_entrada ?? ''}
+ [2m218[0m |                 onChange={e => set('data_entrada', e.target.value)}
+ [2m219[0m |                 onFocus={() => setFocused('data_entrada')}
+ [2m220[0m |                 onBlur={() => setFocused(null)}
+ [2m221[0m |                 style={focusStyle('data_entrada')}
+ [2m222[0m |               />
+ [2m223[0m |             </Field>
+ [2m224[0m |             <Field label="Data de saída">
+ [2m225[0m |               <input
+ [2m226[0m |                 type="date"
+ [2m227[0m |                 value={form.data_saida ?? ''}
+ [2m228[0m |                 onChange={e => set('data_saida', e.target.value)}
+ [2m229[0m |                 onFocus={() => setFocused('data_saida')}
+ [2m230[0m |                 onBlur={() => setFocused(null)}
+ [2m231[0m |                 style={focusStyle('data_saida')}
+ [2m232[0m |               />
+ [2m233[0m |             </Field>
+ [2m234[0m |           </div>
+ [2m235[0m | 
+ [2m236[0m |           <SectionTitle>Aquisição</SectionTitle>
+ [2m237[0m |           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+ [2m238[0m |             <Field label="Origem comercial">
+ [2m239[0m |               <input
+ [2m240[0m |                 value={form.origem_comercial ?? ''}
+ [2m241[0m |                 onChange={e => set('origem_comercial', e.target.value)}
+ [2m242[0m |                 onFocus={() => setFocused('origem_comercial')}
+ [2m243[0m |                 onBlur={() => setFocused(null)}
+ [2m244[0m |                 placeholder="Ex: Indicação"
+ [2m245[0m |                 list="origens-list"
+ [2m246[0m |                 style={focusStyle('origem_comercial')}
+ [2m247[0m |               />
+ [2m248[0m |               <datalist id="origens-list">
+ [2m249[0m |                 {['Indicação','Prospecção ativa','Inbound','Evento','Parceria','LinkedIn','Instagram','Google','Site'].map(o => (
+ [2m250[0m |                   <option key={o} value={o} />
+ [2m251[0m |                 ))}
+ [2m252[0m |               </datalist>
+ [2m253[0m |             </Field>
+ [2m254[0m |             <Field label="Canal de aquisição">
+ [2m255[0m |               <input
+ [2m256[0m |                 value={form.canal_aquisicao ?? ''}
+ [2m257[0m |                 onChange={e => set('canal_aquisicao', e.target.value)}
+ [2m258[0m |                 onFocus={() => setFocused('canal_aquisicao')}
+ [2m259[0m |                 onBlur={() => setFocused(null)}
+ [2m260[0m |                 placeholder="Ex: WhatsApp"
+ [2m261[0m |                 list="canais-list"
+ [2m262[0m |                 style={focusStyle('canal_aquisicao')}
+ [2m263[0m |               />
+ [2m264[0m |               <datalist id="canais-list">
+ [2m265[0m |                 {['WhatsApp','E-mail','Telefone','Reunião presencial','LinkedIn','Instagram','Indicação direta'].map(c => (
+ [2m266[0m |                   <option key={c} value={c} />
+ [2m267[0m |                 ))}
+ [2m268[0m |               </datalist>
+ [2m269[0m |             </Field>
+ [2m270[0m |           </div>
+ [2m271[0m | 
+ [2m272[0m |           <SectionTitle>Localização e Contato</SectionTitle>
+ [2m273[0m |           <Field label="Cidade / Estado">
+ [2m274[0m |             <input
+ [2m275[0m |               value={form.cidade_estado ?? ''}
+ [2m276[0m |               onChange={e => set('cidade_estado', e.target.value)}
+ [2m277[0m |               onFocus={() => setFocused('cidade_estado')}
+ [2m278[0m |               onBlur={() => setFocused(null)}
+ [2m279[0m |               placeholder="Ex: Belo Horizonte - MG"
+ [2m280[0m |               style={focusStyle('cidade_estado')}
+ [2m281[0m |             />
+ [2m282[0m |           </Field>
+ [2m283[0m |           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+ [2m284[0m |             <Field label="Nome do contato">
+ [2m285[0m |               <input
+ [2m286[0m |                 value={form.contact_name ?? ''}
+ [2m287[0m |                 onChange={e => set('contact_name', e.target.value)}
+ [2m288[0m |                 onFocus={() => setFocused('contact_name')}
+ [2m289[0m |                 onBlur={() => setFocused(null)}
+ [2m290[0m |                 placeholder="Ex: Rafael Lima"
+ [2m291[0m |                 style={focusStyle('contact_name')}
+ [2m292[0m |               />
+ [2m293[0m |             </Field>
+ [2m294[0m |             <Field label="E-mail do contato">
+ [2m295[0m |               <input
+ [2m296[0m |                 type="email"
+ [2m297[0m |                 value={form.contact_email ?? ''}
+ [2m298[0m |                 onChange={e => set('contact_email', e.target.value)}
+ [2m299[0m |                 onFocus={() => setFocused('contact_email')}
+ [2m300[0m |                 onBlur={() => setFocused(null)}
+ [2m301[0m |                 placeholder="email@empresa.com"
+ [2m302[0m |                 style={focusStyle('contact_email')}
+ [2m303[0m |               />
+ [2m304[0m |             </Field>
+ [2m305[0m |           </div>
+ [2m306[0m |           <Field label="Link da pasta (Drive, Notion…)">
+ [2m307[0m |             <input
+ [2m308[0m |               value={form.pasta ?? ''}
+ [2m309[0m |               onChange={e => set('pasta', e.target.value)}
+ [2m310[0m |               onFocus={() => setFocused('pasta')}
+ [2m311[0m |               onBlur={() => setFocused(null)}
+ [2m312[0m |               placeholder="https://..."
+ [2m313[0m |               style={focusStyle('pasta')}
+ [2m314[0m |             />
+ [2m315[0m |           </Field>
+ [2m316[0m |         </div>
+ [2m317[0m | 
+ [2m318[0m |         {/* Footer */}
+ [2m319[0m |         <div style={{
+ [2m320[0m |           padding: '14px 24px', borderTop: '1px solid var(--gray3)',
+ [2m321[0m |           display: 'flex', gap: 10, justifyContent: 'flex-end', flexShrink: 0,
+ [2m322[0m |         }}>
+ [2m323[0m |           <button
+ [2m324[0m |             onClick={onClose}
+ [2m325[0m |             style={{
+ [2m326[0m |               padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gray3)',
+ [2m327[0m |               background: 'transparent', fontSize: 13, fontWeight: 600,
+ [2m328[0m |               color: 'var(--gray)', cursor: 'pointer', transition: 'all 0.15s',
+ [2m329[0m |             }}
+ [2m330[0m |             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+ [2m331[0m |             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray)' }}
+ [2m332[0m |           >
+ [2m333[0m |             Cancelar
+ [2m334[0m |           </button>
+ [2m335[0m |           <button
+ [2m336[0m |             onClick={() => canSave && onSave(form)}
+ [2m337[0m |             disabled={!canSave}
+ [2m338[0m |             style={{
+ [2m339[0m |               padding: '8px 20px', borderRadius: 8, border: 'none',
+ [2m340[0m |               background: canSave ? 'var(--primary)' : 'var(--gray3)',
+ [2m341[0m |               fontSize: 13, fontWeight: 700,
+ [2m342[0m |               color: canSave ? 'var(--primary-text)' : 'var(--gray2)',
+ [2m343[0m |               cursor: canSave ? 'pointer' : 'not-allowed',
+ [2m344[0m |               transition: 'all 0.15s',
+ [2m345[0m |               boxShadow: canSave ? '0 2px 8px rgba(132,204,22,0.35)' : 'none',
+ [2m346[0m |             }}
+ [2m347[0m |           >
+ [2m348[0m |             {isNew ? 'Criar cliente' : 'Salvar alterações'}
+ [2m349[0m |           </button>
+ [2m350[0m |         </div>
+ [2m351[0m |       </div>
+ [2m352[0m |     </>
+ [2m353[0m |   )
+ [2m354[0m | }
+ [2m355[0m | 
+ [2m356[0m | // ── Clients Table ─────────────────────────────────────────────────────────────
+ [2m357[0m | 
+ [2m358[0m | import { useRef } from 'react'
+     : [33;1m         ^^^|^^[0m
+     :             [33;1m`-- [33;1m`useRef` redefined here[0m[0m
+ [2m359[0m | 
+ [2m360[0m | type ClientWithStats = Client & { projs: number; active: number; completed: number; color: string }
+     `----
+
+Import trace for requested module:
+./app/clients/page.tsx
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 2.5s (1321 modules)
+ GET /clients 200 in 269ms
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/projects in 3s (1353 modules)
+ GET /api/projects 200 in 3109ms
+ GET /api/clients 200 in 3120ms
+ GET /api/projects 200 in 76ms
+ GET /api/clients 200 in 84ms
+ ✓ Compiled in 494ms (1353 modules)
+ ✓ Compiled /api/clients/[id] in 407ms (632 modules)
+ PUT /api/clients/c-09 200 in 977ms
+ ✓ Compiled in 2.4s (1319 modules)
+ GET /clients 200 in 711ms
+ ✓ Compiled /api/clients in 345ms (627 modules)
+ ✓ Compiled (629 modules)
+ GET /api/clients 200 in 736ms
+ GET /api/projects 200 in 746ms
+ GET /api/clients 200 in 21ms
+ GET /api/projects 200 in 26ms
+ ✓ Compiled in 1450ms (1351 modules)
+ ✓ Compiled in 1350ms (1351 modules)
+ GET /clients 200 in 1365ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/projects in 2.7s (629 modules)
+ ✓ Compiled (658 modules)
+ GET /api/clients 200 in 3555ms
+ GET /api/projects 200 in 3558ms
+ GET /favicon.ico 200 in 3628ms
+ GET /api/clients 200 in 19ms
+ GET /api/projects 200 in 26ms
+ GET /clients 200 in 1588ms
+ GET /favicon.ico 200 in 73ms
+ GET /api/projects 200 in 92ms
+ GET /api/clients 200 in 111ms
+ GET /api/projects 200 in 57ms
+ GET /api/clients 200 in 71ms
+ ✓ Compiled in 1541ms (1319 modules)
+ ✓ Compiled in 1511ms (1319 modules)
+ ○ Compiling /api/clients/[id] ...
+ ✓ Compiled /api/clients/[id] in 600ms (627 modules)
+ PUT /api/clients/c-17 200 in 783ms
+ PUT /api/clients/c-17 200 in 26ms
+ PUT /api/clients/c-17 200 in 26ms
+ PUT /api/clients/c-17 200 in 35ms
+ PUT /api/clients/c-17 200 in 29ms
+ PUT /api/clients/c-17 200 in 27ms
+ ○ Compiling /projects ...
+ ✓ Compiled /projects in 1901ms (1359 modules)
+ ✓ Compiled /api/clients in 280ms (635 modules)
+ ✓ Compiled (637 modules)
+ GET /api/clients 200 in 602ms
+ GET /api/projects 200 in 613ms
+ GET /api/clients 200 in 19ms
+ GET /api/projects 200 in 25ms
+ ✓ Compiled in 614ms (726 modules)
+ ✓ Compiled in 1613ms (1329 modules)
+ ✓ Compiled in 904ms (1331 modules)
+ ✓ Compiled in 926ms (1331 modules)
+ ✓ Compiled in 1379ms (1331 modules)
+ ✓ Compiled in 695ms (1331 modules)
+ ✓ Compiled in 622ms (1331 modules)
+ ✓ Compiled in 1165ms (1331 modules)
+ ✓ Compiled in 1047ms (1331 modules)
+ ✓ Compiled in 908ms (1331 modules)
+ ✓ Compiled in 1623ms (1331 modules)
+ ✓ Compiled in 1011ms (1331 modules)
+ ✓ Compiled in 3.9s (727 modules)
+ ✓ Compiled in 506ms (727 modules)
+ ✓ Compiled in 3.2s (1331 modules)
+ ✓ Compiled in 1594ms (1333 modules)
+ ✓ Compiled in 1151ms (1333 modules)
+ ✓ Compiled in 662ms (1333 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.2s (1322 modules)
+ GET /aceite/onTVxJyiuBHa1pFF-ZYu07ebpyTzlQL_ 404 in 2764ms
+ GET /api/aceite/onTVxJyiuBHa1pFF-ZYu07ebpyTzlQL_ 404 in 114ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.8s (1349 modules)
+ GET / 200 in 3942ms
+ ✓ Compiled in 1838ms (735 modules)
+ GET /projects 200 in 105ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/clients in 970ms (644 modules)
+ ✓ Compiled (646 modules)
+ GET /api/projects 200 in 1534ms
+ GET /api/clients 200 in 1563ms
+ GET /api/projects 200 in 31ms
+ GET /api/clients 200 in 41ms
+ GET /api/projects 200 in 45ms
+ ✓ Compiled /api/tasks in 413ms (648 modules)
+ GET /api/clients 200 in 813ms
+ GET /api/projects 200 in 784ms
+ GET /api/tasks 200 in 843ms
+ GET /api/clients 200 in 51ms
+ GET /api/tasks 200 in 30ms
+ GET /api/projects 200 in 15ms
+ GET /api/clients 200 in 29ms
+ GET /api/projects 200 in 35ms
+ GET /api/clients 200 in 22ms
+ GET /api/clients 200 in 20ms
+ GET /api/projects 200 in 30ms
+ GET /api/clients 200 in 37ms
+ GET /api/projects 200 in 26ms
+ ✓ Compiled /api/clients/[id] in 463ms (650 modules)
+ PUT /api/clients/c-17 200 in 560ms
+ PUT /api/clients/c-09 200 in 31ms
+ PUT /api/clients/c-03 200 in 35ms
+ PUT /api/clients/c-04 200 in 31ms
+ PUT /api/clients/c-06 200 in 37ms
+ PUT /api/clients/c-02 200 in 48ms
+ PUT /api/clients/c-15 200 in 37ms
+ PUT /api/clients/c-01 200 in 36ms
+ PUT /api/clients/c-07 200 in 33ms
+ PUT /api/clients/c-16 200 in 43ms
+ PUT /api/clients/c-13 200 in 34ms
+ PUT /api/clients/c-10 200 in 40ms
+ PUT /api/clients/c-14 200 in 31ms
+ PUT /api/clients/c-05 200 in 44ms
+ PUT /api/clients/c-08 200 in 36ms
+ ✓ Compiled in 2.6s (1349 modules)
+ ✓ Compiled in 1137ms (1349 modules)
+ ✓ Compiled in 702ms (1349 modules)
+ ✓ Compiled /api/clients/[id] in 499ms (644 modules)
+ PUT /api/clients/c-11 200 in 661ms
+ PUT /api/clients/c-11 200 in 23ms
+ PUT /api/clients/c-12 200 in 151ms
+ PUT /api/clients/c-09 200 in 61ms
+ PUT /api/clients/c-09 200 in 41ms
+ PUT /api/clients/c-09 200 in 55ms
+ PUT /api/clients/c-09 200 in 41ms
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/clients in 1084ms (646 modules)
+ ✓ Compiled (648 modules)
+ GET /api/clients 200 in 1184ms
+ GET /api/projects 200 in 1519ms
+ GET /api/clients 200 in 27ms
+ GET /api/projects 200 in 35ms
+ ✓ Compiled in 1678ms (735 modules)
+ ✓ Compiled in 2.2s (1349 modules)
+ ✓ Compiled in 984ms (1349 modules)
+ ✓ Compiled in 990ms (1351 modules)
+ ✓ Compiled in 1329ms (1351 modules)
+ ✓ Compiled in 971ms (736 modules)
+ ✓ Compiled in 763ms (736 modules)
+ ✓ Compiled in 440ms (736 modules)
+ ✓ Compiled in 965ms (736 modules)
+ ✓ Compiled in 467ms (736 modules)
+ ✓ Compiled in 528ms (736 modules)
+ ✓ Compiled in 442ms (736 modules)
+ ✓ Compiled in 3s (1351 modules)
+ ✓ Compiled in 1530ms (1351 modules)
+ ✓ Compiled in 2.8s (1351 modules)
+ ✓ Compiled in 1073ms (1351 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /projects 200 in 1066ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1137ms (647 modules)
+ GET /favicon.ico 200 in 1312ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/clients in 866ms (674 modules)
+ ✓ Compiled (676 modules)
+ GET /api/projects 200 in 1608ms
+ GET /api/clients 200 in 1621ms
+ GET /api/projects 200 in 38ms
+ GET /api/clients 200 in 48ms
+ ✓ Compiled in 3.1s (1412 modules)
+ GET /projects 200 in 1538ms
+ ✓ Compiled in 1976ms (1412 modules)
+ GET /favicon.ico 200 in 244ms
+ GET /api/projects 200 in 87ms
+ GET /api/clients 200 in 105ms
+ GET /api/projects 200 in 48ms
+ GET /api/clients 200 in 37ms
+ GET /api/clients 200 in 69ms
+ GET /api/projects 200 in 88ms
+ GET /api/clients 200 in 121ms
+ GET /api/projects 200 in 137ms
+ GET /api/projects 200 in 26ms
+ GET /api/clients 200 in 42ms
+ GET /api/projects 200 in 50ms
+ GET /api/clients 200 in 41ms
+ ✓ Compiled in 1391ms (1383 modules)
+ ✓ Compiled in 939ms (1351 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /projects 200 in 559ms
+ ✓ Compiled in 642ms (1351 modules)
+ ✓ Compiled /favicon.ico in 439ms (647 modules)
+ GET /favicon.ico 200 in 571ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/clients in 663ms (674 modules)
+ ✓ Compiled (676 modules)
+ GET /api/projects 200 in 1473ms
+ GET /api/clients 200 in 1495ms
+ GET /api/clients 200 in 58ms
+ GET /api/projects 200 in 106ms
+ ✓ Compiled in 1090ms (1412 modules)
+ GET /api/clients 200 in 34ms
+ GET /api/projects 200 in 47ms
+ GET /api/clients 200 in 45ms
+ GET /api/projects 200 in 39ms
+ GET /api/projects 200 in 29ms
+ GET /api/clients 200 in 60ms
+ GET /api/projects 200 in 70ms
+ GET /api/clients 200 in 51ms
+ ✓ Compiled in 715ms (736 modules)
+ ✓ Compiled in 375ms (736 modules)
+ ✓ Compiled in 748ms (1351 modules)
+ ✓ Compiled in 301ms (736 modules)
+ ✓ Compiled in 294ms (736 modules)
+ ✓ Compiled in 302ms (736 modules)
+ ✓ Compiled in 540ms (736 modules)
+ ✓ Compiled in 276ms (736 modules)
+ ✓ Compiled in 260ms (736 modules)
+ ✓ Compiled in 284ms (736 modules)
+ ✓ Compiled in 1706ms (1351 modules)
+ ✓ Compiled in 803ms (1351 modules)
+ ✓ Compiled in 564ms (1351 modules)
+ ✓ Compiled in 729ms (1351 modules)
+ ✓ Compiled in 1378ms (1351 modules)
+ ✓ Compiled in 553ms (1351 modules)
+ ✓ Compiled in 592ms (1351 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1208ms (1351 modules)
+ GET /projects 200 in 668ms
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/projects in 2.8s (1412 modules)
+ GET /api/projects 200 in 2805ms
+ GET /api/clients 200 in 2826ms
+ GET /favicon.ico 200 in 3061ms
+ GET /api/clients 200 in 49ms
+ GET /api/projects 200 in 57ms
+ ✓ Compiled in 1708ms (1412 modules)
+ ✓ Compiled in 930ms (1412 modules)
+ ✓ Compiled in 1835ms (1412 modules)
+ GET /api/projects 200 in 111ms
+ ○ Compiling /api/tasks ...
+ ✓ Compiled /api/tasks in 1000ms (678 modules)
+ ✓ Compiled (680 modules)
+ GET /api/weeks 200 in 1679ms
+ GET /api/tasks 200 in 1686ms
+ GET /api/projects 200 in 1579ms
+ GET /api/tasks 200 in 80ms
+ GET /api/weeks 200 in 90ms
+ ✓ Compiled in 3.3s (1351 modules)
+ GET /projects?tab=projetos 200 in 254ms
+ ○ Compiling /api/weeks ...
+ ✓ Compiled /api/weeks in 825ms (647 modules)
+ ✓ Compiled (678 modules)
+ GET /api/tasks 200 in 2038ms
+ GET /api/projects 200 in 2053ms
+ GET /api/weeks 200 in 2066ms
+ GET /favicon.ico 200 in 2296ms
+ GET /api/tasks 200 in 56ms
+ GET /api/projects 200 in 68ms
+ GET /api/weeks 200 in 80ms
+ GET /projects?tab=projetos 200 in 334ms
+ GET /favicon.ico 200 in 23ms
+ GET /api/projects 200 in 54ms
+ GET /api/tasks 200 in 69ms
+ GET /api/weeks 200 in 75ms
+ GET /api/projects 200 in 81ms
+ GET /api/weeks 200 in 71ms
+ GET /api/tasks 200 in 82ms
+ ✓ Compiled in 1952ms (1351 modules)
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/projects in 1010ms (645 modules)
+ ✓ Compiled (647 modules)
+ GET /api/projects 200 in 1509ms
+ GET /api/clients 200 in 1528ms
+ GET /api/projects 200 in 22ms
+ GET /api/clients 200 in 30ms
+ ✓ Compiled in 1239ms (1383 modules)
+ ○ Compiling /api/clients/[id] ...
+ ✓ Compiled /api/clients/[id] in 630ms (649 modules)
+ PUT /api/clients/c-15 200 in 762ms
+ PUT /api/clients/c-09 200 in 32ms
+ PUT /api/clients/c-03 200 in 45ms
+ PUT /api/clients/c-04 200 in 41ms
+ PUT /api/clients/c-06 200 in 41ms
+ PUT /api/clients/c-02 200 in 28ms
+ PUT /api/clients/c-17 200 in 30ms
+ GET /api/projects 200 in 27ms
+ GET /api/clients 200 in 47ms
+ GET /api/projects 200 in 51ms
+ GET /api/clients 200 in 22ms
+ GET /api/projects 200 in 17ms
+ ✓ Compiled /api/tasks in 497ms (651 modules)
+ ✓ Compiled (653 modules)
+ GET /api/projects 200 in 1011ms
+ GET /api/tasks 200 in 1040ms
+ GET /api/weeks 200 in 1046ms
+ GET /api/tasks 200 in 21ms
+ GET /api/weeks 200 in 26ms
+ GET /api/clients 200 in 24ms
+ GET /api/projects 200 in 33ms
+ GET /api/clients 200 in 44ms
+ GET /api/projects 200 in 36ms
+ PUT /api/clients/c-01 200 in 34ms
+ PUT /api/clients/c-07 200 in 45ms
+ PUT /api/clients/c-16 200 in 61ms
+ PUT /api/clients/c-16 200 in 37ms
+ PUT /api/clients/c-10 200 in 63ms
+ PUT /api/clients/c-14 200 in 33ms
+ PUT /api/clients/c-05 200 in 56ms
+ PUT /api/clients/c-11 200 in 53ms
+ PUT /api/clients/c-12 200 in 43ms
+ ✓ Compiled in 2.9s (1381 modules)
+ ✓ Compiled in 1001ms (1381 modules)
+ ✓ Compiled in 818ms (1381 modules)
+ ✓ Compiled in 1172ms (1381 modules)
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/projects in 886ms (647 modules)
+ ✓ Compiled (649 modules)
+ GET /api/clients 200 in 2531ms
+ GET /api/projects 200 in 2550ms
+ GET /api/clients 200 in 300ms
+ GET /api/projects 200 in 318ms
+ ✓ Compiled in 1422ms (1385 modules)
+ ✓ Compiled in 1610ms (1385 modules)
+ ✓ Compiled in 1200ms (1385 modules)
+ ✓ Compiled in 1801ms (1383 modules)
+ ✓ Compiled in 806ms (1351 modules)
+ ✓ Compiled in 1003ms (1351 modules)
+ ✓ Compiled /api/clients/[id] in 506ms (645 modules)
+ DELETE /api/clients/c-08 200 in 646ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/clients in 773ms (647 modules)
+ ✓ Compiled (649 modules)
+ GET /api/clients 200 in 1481ms
+ GET /api/projects 200 in 1629ms
+ GET /api/clients 200 in 28ms
+ GET /api/projects 200 in 36ms
+ ⨯ ./app/clients/page.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\clients\page.tsx[0m:400:1]
+ [2m400[0m |   }, [onClose])
+ [2m401[0m | 
+ [2m402[0m |   return (
+ [2m403[0m |     <>
+     : [31;1m     ^[0m
+ [2m404[0m |       <div
+ [2m405[0m |         onClick={onClose}
+ [2m406[0m |         style={{
+     `----
+
+  [31mx[0m Expected corresponding JSX closing tag for <div>
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\clients\page.tsx[0m:489:1]
+ [2m489[0m |           </button>
+ [2m490[0m |         </div>
+ [2m491[0m |       </div>
+ [2m492[0m |     </>
+     : [31;1m    ^^^[0m
+ [2m493[0m |   )
+ [2m494[0m | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clients/page.tsx
+ ○ Compiling /_error ...
+ ⨯ ./app/clients/page.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\clients\page.tsx[0m:400:1]
+ [2m400[0m |   }, [onClose])
+ [2m401[0m | 
+ [2m402[0m |   return (
+ [2m403[0m |     <>
+     : [31;1m     ^[0m
+ [2m404[0m |       <div
+ [2m405[0m |         onClick={onClose}
+ [2m406[0m |         style={{
+     `----
+
+  [31mx[0m Expected corresponding JSX closing tag for <div>
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\clients\page.tsx[0m:489:1]
+ [2m489[0m |           </button>
+ [2m490[0m |         </div>
+ [2m491[0m |       </div>
+ [2m492[0m |     </>
+     : [31;1m    ^^^[0m
+ [2m493[0m |   )
+ [2m494[0m | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/clients/page.tsx
+ GET /projects 500 in 36ms
+ ✓ Compiled /_not-found in 2.9s (1390 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /projects 200 in 644ms
+ ✓ Compiled (1376 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 628ms (680 modules)
+ GET /favicon.ico 200 in 777ms
+ GET /api/projects 200 in 136ms
+ GET /api/clients 200 in 187ms
+ GET /api/projects 200 in 138ms
+ GET /api/clients 200 in 116ms
+ GET /projects 200 in 274ms
+ GET /favicon.ico 200 in 27ms
+ GET /api/projects 200 in 24ms
+ GET /api/clients 200 in 34ms
+ GET /api/projects 200 in 40ms
+ GET /api/clients 200 in 34ms
+ GET /api/clients 200 in 40ms
+ GET /api/projects 200 in 60ms
+ GET /api/clients 200 in 49ms
+ GET /api/projects 200 in 46ms
+ PUT /api/clients/c-03 200 in 41ms
+ PUT /api/clients/c-04 200 in 27ms
+ PUT /api/clients/c-06 200 in 39ms
+ PUT /api/clients/c-02 200 in 26ms
+ PUT /api/clients/c-01 200 in 32ms
+ PUT /api/clients/c-16 200 in 31ms
+ PUT /api/clients/c-14 200 in 36ms
+ PUT /api/clients/c-05 200 in 33ms
+ PUT /api/clients/c-13 200 in 31ms
+ GET /api/projects 200 in 36ms
+ GET /api/clients 200 in 30ms
+ GET /api/projects 200 in 39ms
+ GET /api/clients 200 in 20ms
+ ✓ Compiled in 457ms (737 modules)
+ ✓ Compiled in 305ms (737 modules)
+ ✓ Compiled in 270ms (737 modules)
+ ✓ Compiled in 650ms (1353 modules)
+ ✓ Compiled in 254ms (737 modules)
+ ✓ Compiled in 364ms (737 modules)
+ ✓ Compiled in 565ms (737 modules)
+ ✓ Compiled in 248ms (737 modules)
+ ✓ Compiled in 260ms (737 modules)
+ ✓ Compiled in 238ms (737 modules)
+ ✓ Compiled in 960ms (1353 modules)
+ ✓ Compiled in 543ms (1353 modules)
+ ✓ Compiled in 691ms (1353 modules)
+ ✓ Compiled in 276ms (737 modules)
+ ✓ Compiled in 253ms (737 modules)
+ ✓ Compiled in 388ms (737 modules)
+ ✓ Compiled in 262ms (737 modules)
+ ✓ Compiled in 262ms (737 modules)
+ ✓ Compiled in 405ms (737 modules)
+ ✓ Compiled in 263ms (737 modules)
+ ✓ Compiled in 343ms (737 modules)
+ ✓ Compiled in 291ms (737 modules)
+ ✓ Compiled in 413ms (737 modules)
+ ✓ Compiled in 239ms (737 modules)
+ ✓ Compiled in 899ms (1353 modules)
+ ✓ Compiled in 624ms (1353 modules)
+ ✓ Compiled in 842ms (1353 modules)
+ ○ Compiling /api/projects ...
+ ✓ Compiled /api/projects in 652ms (646 modules)
+ POST /api/projects 500 in 830ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ○ Compiling /api/clients ...
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /api/clients in 2.1s (1385 modules)
+ GET /api/clients 200 in 1503ms
+ GET /api/projects 200 in 1522ms
+ GET /projects 200 in 1812ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 636ms (677 modules)
+ GET /favicon.ico 200 in 1331ms
+ GET /api/clients 200 in 1190ms
+ GET /api/projects 200 in 1199ms
+ GET /api/clients 200 in 23ms
+ GET /api/projects 200 in 27ms
+ ✓ Compiled in 840ms (1414 modules)
+ POST /api/projects 500 in 53ms
+ POST /api/projects 500 in 17ms
+ POST /api/projects 500 in 38ms
+ POST /api/projects 500 in 15ms
+ ✓ Compiled in 1235ms (1353 modules)
+ ⨯ ./app/projects/page.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\projects\page.tsx[0m:114:1]
+ [2m114[0m |   const canSave = form.name.trim().length > 0
+ [2m115[0m | 
+ [2m116[0m |   return (
+ [2m117[0m |     <>
+     : [31;1m     ^[0m
+ [2m118[0m |       {/* Backdrop */}
+ [2m119[0m |       <div
+ [2m120[0m |         onClick={onClose}
+     `----
+
+  [31mx[0m Expected ',', got '< (jsx tag start)'
+     ,-[[36;1;4mC:\Users\gui-z\OneDrive\Área de Trabalho\Sheep\Interno_GestaoProjetos\sheep-gestao\app\projects\page.tsx[0m:116:1]
+ [2m116[0m |   return (
+ [2m117[0m |     <>
+ [2m118[0m |       {/* Backdrop */}
+ [2m119[0m |       <div
+     : [31;1m      ^[0m
+ [2m120[0m |         onClick={onClose}
+ [2m121[0m |         style={{
+ [2m122[0m |           position: 'fixed', inset: 0, zIndex: 3000,
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/projects/page.tsx
+ GET /projects 500 in 23ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1880ms (1342 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /projects 200 in 28ms
+ GET /_next/static/webpack/3b7c0c839d51610b.webpack.hot-update.json 404 in 2127ms
+ GET /projects 200 in 75ms
+ ○ Compiling /api/clients ...
+ ✓ Compiled /api/clients in 708ms (649 modules)
+ ✓ Compiled in 537ms (1417 modules)
+ ✓ Compiled in 1ms (678 modules)
+ GET /api/projects 200 in 1771ms
+ GET /api/clients 200 in 1764ms
+ GET /favicon.ico 200 in 2147ms
+ GET /api/clients 200 in 62ms
+ GET /api/projects 200 in 68ms
+ GET /api/projects 200 in 23ms
+ GET /api/clients 200 in 26ms
+ GET /api/projects 200 in 18ms
+ GET /api/clients 200 in 23ms
+ ✓ Compiled in 822ms (1417 modules)
+ ✓ Compiled in 702ms (1417 modules)
+Deseja finalizar o arquivo em lotes (S/N)? [?25h

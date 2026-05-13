@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+/* ── Design Tokens — Sheep Tech ── */
+:root {
+  --bg: #F8F8F6;
+  --white: #FFFFFF;
+  --black: #121316;
+  --gray: #666666;
+  --gray2: #AAAAAA;
+  --gray3: #E3E4DE;
+
+  /* Primary: Lime green #84CC16 */
+  --primary: #84CC16;
+  --primary-dim: rgba(132, 204, 22, 0.12);
+  --primary-mid: rgba(132, 204, 22, 0.40);
+  --primary-text: #3D6B00;
+  --primary-contrast: #FFFFFF;
+
+  --red: #D93025;
+  --green: #1E8A3E;
+  --orange: #E07B00;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 100px;
+
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --transition: .2s ease;
+}
+
+@theme {
+  --color-bg: #F8F8F6;
+  --color-app-white: #FFFFFF;
+  --color-app-black: #121316;
+  --color-app-gray: #666666;
+  --color-app-gray2: #AAAAAA;
+  --color-app-gray3: #E3E4DE;
+  --color-app-red: #D93025;
+  --color-app-green: #1E8A3E;
+  --color-primary: #84CC16;
+  --font-sans: 'Manrope', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 15px; }
+
+body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--black);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Animations ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes viewSwitch {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes panelUp {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.94); }
+  70%  { transform: translateY(-4px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes panelSlide {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+@keyframes mdReveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes breathe-ring {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%       { transform: scale(1.55); opacity: 0; }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes msgRight {
+  from { opacity: 0; transform: translateX(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes msgLeft {
+  from { opacity: 0; transform: translateX(-16px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(250%); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+@keyframes count-pop {
+  0%   { opacity: 0; transform: scale(0.82); }
+  65%  { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes rowExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(110%) scale(0.92); }
+  60%  { transform: translateX(-6px) scale(1.01); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(110%) scale(0.92); }
+}
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+@keyframes barFill {
+  from { width: 0; }
+  to   { width: var(--target-width, 100%); }
+}
+
+.animate-slide-up   { animation: slideUp .25s ease both; }
+.animate-fade-in    { animation: fadeIn .2s ease both; }
+.animate-count-pop  { animation: count-pop .45s cubic-bezier(.34,1.56,.64,1) both; }
+
+.delay-1 { animation-delay: .04s; }
+.delay-2 { animation-delay: .08s; }
+.delay-3 { animation-delay: .12s; }
+.delay-4 { animation-delay: .16s; }
+.delay-5 { animation-delay: .20s; }
+.delay-6 { animation-delay: .24s; }
+.delay-7 { animation-delay: .28s; }
+.delay-8 { animation-delay: .32s; }
+.delay-9 { animation-delay: .36s; }
+
+.shimmer-bar { position: relative; overflow: hidden; }
+.shimmer-bar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+  animation: shimmer 1.8s ease 0.5s infinite;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray2); }
+
+.scrollbar-hide { scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Primary color utilities ── */
+.bg-primary       { background-color: var(--primary) !important; }
+.text-primary     { color: var(--primary) !important; }
+.border-primary   { border-color: var(--primary) !important; }
+.bg-primary-dim   { background-color: var(--primary-dim) !important; }
+.border-primary-mid { border-color: var(--primary-mid) !important; }
+.text-primary-text  { color: var(--primary-text) !important; }
+.ring-primary     { --tw-ring-color: var(--primary-dim); }
+
+.focus\:border-primary:focus { border-color: var(--primary) !important; }
+.focus\:ring-primary:focus   { box-shadow: 0 0 0 3px var(--primary-dim) !important; }
+
+/* ── Documentos form inputs ── */
+.docs-input::placeholder,
+.docs-textarea::placeholder {
+  color: var(--gray2);
+  font-weight: 400;
+}

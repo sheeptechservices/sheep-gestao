@@ -1,0 +1,93 @@
+export type ProjectStatus = "active" | "negotiation" | "paused" | "completed" | "cancelled";
+export type ProjectType = "AI" | "SaaS" | "TaaS" | "BI" | "PowerPlatform" | "Other";
+export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales";
+
+export type ClientStatus = 'active' | 'inactive' | 'paused' | 'cancelled'
+
+export interface Client {
+  id: string;
+  name: string;
+  logo_url?: string;
+  contact_name?: string;
+  contact_email?: string;
+  created_at: string;
+  color_hex?: string;
+  status?: ClientStatus;
+  data_entrada?: string;
+  data_saida?: string;
+  segmento?: string;
+  sub_segmento?: string;
+  origem_comercial?: string;
+  canal_aquisicao?: string;
+  cidade_estado?: string;
+  cnpj_cpf?: string;
+  pasta?: string;
+}
+
+export interface Project {
+  id: string;
+  client_id: string;
+  client?: Client;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  type: ProjectType;
+  color_hex: string;
+  start_date: string;
+  end_date?: string;
+  progress: number;
+  created_at: string;
+  gestor?: string;
+  observacoes?: string;
+  links?: string;
+  team_members?: string[];
+  display_order?: number;
+}
+
+export interface Week {
+  id: string;
+  week_number: number;
+  start_date: string;
+  end_date: string;
+  goals?: string;
+  notes?: string;
+  created_at: string;
+  project_id?: string;  // opcional — mantido para compatibilidade com dados antigos
+}
+
+export type TaskUrgency = 'low' | 'medium' | 'high'
+
+export interface Task {
+  id: string;
+  project_id?: string;
+  week_id?: string;
+  title: string;
+  description?: string;
+  urgency?: TaskUrgency;
+  done: boolean;
+  assigned_to?: string;
+  flags?: string[];
+  flag_comment?: string;
+  deadline?: string;    // ISO date 'YYYY-MM-DD' — previsão de entrega
+  created_at: string;
+}
+
+export interface Artifact {
+  id: string;
+  project_id: string;
+  agent_type: AgentType;
+  title: string;
+  content: string;
+  tags: string[];
+  created_at: string;
+}
+
+export interface AgentConfig {
+  type: AgentType;
+  name: string;
+  role: string;
+  description: string;
+  color: string;
+  bgColor: string;
+  icon: string;
+}
