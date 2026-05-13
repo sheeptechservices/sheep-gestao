@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { initDb } from '@/lib/db'
 
 const CLIENTS = [
   { id: 'c-01', name: 'J17 Bank',             data_entrada: '2001-01-01', segmento: 'Financeiro',    origem_comercial: 'Indicação' },
@@ -24,35 +24,33 @@ const CLIENTS = [
 
 export async function POST() {
   try {
-    const db = getDb()
-    const count = (db.prepare('SELECT COUNT(*) as n FROM clients').get() as { n: number }).n
+    const db = await initDb()
+    const res = await db.execute('SELECT COUNT(*) as n FROM clients')
+    const count = Number(res.rows[0].n)
     if (count > 0) {
       return NextResponse.json({ message: 'Banco já tem dados — seed ignorado.', count }, { status: 409 })
     }
 
     const now = new Date().toISOString().split('T')[0]
-    const stmt = db.prepare(`
-      INSERT INTO clients
-        (id, name, logo_url, contact_name, contact_email, created_at,
-         status, data_entrada, data_saida, segmento, sub_segmento,
-         origem_comercial, canal_aquisicao, cidade_estado, cnpj_cpf, pasta)
-      VALUES
-        (@id, @name, @logo_url, @contact_name, @contact_email, @created_at,
-         @status, @data_entrada, @data_saida, @segmento, @sub_segmento,
-         @origem_comercial, @canal_aquisicao, @cidade_estado, @cnpj_cpf, @pasta)
-    `)
-
-    const insertMany = db.transaction(() => {
-      for (const c of CLIENTS) {
-        stmt.run({
+    await db.batch(
+      CLIENTS.map(c => ({
+        sql: `INSERT INTO clients
+          (id, name, logo_url, contact_name, contact_email, created_at,
+           status, data_entrada, data_saida, segmento, sub_segmento,
+           origem_comercial, canal_aquisicao, cidade_estado, cnpj_cpf, pasta)
+        VALUES
+          (:id, :name, :logo_url, :contact_name, :contact_email, :created_at,
+           :status, :data_entrada, :data_saida, :segmento, :sub_segmento,
+           :origem_comercial, :canal_aquisicao, :cidade_estado, :cnpj_cpf, :pasta)`,
+        args: {
           logo_url: null, contact_name: null, contact_email: null,
           data_saida: null, sub_segmento: null, canal_aquisicao: null,
           cidade_estado: null, cnpj_cpf: null, pasta: null,
           status: null, created_at: now, ...c,
-        })
-      }
-    })
-    insertMany()
+        },
+      })),
+      'write'
+    )
 
     return NextResponse.json({ message: `${CLIENTS.length} clientes importados com sucesso.` })
   } catch (err) {
