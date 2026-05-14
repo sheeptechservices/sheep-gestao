@@ -59,6 +59,7 @@ export function FloatingAgents() {
             return (
               <div
                 key={agent.type}
+                title={isMobile ? `${agent.name} — ${agent.role}` : undefined}
                 onMouseEnter={() => setHov(agent.type)}
                 onMouseLeave={() => setHov(null)}
                 onClick={() => {
@@ -75,23 +76,25 @@ export function FloatingAgents() {
                   cursor: 'pointer',
                 }}
               >
-                {/* Label card */}
-                <div style={{
-                  background: isH ? agent.color : 'var(--white)',
-                  border: `1px solid ${isH ? agent.color : 'var(--gray3)'}`,
-                  borderRadius: 10,
-                  padding: '7px 14px',
-                  boxShadow: isH ? `0 4px 16px ${agent.shadow}` : '0 2px 8px rgba(0,0,0,0.08)',
-                  transition: 'background 0.18s, border-color 0.18s, box-shadow 0.18s',
-                  textAlign: 'right',
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: isH ? '#fff' : 'var(--black)', lineHeight: 1.2, transition: 'color 0.18s' }}>
-                    {agent.name}
+                {/* Label card — hidden on mobile to avoid overflow */}
+                {!isMobile && (
+                  <div style={{
+                    background: isH ? agent.color : 'var(--white)',
+                    border: `1px solid ${isH ? agent.color : 'var(--gray3)'}`,
+                    borderRadius: 10,
+                    padding: '7px 14px',
+                    boxShadow: isH ? `0 4px 16px ${agent.shadow}` : '0 2px 8px rgba(0,0,0,0.08)',
+                    transition: 'background 0.18s, border-color 0.18s, box-shadow 0.18s',
+                    textAlign: 'right',
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: isH ? '#fff' : 'var(--black)', lineHeight: 1.2, transition: 'color 0.18s' }}>
+                      {agent.name}
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 500, color: isH ? 'rgba(255,255,255,0.75)' : 'var(--gray2)', marginTop: 1, transition: 'color 0.18s' }}>
+                      {agent.role}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 500, color: isH ? 'rgba(255,255,255,0.75)' : 'var(--gray2)', marginTop: 1, transition: 'color 0.18s' }}>
-                    {agent.role}
-                  </div>
-                </div>
+                )}
 
                 {/* Emoji circle — wrapper matches FAB width so circles align */}
                 <div style={{ width: isMobile ? 44 : 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
