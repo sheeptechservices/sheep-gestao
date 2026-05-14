@@ -9,6 +9,7 @@ import type { Project, ProjectStatus, Client, ClientStatus, AgentType, Task, Tas
 import type { AgentDefinition } from '@/lib/agents'
 import { ProjectDetailDrawer } from './ProjectDetailDrawer'
 import { ClientDetailDrawer } from './ClientDetailDrawer'
+import { useTaskModalStore } from '@/stores/taskModalStore'
 
 // ── Status configs ────────────────────────────────────────────────────────────
 
@@ -193,10 +194,13 @@ export function QuickSearch() {
     setDetailClient(client)
   }, [close])
 
-  const handleSelectTask = useCallback((_task: EnrichedTask) => {
+  const requestOpen = useTaskModalStore(s => s.requestOpen)
+
+  const handleSelectTask = useCallback((task: EnrichedTask) => {
     close()
+    requestOpen(task.id)
     router.push('/tasks')
-  }, [close, router])
+  }, [close, router, requestOpen])
 
   const handleSelectAgent = useCallback((agent: AgentDefinition) => {
     close()

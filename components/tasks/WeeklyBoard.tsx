@@ -10,6 +10,7 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
 import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
+import { useTaskModalStore } from '@/stores/taskModalStore'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -976,6 +977,18 @@ export function WeeklyBoard() {
   const [editing,      setEditing]      = useState<Task | null | 'new'>(null)
   const [newTaskDate,  setNewTaskDate]  = useState<string>('')
   const [deleting,     setDeleting]     = useState<Task | null>(null)
+
+  // Open modal from Quick Search (taskModalStore)
+  const pendingOpenId = useTaskModalStore(s => s.pendingOpenId)
+  const consumeOpen   = useTaskModalStore(s => s.consumeOpen)
+  useEffect(() => {
+    if (!pendingOpenId || tasks.length === 0) return
+    const task = tasks.find(t => t.id === pendingOpenId)
+    if (task) {
+      setEditing(task)
+      consumeOpen()
+    }
+  }, [pendingOpenId, tasks, consumeOpen])
 
   // Load data
   useEffect(() => {
