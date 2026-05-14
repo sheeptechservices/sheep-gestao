@@ -113,7 +113,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             overflowY: 'auto',
             background: 'var(--bg)',
             minHeight: 0,
-            gridColumn: inGrid ? '2' : '1',
           }}>
             {children}
           </main>

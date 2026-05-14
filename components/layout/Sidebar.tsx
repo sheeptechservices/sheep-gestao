@@ -67,10 +67,11 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const { open, pinned, setOpen } = useSidebar()
-  const { isMobile } = useBreakpoint()
+  const { isMobile, isTablet } = useBreakpoint()
 
-  // On mobile, sidebar is always overlay (never pinned to grid)
-  const effectivePinned = isMobile ? false : pinned
+  // Sidebar only participates in grid layout when open + pinned on desktop
+  // (mirrors the inGrid condition in AppShell — prevents ghost row when collapsed)
+  const effectivePinned = !isMobile && !isTablet && open && pinned
 
   return (
     <aside style={{
