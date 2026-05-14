@@ -837,6 +837,10 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
   const [effortLevel, setEffortLevel]       = useState<'focado' | 'balanceado' | 'criativo'>('balanceado')
   const [confirmModal, setConfirmModal]     = useState<'clear' | 'close' | null>(null)
   const [artifactTitles, setArtifactTitles] = useState<Record<string, string>>({})
+  const [voiceMode, setVoiceMode]           = useState(false)
+  const [voiceState, setVoiceState]         = useState<'idle' | 'listening' | 'speaking'>('idle')
+  const recognitionRef   = useRef<unknown>(null)
+  const prevStreamingRef = useRef(false)
   const resizingRef                         = useRef(false)
   const startXRef                           = useRef(0)
   const startWRef                           = useRef(PANEL_W)
@@ -1129,6 +1133,87 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
     abortRef.current?.abort()
   }, [])
 
+  // ── Voice mode ──────────────────────────────────────────────────────────────
+
+  /** Strip markdown so TTS reads clean prose */
+  function stripMarkdownForTTS(md: string): string {
+    return md
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`]*`/g, '')
+      .replace(/\[CONSULT:[^\]]+\]/g, '')
+      .replace(/\[ARTEFATO:[^\]]+\]/g, '')
+      .replace(/#+\s+/g, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^\s*[-*+]\s/gm, '')
+      .replace(/^\s*\d+\.\s/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
+  const startListening = useCallback((sendFn: (t: string) => void) => {
+    if (typeof window === 'undefined') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec = new SR() as any
+    rec.lang = 'pt-BR'
+    rec.interimResults = false
+    rec.maxAlternatives = 1
+    rec.continuous = false
+
+    rec.onresult = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const text: string = e.results[0][0].transcript.trim()
+      if (text) sendFn(text)
+    }
+    rec.onerror = () => setVoiceState('idle')
+    rec.onend   = () => setVoiceState(s => s === 'listening' ? 'idle' : s)
+
+    rec.start()
+    recognitionRef.current = rec
+    setVoiceState('listening')
+  }, [])
+
+  /** Speak text via SpeechSynthesis; when done, start listening again */
+  const speakAndListen = useCallback((text: string, sendFn: (t: string) => void) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(stripMarkdownForTTS(text))
+    utterance.lang = 'pt-BR'
+    utterance.rate = 1.05
+    utterance.onstart = () => setVoiceState('speaking')
+    utterance.onend   = () => startListening(sendFn)
+    utterance.onerror = () => { setVoiceState('idle'); startListening(sendFn) }
+    setVoiceState('speaking')
+    window.speechSynthesis.speak(utterance)
+  }, [startListening])
+
+  /** Watch streaming: when it goes true→false in voice mode, speak the response */
+  useEffect(() => {
+    if (voiceMode && prevStreamingRef.current && !streaming) {
+      const last = messages[messages.length - 1]
+      if (last?.role === 'assistant' && last.content) {
+        speakAndListen(last.content, (t) => sendMessage(t))
+      }
+    }
+    prevStreamingRef.current = streaming
+  }, [streaming, voiceMode, messages, speakAndListen, sendMessage])
+
+  const toggleVoiceMode = useCallback(() => {
+    if (voiceMode) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(recognitionRef.current as any)?.stop?.()
+      window.speechSynthesis?.cancel?.()
+      setVoiceMode(false)
+      setVoiceState('idle')
+    } else {
+      setVoiceMode(true)
+      startListening((t) => sendMessage(t))
+    }
+  }, [voiceMode, startListening, sendMessage])
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -1158,7 +1243,15 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
     e.target.value = ''
   }, [])
 
-  const handleNewChat = () => { clearMessages(agentType); setConsultations([]); setQuickReplies({}); setTaskProposals([]); setProjectProposals([]); setArtifactTitles({}); setInput(''); setAttachments([]) }
+  const stopVoice = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(recognitionRef.current as any)?.stop?.()
+    window.speechSynthesis?.cancel?.()
+    setVoiceMode(false)
+    setVoiceState('idle')
+  }, [])
+
+  const handleNewChat = () => { stopVoice(); clearMessages(agentType); setConsultations([]); setQuickReplies({}); setTaskProposals([]); setProjectProposals([]); setArtifactTitles({}); setInput(''); setAttachments([]) }
   const canSend = (!!(input.trim()) || attachments.length > 0 || pastedImages.length > 0) && !uploading
 
   return (
@@ -1397,6 +1490,48 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
               <path d="M13.5 7.5l-6.5 6.5a4 4 0 0 1-5.657-5.657L7.5 2.5a2.5 2.5 0 0 1 3.536 3.536L4.879 12.18a1 1 0 0 1-1.415-1.414l6.157-6.157" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+
+          {/* Voice mode button */}
+          <button
+            onClick={toggleVoiceMode}
+            title={voiceMode ? 'Desativar modo conversa' : 'Modo conversa (voz)'}
+            style={{
+              width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+              border: voiceMode ? 'none' : `1px solid ${agent.color}30`,
+              background: voiceMode ? agent.color : 'transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: voiceMode ? '#fff' : agent.color,
+              opacity: voiceMode ? 1 : 0.7,
+              boxShadow: voiceMode ? `0 2px 10px ${agent.color}50` : 'none',
+              transition: 'all 0.18s ease',
+              position: 'relative',
+            }}
+            onMouseEnter={e => { if (!voiceMode) { e.currentTarget.style.background = agent.color + '12'; e.currentTarget.style.opacity = '1' } }}
+            onMouseLeave={e => { if (!voiceMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '0.7' } }}
+          >
+            {/* Pulsing ring when listening */}
+            {voiceState === 'listening' && (
+              <span style={{
+                position: 'absolute', inset: -4, borderRadius: 13,
+                border: `2px solid ${agent.color}`,
+                animation: 'breathe-ring 1.2s ease-in-out infinite',
+                pointerEvents: 'none',
+              }} />
+            )}
+            {voiceState === 'speaking' ? (
+              /* Sound wave icon */
+              <svg width={15} height={15} viewBox="0 0 15 15" fill="none">
+                <path d="M1 5.5v4M4 3.5v8M7 1.5v12M10 3.5v8M13 5.5v4" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+              </svg>
+            ) : (
+              /* Microphone icon */
+              <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                <rect x="4.5" y="1" width="5" height="7" rx="2.5" stroke="currentColor" strokeWidth={1.4}/>
+                <path d="M2 7a5 5 0 0 0 10 0" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+                <line x1="7" y1="12" x2="7" y2="13.5" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+              </svg>
+            )}
+          </button>
           {streaming ? (
             <button
               onClick={handleAbort}
@@ -1415,8 +1550,13 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
             </button>
           )}
         </div>
-        <div style={{ fontSize: 9, color: 'var(--gray2)', textAlign: 'center', marginTop: 6, opacity: 0.7 }}>
-          Enter para enviar · Shift+Enter para quebrar linha · Cole imagem com Ctrl+V
+        <div style={{ fontSize: 9, color: voiceMode ? agent.color : 'var(--gray2)', textAlign: 'center', marginTop: 6, opacity: voiceMode ? 1 : 0.7, fontWeight: voiceMode ? 700 : 400, transition: 'color 0.2s, opacity 0.2s' }}>
+          {voiceMode
+            ? voiceState === 'listening' ? '🎤 Ouvindo… fale agora'
+            : voiceState === 'speaking'  ? '🔊 Respondendo…'
+            : '💬 Modo conversa ativo — aguardando'
+            : 'Enter para enviar · Shift+Enter para quebrar linha · Cole imagem com Ctrl+V'
+          }
         </div>
       </div>
 
