@@ -1017,6 +1017,9 @@ export function WeeklyBoard() {
     consumeCreate()
   }, [pendingCreate, consumeCreate])
 
+  // Preload Tiptap bundle in background so modal opens instantly
+  useEffect(() => { import('@/components/ui/RichTextEditor') }, [])
+
   // Load data
   useEffect(() => {
     Promise.all([
