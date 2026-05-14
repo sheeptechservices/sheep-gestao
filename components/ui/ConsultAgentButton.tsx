@@ -82,22 +82,35 @@ export function ConsultAgentButton({
       {variant === 'icon' ? (
         <button
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
-          onMouseEnter={() => setHov(true)}
-          onMouseLeave={() => setHov(false)}
+          onMouseEnter={e => {
+            setHov(true)
+            if (!open) {
+              e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
+              e.currentTarget.style.borderColor = '#22C55E'
+            }
+          }}
+          onMouseLeave={e => {
+            setHov(false)
+            if (!open) {
+              e.currentTarget.style.background = 'var(--white)'
+              e.currentTarget.style.borderColor = 'rgba(34,197,94,0.28)'
+            }
+          }}
           title="Consultar especialista"
           style={{
-            width: 22, height: 22, borderRadius: 6, border: 'none',
-            background: open ? 'var(--primary)' : hov ? 'var(--primary-dim)' : 'transparent',
+            width: 20, height: 20, borderRadius: 5,
+            background: open ? 'rgba(34,197,94,0.08)' : 'var(--white)',
+            border: `1px solid ${open ? '#22C55E' : 'rgba(34,197,94,0.28)'}`,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: open ? '#fff' : 'var(--primary)',
-            transition: 'all 0.15s',
+            transition: 'background 0.12s, border-color 0.12s',
             padding: 0, flexShrink: 0,
           }}
         >
-          <svg width={12} height={12} viewBox="0 0 14 14" fill="none">
+          <svg width={10} height={10} viewBox="0 0 14 14" fill="none">
             <path d="M12 2H2C1.45 2 1 2.45 1 3v7c0 .55.45 1 1 1h2v2.5l3-2.5h5c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1Z"
-              stroke="currentColor" strokeWidth={1.4} strokeLinejoin="round"/>
-            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round"/>
+              stroke="#22C55E" strokeWidth={1.4} strokeLinejoin="round"/>
+            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="#22C55E" strokeWidth={1.3} strokeLinecap="round"/>
           </svg>
         </button>
       ) : (
