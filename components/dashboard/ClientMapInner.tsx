@@ -165,21 +165,42 @@ function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 }
 
-function parseCoords(cidadeEstado: string): [number, number] | null {
-  const parts = cidadeEstado.split(',')
-  const city  = parts[0]?.trim() ?? ''
-  const state = parts[1]?.trim().toUpperCase() ?? ''
+function parseCoords(raw: string): [number, number] | null {
+  if (!raw?.trim()) return null
 
-  // 1. exact city match
-  const cityLow = city.toLowerCase().trim()
-  if (CITY_COORDS[cityLow]) return CITY_COORDS[cityLow]
+  // Normalise separators: "City - UF", "City/UF", "City,UF", "City UF"
+  // Collapse any separator (space+dash, slash, comma) into a single comma
+  const normalised = raw
+    .replace(/\s*[-/]\s*/g, ',')   // " - " or "/" → ","
+    .replace(/\s*,\s*/g, ',')      // tidy commas
+    .trim()
 
-  // 2. normalized (no accents)
-  const cityNorm = normalize(city)
+  const parts = normalised.split(',')
+  const cityRaw   = parts[0]?.trim() ?? ''
+  const stateRaw  = parts[1]?.trim().toUpperCase() ?? ''
+
+  // Helpers
+  const cityLow  = cityRaw.toLowerCase()
+  const cityNorm = normalize(cityRaw)   // accent-free lowercase
+
+  // 1. Exact city name (with accents)
+  if (CITY_COORDS[cityLow])  return CITY_COORDS[cityLow]
+
+  // 2. City name without accents
   if (CITY_COORDS[cityNorm]) return CITY_COORDS[cityNorm]
 
-  // 3. state abbreviation fallback (Brazilian only)
-  if (state.length === 2 && STATE_COORDS[state]) return STATE_COORDS[state]
+  // 3. Only a 2-letter state code was given (e.g. "SP")
+  if (cityRaw.length === 2 && STATE_COORDS[cityRaw.toUpperCase()])
+    return STATE_COORDS[cityRaw.toUpperCase()]
+
+  // 4. State abbreviation in the second part
+  if (stateRaw.length === 2 && STATE_COORDS[stateRaw])
+    return STATE_COORDS[stateRaw]
+
+  // 5. Try to find a 2-letter state code anywhere in the string (last word)
+  const tokens = raw.trim().split(/\s+/)
+  const last   = tokens[tokens.length - 1]?.replace(/[^A-Za-z]/g, '').toUpperCase()
+  if (last?.length === 2 && STATE_COORDS[last]) return STATE_COORDS[last]
 
   return null
 }
@@ -303,7 +324,7 @@ export default function ClientMapInner({ clients }: { clients: Client[] }) {
         </div>
       )}
 
-      {/* Legend */}
+      {/* Overlay when no coords resolved */}
       {groups.length === 0 && (
         <div style={{
           position: 'absolute', inset: 0,
@@ -312,7 +333,10 @@ export default function ClientMapInner({ clients }: { clients: Client[] }) {
           pointerEvents: 'none',
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>
-            Nenhum cliente com localização cadastrada
+            Formato de localização não reconhecido
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--gray2)' }}>
+            Use o formato: <strong>Cidade, UF</strong> &nbsp;(ex: São Paulo, SP)
           </div>
         </div>
       )}
