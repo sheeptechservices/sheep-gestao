@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Task } from '@/lib/types'
+import { toast } from '@/stores/toastStore'
 
 interface TasksState {
   tasks: Task[]
@@ -71,6 +72,10 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 
   toggleDone: async (id: string, done: boolean) => {
     const prev = get().tasks
+    if (done) {
+      const task = prev.find(t => t.id === id)
+      if (task) toast.success('Entregável concluído', task.title)
+    }
     set(s => ({ tasks: s.tasks.map(t => t.id === id ? { ...t, done } : t) }))
     try {
       const res = await fetch(`/api/tasks/${id}`, {

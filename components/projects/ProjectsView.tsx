@@ -9,6 +9,7 @@ import { AppSelect } from '@/components/ui/AppSelect'
 import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { localToday, localDateStr } from '@/lib/localDate'
+import { playDoneSound } from '@/lib/sounds'
 
 // ── Troque para visualizar as variantes de navegação de semanas ───────────────
 // 'pills' | 'accordion' | 'prevnext'
@@ -1652,6 +1653,7 @@ function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, on
   onClick: () => void
   onStatusChange: () => void
 }) {
+  const [pop, setPop] = useState(false)
   return (
     <div
       draggable
@@ -1673,15 +1675,22 @@ function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, on
       }}
     >
       <button
-        onClick={e => { e.stopPropagation(); onStatusChange() }}
+        onClick={e => {
+          e.stopPropagation()
+          if (!task.done) { setPop(true); playDoneSound() }
+          onStatusChange()
+        }}
+        onAnimationEnd={() => setPop(false)}
         style={{
           width: compact ? 14 : 15, height: compact ? 14 : 15,
           borderRadius: 4, flexShrink: 0, cursor: 'pointer',
           border: `2px solid ${task.done ? color : 'var(--gray3)'}`,
           background: task.done ? color : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.15s', padding: 0,
+          padding: 0,
           ...(compact ? {} : { marginTop: 1 }),
+          animation: pop ? 'checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both' : undefined,
+          transition: pop ? 'none' : 'all 0.15s',
         }}
       >
         {task.done && (

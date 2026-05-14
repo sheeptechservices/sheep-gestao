@@ -8,6 +8,7 @@ import { AppSelect } from '@/components/ui/AppSelect'
 import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { localToday, localDateStr } from '@/lib/localDate'
+import { playDoneSound } from '@/lib/sounds'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -364,7 +365,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   onToggleDone: () => void
   onDelete: () => void
 }) {
-  const [hov, setHov] = useState(false)
+  const [hov, setHov]   = useState(false)
+  const [pop, setPop]   = useState(false)
   const color      = project?.color_hex ?? '#6366F1'
   const tag        = project?.client?.name ?? project?.name
   const bloqueado  = task.flags?.includes('bloqueado')
@@ -402,13 +404,20 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       {/* Checkbox + title */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
         <button
-          onClick={e => { e.stopPropagation(); onToggleDone() }}
+          onClick={e => {
+            e.stopPropagation()
+            if (!task.done) { setPop(true); playDoneSound() }
+            onToggleDone()
+          }}
+          onAnimationEnd={() => setPop(false)}
           style={{
             width: 15, height: 15, borderRadius: 4, flexShrink: 0, cursor: 'pointer',
             border: `1.5px solid ${task.done ? color : hov ? color + '88' : 'var(--gray3)'}`,
             background: task.done ? color : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s', padding: 0, marginTop: 1,
+            padding: 0, marginTop: 1,
+            animation: pop ? 'checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both' : undefined,
+            transition: pop ? 'none' : 'all 0.15s',
           }}
         >
           {task.done && (
@@ -715,6 +724,7 @@ function WBListRow({ task, projName, projColor, urgency, isLast, onClick, onTogg
   onToggleDone: () => void
 }) {
   const [hov, setHov] = useState(false)
+  const [pop, setPop] = useState(false)
   return (
     <div
       onMouseEnter={() => setHov(true)}
@@ -730,13 +740,24 @@ function WBListRow({ task, projName, projColor, urgency, isLast, onClick, onTogg
       }}
     >
       {/* Checkbox */}
-      <div onClick={e => { e.stopPropagation(); onToggleDone() }} style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{
+      <div
+        onClick={e => {
+          e.stopPropagation()
+          if (!task.done) { setPop(true); playDoneSound() }
+          onToggleDone()
+        }}
+        style={{ display: 'flex', alignItems: 'center' }}
+      >
+        <div
+          onAnimationEnd={() => setPop(false)}
+          style={{
           width: 16, height: 16, borderRadius: 4,
           border: task.done ? 'none' : '1.5px solid var(--gray2)',
           background: task.done ? 'var(--primary)' : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s',
+          cursor: 'pointer', flexShrink: 0,
+          animation: pop ? 'checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both' : undefined,
+          transition: pop ? 'none' : 'all 0.15s',
         }}>
           {task.done && (
             <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
