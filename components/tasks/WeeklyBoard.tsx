@@ -508,18 +508,6 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
         }}>
           {/* Consult agent */}
           <ConsultAgentButton task={task} project={project} variant="icon" direction="down" />
-          {/* Edit */}
-          <div style={{
-            width: 20, height: 20, borderRadius: 5,
-            background: 'var(--white)', border: '1px solid var(--gray3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-          }}>
-            <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-              <path d="M8.5 1.5a1.5 1.5 0 012.12 2.12L4 10.25H1.75V8L8.5 1.5z"
-                stroke="var(--gray2)" strokeWidth={1.3} strokeLinejoin="round"/>
-            </svg>
-          </div>
           {/* Delete */}
           <div
             onClick={e => { e.stopPropagation(); onDelete() }}
