@@ -7,6 +7,7 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { AppCombobox } from '@/components/ui/AppCombobox'
 import { toast } from '@/stores/toastStore'
 import { useCreateStore } from '@/stores/createStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
 }) {
   const [form, setForm] = useState<Client>({ color_hex: '#84CC16', ...client })
   const [focused, setFocused] = useState<string | null>(null)
+  const { isMobile } = useBreakpoint()
 
   // Opções dos comboboxes (persistem durante a sessão do drawer)
   const [segmentoOpts,    setSegmentoOpts]    = useState(['Financeiro','Marketing','Alimentação','Produtos','Saúde','Franquias','Advocacia','Mineradora','Diesel','Madeira','Contabilidade','Pet','TI','Educação','Varejo'])
@@ -110,7 +112,15 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
           animation: 'fadeIn 0.18s ease both',
         }}
       />
-      <div style={{
+      <div style={isMobile ? {
+        position: 'fixed', bottom: 0, left: 0, right: 0, top: 'auto',
+        height: '92vh', width: '100%',
+        zIndex: 3001, background: 'var(--white)',
+        borderRadius: '20px 20px 0 0',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+        display: 'flex', flexDirection: 'column',
+        animation: 'panelUp 0.3s cubic-bezier(0.34,1.1,0.64,1) both',
+      } : {
         position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
         zIndex: 3001, background: 'var(--white)',
         boxShadow: '-8px 0 40px rgba(0,0,0,0.14)',
@@ -170,7 +180,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
               style={focusStyle('name')}
             />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Status">
               <AppSelect
                 value={form.status ?? ''}
@@ -224,7 +234,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
               />
             </div>
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Segmento">
               <AppCombobox
                 value={form.segmento ?? ''}
@@ -246,7 +256,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
           </div>
 
           <SectionTitle>Datas</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Data de entrada">
               <AppDatePicker
                 value={form.data_entrada ?? ''}
@@ -262,7 +272,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
           </div>
 
           <SectionTitle>Aquisição</SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Origem comercial">
               <AppCombobox
                 value={form.origem_comercial ?? ''}
@@ -294,7 +304,7 @@ function EditDrawer({ client, onSave, onClose, onDelete, isNew }: {
               style={focusStyle('cidade_estado')}
             />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Nome do contato">
               <input
                 value={form.contact_name ?? ''}
@@ -531,6 +541,107 @@ function ClientTable({ clients, onEdit, onDelete, onStatusChange }: {
   onStatusChange: (id: string, status: ClientStatus | undefined) => void
 }) {
   const [hovRow, setHovRow] = useState<string | null>(null)
+  const { isMobile } = useBreakpoint()
+
+  if (clients.length === 0) return (
+    <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 14, padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--gray2)', boxShadow: 'var(--shadow)' }}>
+      Nenhum cliente encontrado.
+    </div>
+  )
+
+  // ── Mobile: card layout ───────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {clients.map((c, i) => {
+          const statusCfg = c.status ? CLIENT_STATUS[c.status] : null
+          return (
+            <div
+              key={c.id}
+              onClick={() => onEdit(c)}
+              className="animate-slide-up"
+              style={{
+                background: 'var(--white)', border: '1px solid var(--gray3)',
+                borderRadius: 14, overflow: 'hidden',
+                boxShadow: 'var(--shadow)',
+                borderLeft: `3px solid ${c.color}`,
+                animationDelay: `${i * 0.04}s`,
+                cursor: 'pointer',
+              }}
+            >
+              {/* Top row: avatar + name + status */}
+              <div style={{ padding: '12px 14px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  background: c.color + '18', border: `1.5px solid ${c.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, fontWeight: 800, color: c.color,
+                }}>
+                  {c.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  {c.segmento && <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 1 }}>{c.segmento}</div>}
+                </div>
+                {statusCfg && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: statusCfg.color, background: statusCfg.bg, border: `1px solid ${statusCfg.border}`, padding: '2px 8px', borderRadius: 100, flexShrink: 0 }}>
+                    {statusCfg.label}
+                  </span>
+                )}
+              </div>
+
+              {/* Middle row: data entrada + projetos */}
+              <div style={{ padding: '0 14px 10px', display: 'flex', gap: 16 }}>
+                {c.data_entrada && (
+                  <div style={{ fontSize: 11, color: 'var(--gray2)' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--gray)' }}>Entrada </span>
+                    {fmt(c.data_entrada)}
+                  </div>
+                )}
+                {c.cidade_estado && (
+                  <div style={{ fontSize: 11, color: 'var(--gray2)' }}>{c.cidade_estado}</div>
+                )}
+              </div>
+
+              {/* Footer: projetos count + actions */}
+              <div style={{
+                padding: '8px 14px', borderTop: '1px solid var(--gray3)',
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'var(--bg)',
+              }}>
+                <span style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 600 }}>
+                  {c.projs > 0 ? `${c.projs} projeto${c.projs !== 1 ? 's' : ''}` : 'Sem projetos'}
+                </span>
+                <div style={{ flex: 1 }} />
+                <button
+                  onClick={e => { e.stopPropagation(); onEdit(c) }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, border: `1px solid ${c.color}35`,
+                    background: c.color + '12', color: c.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5a1.5 1.5 0 012.12 2.12L4 10.25H1.75V8L8.5 1.5z" stroke="currentColor" strokeWidth={1.3} strokeLinejoin="round"/></svg>
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(c) }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(217,48,37,0.25)',
+                    background: 'rgba(217,48,37,0.08)', color: '#D93025',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M1.5 3h9M4.5 3V2a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M2.5 3l.75 7a.5.5 0 00.5.45h4.5a.5.5 0 00.5-.45L9.5 3M5 5.5v3M7 5.5v3" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
   const COL_STYLE: React.CSSProperties = {
     flexShrink: 0, padding: '11px 10px 11px 0',
@@ -800,6 +911,8 @@ function ClientsPageInner() {
     { key: 'sem_projetos',  label: 'Sem projetos'   },
   ]
 
+  const { isMobile } = useBreakpoint()
+
   if (loading) return (
     <div>
       <div style={{ marginBottom: 20 }}>
@@ -837,44 +950,43 @@ function ClientsPageInner() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Clientes</h1>
-          <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
-            {clients.length} cliente{clients.length !== 1 ? 's' : ''} cadastrados
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {FILTER_PILLS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              style={{
-                padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: `1px solid ${filter === key ? 'var(--primary)' : 'var(--gray3)'}`,
-                background: filter === key ? 'var(--primary-dim)' : 'transparent',
-                color: filter === key ? 'var(--primary-text)' : 'var(--gray2)',
-                transition: 'all 0.15s',
-              }}
-            >
-              {label}
+      {isMobile ? (
+        /* Mobile: título + botão acima, filtros abaixo em scroll */
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--black)' }}>Clientes</h1>
+              <p style={{ fontSize: 12, color: 'var(--gray)', marginTop: 1 }}>
+                {clients.length} cliente{clients.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button onClick={handleNew} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--primary-text)', background: 'var(--primary-dim)', border: '1px solid var(--primary-mid)', padding: '8px 14px', borderRadius: 100, cursor: 'pointer', flexShrink: 0 }}>
+              + Novo
             </button>
-          ))}
-          <button
-            onClick={handleNew}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
-              color: 'var(--primary-text)', background: 'var(--primary-dim)',
-              border: '1px solid var(--primary-mid)', padding: '6px 14px',
-              borderRadius: 100, cursor: 'pointer', transition: 'opacity .15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
-            + Novo cliente
-          </button>
+          </div>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }} className="scrollbar-hide">
+            {FILTER_PILLS.map(({ key, label }) => (
+              <button key={key} onClick={() => setFilter(key)} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0, border: `1px solid ${filter === key ? 'var(--primary)' : 'var(--gray3)'}`, background: filter === key ? 'var(--primary-dim)' : 'transparent', color: filter === key ? 'var(--primary-text)' : 'var(--gray2)' }}>{label}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Desktop: título esquerda, filtros + botão direita */
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Clientes</h1>
+            <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
+              {clients.length} cliente{clients.length !== 1 ? 's' : ''} cadastrados
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {FILTER_PILLS.map(({ key, label }) => (
+              <button key={key} onClick={() => setFilter(key)} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1px solid ${filter === key ? 'var(--primary)' : 'var(--gray3)'}`, background: filter === key ? 'var(--primary-dim)' : 'transparent', color: filter === key ? 'var(--primary-text)' : 'var(--gray2)', transition: 'all 0.15s' }}>{label}</button>
+            ))}
+            <button onClick={handleNew} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--primary-text)', background: 'var(--primary-dim)', border: '1px solid var(--primary-mid)', padding: '6px 14px', borderRadius: 100, cursor: 'pointer', transition: 'opacity .15s' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>+ Novo cliente</button>
+          </div>
+        </div>
+      )}
 
       <ClientTable
         clients={filtered}

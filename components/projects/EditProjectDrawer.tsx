@@ -4,6 +4,7 @@ import type { Project, ProjectStatus, ProjectType, Client } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
   const [form, setForm] = useState<Project>({ ...project })
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [teamInput, setTeamInput] = useState('')
+  const { isMobile } = useBreakpoint()
 
   function addMember() {
     const name = teamInput.trim()
@@ -104,8 +106,16 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
         }}
       />
 
-      {/* Drawer */}
-      <div style={{
+      {/* Drawer — slides from right on desktop, from bottom on mobile */}
+      <div style={isMobile ? {
+        position: 'fixed', bottom: 0, left: 0, right: 0, top: 'auto',
+        height: '92vh', width: '100%',
+        zIndex: 9001, background: 'var(--white)',
+        borderRadius: '20px 20px 0 0',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+        display: 'flex', flexDirection: 'column',
+        animation: 'panelUp 0.3s cubic-bezier(0.34,1.1,0.64,1) both',
+      } : {
         position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
         zIndex: 9001, background: 'var(--white)',
         boxShadow: '-8px 0 40px rgba(0,0,0,0.14)',
@@ -163,7 +173,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
           </Field>
 
           {/* Cliente + Gestor */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Cliente">
               <AppSelect
                 value={form.client_id}
@@ -233,7 +243,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
           </Field>
 
           {/* Tipo + Status */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Tipo">
               <AppSelect
                 value={form.type}
@@ -269,7 +279,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
           </Field>
 
           {/* Início + Fim */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <Field label="Data de início">
               <AppDatePicker
                 value={form.start_date}

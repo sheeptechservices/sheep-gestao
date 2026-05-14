@@ -7,6 +7,7 @@ import { ProjectsView } from '@/components/projects/ProjectsView'
 import { calcProgress } from '@/lib/utils'
 import { toast } from '@/stores/toastStore'
 import { useCreateStore } from '@/stores/createStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import {
   EditProjectDrawer,
   STATUS_CONFIG,
@@ -128,6 +129,106 @@ function DeleteProjectModal({ project, onConfirm, onClose }: {
 // ── Project list table ────────────────────────────────────────────────────────
 
 function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onEdit: (p: Project) => void; onDelete: (p: Project) => void }) {
+  const { isMobile } = useBreakpoint()
+  const [hovRow, setHovRow] = useState<string | null>(null)
+
+  if (projects.length === 0) return (
+    <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 14, padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--gray2)', boxShadow: 'var(--shadow)' }}>
+      Nenhum projeto encontrado.
+    </div>
+  )
+
+  // ── Mobile: card layout ───────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {projects.map((p, i) => {
+          const s = STATUS_CONFIG[p.status] ?? STATUS_CONFIG['active']
+          const prog = calcProgress(p.start_date, p.end_date)
+          return (
+            <div
+              key={p.id}
+              onClick={() => onEdit(p)}
+              className="animate-slide-up"
+              style={{
+                background: 'var(--white)', border: '1px solid var(--gray3)',
+                borderRadius: 14, overflow: 'hidden',
+                boxShadow: 'var(--shadow)',
+                borderLeft: `3px solid ${p.color_hex}`,
+                animationDelay: `${i * 0.04}s`,
+                cursor: 'pointer',
+              }}
+            >
+              {/* Top row: name + badges */}
+              <div style={{ padding: '12px 14px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--black)', lineHeight: 1.3 }}>{p.name}</div>
+                  {p.client?.name && (
+                    <div style={{ fontSize: 12, color: 'var(--gray)', marginTop: 2 }}>{p.client.name}</div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 5, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: p.color_hex, background: p.color_hex + '15', padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+                    {TYPE_LABEL[p.type]}
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+                    {s.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ padding: '0 14px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, height: 5, background: 'var(--gray3)', borderRadius: 100, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${prog}%`, background: p.color_hex, borderRadius: 100 }} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: p.color_hex, flexShrink: 0 }}>{prog}%</span>
+              </div>
+
+              {/* Footer: dates + gestor + actions */}
+              <div style={{
+                padding: '8px 14px', borderTop: '1px solid var(--gray3)',
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'var(--bg)',
+              }}>
+                <span style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 500 }}>
+                  {fmt(p.start_date)} → {p.end_date ? fmt(p.end_date) : '—'}
+                </span>
+                {p.gestor && (
+                  <span style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 500 }}>· {p.gestor.split(' ')[0]}</span>
+                )}
+                <div style={{ flex: 1 }} />
+                <button
+                  onClick={e => { e.stopPropagation(); onEdit(p) }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, border: `1px solid ${p.color_hex}35`,
+                    background: p.color_hex + '12', color: p.color_hex,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5a1.5 1.5 0 012.12 2.12L4 10.25H1.75V8L8.5 1.5z" stroke="currentColor" strokeWidth={1.3} strokeLinejoin="round"/></svg>
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(p) }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(217,48,37,0.25)',
+                    background: 'rgba(217,48,37,0.08)', color: '#D93025',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ── Desktop: table layout ─────────────────────────────────────────────────
   const COLS = [
     { key: 'name',       label: 'Projeto',   w: '22%' },
     { key: 'client',     label: 'Cliente',   w: '14%' },
@@ -138,8 +239,6 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
     { key: 'end_date',   label: 'Fim prev.', w: '8%'  },
     { key: 'progress',   label: 'Progresso', w: '9%'  },
   ]
-
-  const [hovRow, setHovRow] = useState<string | null>(null)
 
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
@@ -155,114 +254,71 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
       </div>
 
       {/* Rows */}
-      {projects.length === 0 ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--gray2)' }}>
-          Nenhum projeto encontrado.
-        </div>
-      ) : (
-        projects.map((p, i) => {
-          const s = STATUS_CONFIG[p.status] ?? STATUS_CONFIG['active']
-          const isHov = hovRow === p.id
-          return (
-            <div
-              key={p.id}
-              onClick={() => onEdit(p)}
-              onMouseEnter={() => setHovRow(p.id)}
-              onMouseLeave={() => setHovRow(null)}
-              className="animate-slide-up"
-              style={{
-                display: 'flex', alignItems: 'center', padding: '0 20px',
-                borderBottom: i < projects.length - 1 ? '1px solid var(--gray3)' : 'none',
-                background: isHov ? `${p.color_hex}06` : 'var(--white)',
-                cursor: 'pointer', transition: 'background 0.15s',
-                animationDelay: `${i * 0.03}s`,
-              }}
-            >
-              <div style={{ width: 4, height: 40, borderRadius: 2, background: p.color_hex, marginRight: 14, flexShrink: 0, opacity: isHov ? 1 : 0.6, transition: 'opacity 0.15s' }} />
-
-              <div style={{ width: '22%', flexShrink: 0, padding: '13px 8px 13px 0', minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                {p.description && <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>}
-              </div>
-
-              <div style={{ width: '14%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {p.client?.name ?? '—'}
-              </div>
-
-              <div style={{ width: '9%', flexShrink: 0, padding: '0 8px 0 0' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: p.color_hex, background: p.color_hex + '15', padding: '2px 7px', borderRadius: 100 }}>
-                  {TYPE_LABEL[p.type]}
-                </span>
-              </div>
-
-              <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap' }}>
-                  {s.label}
-                </span>
-              </div>
-
-              <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {p.gestor ? p.gestor.split(' ')[0] : '—'}
-              </div>
-
-              <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>
-                {fmt(p.start_date)}
-              </div>
-
-              <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>
-                {fmt(p.end_date)}
-              </div>
-
-              {(() => {
-                const prog = calcProgress(p.start_date, p.end_date)
-                return (
-                  <div style={{ width: '11%', flexShrink: 0, padding: '0 8px 0 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <div style={{ flex: 1, height: 5, background: 'var(--gray3)', borderRadius: 100, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${prog}%`, background: p.color_hex, borderRadius: 100 }} />
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: p.color_hex, flexShrink: 0 }}>{prog}%</span>
+      {projects.map((p, i) => {
+        const s = STATUS_CONFIG[p.status] ?? STATUS_CONFIG['active']
+        const isHov = hovRow === p.id
+        return (
+          <div
+            key={p.id}
+            onClick={() => onEdit(p)}
+            onMouseEnter={() => setHovRow(p.id)}
+            onMouseLeave={() => setHovRow(null)}
+            className="animate-slide-up"
+            style={{
+              display: 'flex', alignItems: 'center', padding: '0 20px',
+              borderBottom: i < projects.length - 1 ? '1px solid var(--gray3)' : 'none',
+              background: isHov ? `${p.color_hex}06` : 'var(--white)',
+              cursor: 'pointer', transition: 'background 0.15s',
+              animationDelay: `${i * 0.03}s`,
+            }}
+          >
+            <div style={{ width: 4, height: 40, borderRadius: 2, background: p.color_hex, marginRight: 14, flexShrink: 0, opacity: isHov ? 1 : 0.6, transition: 'opacity 0.15s' }} />
+            <div style={{ width: '22%', flexShrink: 0, padding: '13px 8px 13px 0', minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+              {p.description && <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>}
+            </div>
+            <div style={{ width: '14%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {p.client?.name ?? '—'}
+            </div>
+            <div style={{ width: '9%', flexShrink: 0, padding: '0 8px 0 0' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: p.color_hex, background: p.color_hex + '15', padding: '2px 7px', borderRadius: 100 }}>
+                {TYPE_LABEL[p.type]}
+              </span>
+            </div>
+            <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+                {s.label}
+              </span>
+            </div>
+            <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {p.gestor ? p.gestor.split(' ')[0] : '—'}
+            </div>
+            <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>{fmt(p.start_date)}</div>
+            <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>{fmt(p.end_date)}</div>
+            {(() => {
+              const prog = calcProgress(p.start_date, p.end_date)
+              return (
+                <div style={{ width: '11%', flexShrink: 0, padding: '0 8px 0 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ flex: 1, height: 5, background: 'var(--gray3)', borderRadius: 100, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${prog}%`, background: p.color_hex, borderRadius: 100 }} />
                     </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: p.color_hex, flexShrink: 0 }}>{prog}%</span>
                   </div>
-                )
-              })()}
-
-              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                <div
-                  onClick={e => { e.stopPropagation(); onEdit(p) }}
-                  style={{
-                    width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isHov ? p.color_hex + '15' : 'transparent',
-                    border: isHov ? `1px solid ${p.color_hex}35` : '1px solid transparent',
-                    color: isHov ? p.color_hex : 'transparent',
-                    transition: 'all 0.15s', flexShrink: 0, cursor: 'pointer',
-                  }}
-                  title="Editar projeto"
-                >
-                  <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-                    <path d="M8.5 1.5a1.5 1.5 0 012.12 2.12L4 10.25H1.75V8L8.5 1.5z" stroke="currentColor" strokeWidth={1.3} strokeLinejoin="round"/>
-                  </svg>
                 </div>
-                <div
-                  onClick={e => { e.stopPropagation(); onDelete(p) }}
-                  style={{
-                    width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isHov ? 'rgba(217,48,37,0.08)' : 'transparent',
-                    border: isHov ? '1px solid rgba(217,48,37,0.25)' : '1px solid transparent',
-                    color: isHov ? '#D93025' : 'transparent',
-                    transition: 'all 0.15s', flexShrink: 0, cursor: 'pointer',
-                  }}
-                  title="Excluir projeto"
-                >
-                  <svg width={12} height={12} viewBox="0 0 14 14" fill="none">
-                    <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
+              )
+            })()}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+              <div onClick={e => { e.stopPropagation(); onEdit(p) }} style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isHov ? p.color_hex + '15' : 'transparent', border: isHov ? `1px solid ${p.color_hex}35` : '1px solid transparent', color: isHov ? p.color_hex : 'transparent', transition: 'all 0.15s', flexShrink: 0, cursor: 'pointer' }} title="Editar projeto">
+                <svg width={12} height={12} viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5a1.5 1.5 0 012.12 2.12L4 10.25H1.75V8L8.5 1.5z" stroke="currentColor" strokeWidth={1.3} strokeLinejoin="round"/></svg>
+              </div>
+              <div onClick={e => { e.stopPropagation(); onDelete(p) }} style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isHov ? 'rgba(217,48,37,0.08)' : 'transparent', border: isHov ? '1px solid rgba(217,48,37,0.25)' : '1px solid transparent', color: isHov ? '#D93025' : 'transparent', transition: 'all 0.15s', flexShrink: 0, cursor: 'pointer' }} title="Excluir projeto">
+                <svg width={12} height={12} viewBox="0 0 14 14" fill="none"><path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
             </div>
-          )
-        })
-      )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -286,6 +342,7 @@ function ProjectsOverview({ autoOpenId }: { autoOpenId?: string }) {
   const [isNew,    setIsNew]    = useState(false)
   const [deleting, setDeleting] = useState<Project | null>(null)
   const [loading,  setLoading]  = useState(true)
+  const { isMobile } = useBreakpoint()
 
   useEffect(() => {
     Promise.all([
@@ -403,60 +460,56 @@ function ProjectsOverview({ autoOpenId }: { autoOpenId?: string }) {
     <div>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Projetos</h1>
-          <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
-            {projects.length} projeto{projects.length !== 1 ? 's' : ''} · {clients.length} clientes
-          </p>
+      {isMobile ? (
+        /* Mobile: título + botão na mesma linha, filtros na linha de baixo */
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--black)' }}>Projetos</h1>
+              <p style={{ fontSize: 12, color: 'var(--gray)', marginTop: 1 }}>
+                {projects.length} projeto{projects.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button
+              onClick={handleNew}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700,
+                color: 'var(--primary-text)', background: 'var(--primary-dim)',
+                border: '1px solid var(--primary-mid)', padding: '8px 14px',
+                borderRadius: 100, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              + Novo
+            </button>
+          </div>
+          {/* Filtros: scroll horizontal */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }} className="scrollbar-hide">
+            <button onClick={() => setFilterStatus('')} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0, border: `1px solid ${filterStatus === '' ? 'var(--primary)' : 'var(--gray3)'}`, background: filterStatus === '' ? 'var(--primary-dim)' : 'transparent', color: filterStatus === '' ? 'var(--primary-text)' : 'var(--gray2)' }}>Todos</button>
+            {ALL_STATUSES.map(s => {
+              const cfg = STATUS_CONFIG[s]; const active = filterStatus === s
+              return <button key={s} onClick={() => setFilterStatus(active ? '' : s)} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0, border: `1px solid ${active ? cfg.color : 'var(--gray3)'}`, background: active ? cfg.bg : 'transparent', color: active ? cfg.color : 'var(--gray2)' }}>{cfg.label}</button>
+            })}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setFilterStatus('')}
-            style={{
-              padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              border: `1px solid ${filterStatus === '' ? 'var(--primary)' : 'var(--gray3)'}`,
-              background: filterStatus === '' ? 'var(--primary-dim)' : 'transparent',
-              color: filterStatus === '' ? 'var(--primary-text)' : 'var(--gray2)',
-              transition: 'all 0.15s',
-            }}
-          >
-            Todos
-          </button>
-          {ALL_STATUSES.map(s => {
-            const cfg = STATUS_CONFIG[s]
-            const active = filterStatus === s
-            return (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(active ? '' : s)}
-                style={{
-                  padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  border: `1px solid ${active ? cfg.color : 'var(--gray3)'}`,
-                  background: active ? cfg.bg : 'transparent',
-                  color: active ? cfg.color : 'var(--gray2)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {cfg.label}
-              </button>
-            )
-          })}
-          <button
-            onClick={handleNew}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
-              color: 'var(--primary-text)', background: 'var(--primary-dim)',
-              border: '1px solid var(--primary-mid)', padding: '6px 14px',
-              borderRadius: 100, cursor: 'pointer', transition: 'opacity .15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
-            + Novo projeto
-          </button>
+      ) : (
+        /* Desktop: título esquerda, filtros + botão direita */
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Projetos</h1>
+            <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>
+              {projects.length} projeto{projects.length !== 1 ? 's' : ''} · {clients.length} clientes
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => setFilterStatus('')} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1px solid ${filterStatus === '' ? 'var(--primary)' : 'var(--gray3)'}`, background: filterStatus === '' ? 'var(--primary-dim)' : 'transparent', color: filterStatus === '' ? 'var(--primary-text)' : 'var(--gray2)', transition: 'all 0.15s' }}>Todos</button>
+            {ALL_STATUSES.map(s => {
+              const cfg = STATUS_CONFIG[s]; const active = filterStatus === s
+              return <button key={s} onClick={() => setFilterStatus(active ? '' : s)} style={{ padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1px solid ${active ? cfg.color : 'var(--gray3)'}`, background: active ? cfg.bg : 'transparent', color: active ? cfg.color : 'var(--gray2)', transition: 'all 0.15s' }}>{cfg.label}</button>
+            })}
+            <button onClick={handleNew} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--primary-text)', background: 'var(--primary-dim)', border: '1px solid var(--primary-mid)', padding: '6px 14px', borderRadius: 100, cursor: 'pointer', transition: 'opacity .15s' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>+ Novo projeto</button>
+          </div>
         </div>
-      </div>
+      )}
 
       <ProjectTable
         projects={filtered}
