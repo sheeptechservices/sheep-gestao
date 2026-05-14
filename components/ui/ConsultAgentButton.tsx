@@ -134,10 +134,16 @@ export function ConsultAgentButton({
 
   const openChat        = useChatStore(s => s.openChat)
   const setPendingInput = useChatStore(s => s.setPendingInput)
+  const setProject      = useChatStore(s => s.setProject)
+  const setTask         = useChatStore(s => s.setTask)
   const agents          = useAgentsStore(s => s.agents).filter(a => a.enabled)
 
   const handleSelectAgent = (agentType: AgentType) => {
     setOpen(false)
+    // Pre-select project + task context dropdowns
+    if (task.project_id) setProject(agentType, task.project_id)
+    setTask(agentType, task.id)
+    // Pre-fill textarea with deliverable context
     const context = buildContext(task, project)
     setPendingInput(agentType, context)
     openChat(agentType)
