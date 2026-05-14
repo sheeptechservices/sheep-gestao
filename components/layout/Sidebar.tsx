@@ -69,9 +69,9 @@ export function Sidebar() {
   const { open, pinned, setOpen } = useSidebar()
   const { isMobile, isTablet } = useBreakpoint()
 
-  // Sidebar only participates in grid layout when open + pinned on desktop
-  // (mirrors the inGrid condition in AppShell — prevents ghost row when collapsed)
-  const effectivePinned = !isMobile && !isTablet && open && pinned
+  // Pinned desktop: always in-grid — open/close is handled by the grid column width
+  // Overlay (mobile / tablet / not-pinned): position:fixed with translateX slide
+  const effectivePinned = !isMobile && !isTablet && pinned
 
   return (
     <aside style={{
@@ -81,10 +81,14 @@ export function Sidebar() {
       display: 'flex',
       flexDirection: 'column',
       overflowX: 'hidden',
-      overflowY: effectivePinned && !open ? 'hidden' : 'auto',
+      overflowY: 'auto',
       width: 220,
-      visibility: effectivePinned && !open ? 'hidden' : 'visible',
-      ...(effectivePinned ? {} : {
+      flexShrink: 0,
+      ...(effectivePinned ? {
+        // In-grid: overflow:hidden lets the grid column animation clip the content
+        overflow: 'hidden',
+        minWidth: 0,
+      } : {
         position: 'fixed',
         left: 0,
         top: 60,
@@ -92,7 +96,7 @@ export function Sidebar() {
         zIndex: 300,
         boxShadow: '4px 0 20px rgba(0,0,0,0.12)',
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
+        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
       }),
     }}>
       {navItems.map((group) => (

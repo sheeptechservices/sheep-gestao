@@ -21,8 +21,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { quickSearchHotkey } = useSettings()
   const { isMobile, isTablet } = useBreakpoint()
 
-  // On mobile/tablet: sidebar is always overlay (never in grid)
-  const inGrid = !isMobile && !isTablet && open && pinned
+  // Sidebar occupies a grid column on desktop when pinned (open state only controls width via CSS)
+  const inGrid = !isMobile && !isTablet && pinned
 
   // Auto-close sidebar when resizing to mobile
   useEffect(() => {
@@ -84,16 +84,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       ) : (
-        /* ── Tablet / Desktop: CSS Grid with optional sidebar column ── */
+        /* ── Tablet / Desktop: CSS Grid — column width animates 0↔220px ── */
         <div style={{
           display: 'grid',
-          gridTemplateColumns: inGrid ? '220px 1fr' : '1fr',
+          gridTemplateColumns: inGrid ? (open ? '220px 1fr' : '0px 1fr') : '1fr',
           gridTemplateRows: '60px 1fr',
           minHeight: '100vh',
-          transition: 'grid-template-columns 0.25s ease',
+          transition: 'grid-template-columns 0.28s cubic-bezier(0.4,0,0.2,1)',
         }}>
           <Topbar />
 
+          {/* Overlay backdrop for non-pinned overlay sidebar */}
           {open && !pinned && (
             <div
               onClick={() => setOpen(false)}
