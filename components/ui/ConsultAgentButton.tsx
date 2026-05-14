@@ -157,33 +157,34 @@ export function ConsultAgentButton({
           ref={btnRef}
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
           onMouseEnter={e => {
-            if (!open) {
-              e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
-              e.currentTarget.style.borderColor = '#22C55E'
-            }
+            e.currentTarget.style.color = '#22C55E'
+            e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
+            e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
           }}
           onMouseLeave={e => {
             if (!open) {
+              e.currentTarget.style.color = 'var(--gray2)'
               e.currentTarget.style.background = 'var(--white)'
-              e.currentTarget.style.borderColor = 'rgba(34,197,94,0.28)'
+              e.currentTarget.style.borderColor = 'var(--gray3)'
             }
           }}
           title="Consultar especialista"
           style={{
             width: 20, height: 20, borderRadius: 5,
             background: open ? 'rgba(34,197,94,0.08)' : 'var(--white)',
-            border: `1px solid ${open ? '#22C55E' : 'rgba(34,197,94,0.28)'}`,
+            border: `1px solid ${open ? 'rgba(34,197,94,0.4)' : 'var(--gray3)'}`,
             boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.12s, border-color 0.12s',
+            transition: 'background 0.12s, border-color 0.12s, color 0.12s',
             padding: 0, flexShrink: 0,
+            color: open ? '#22C55E' : 'var(--gray2)',
           }}
         >
-          <svg width={11} height={11} viewBox="0 0 16 16" fill="none" stroke="#22C55E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <svg width={11} height={11} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 12h12M2 12l1.8-6 3.2 3 2.2-4.5L11.4 9l3.2-3L13 12"/>
-            <circle cx="8" cy="4.2" r="0.9" fill="#22C55E" stroke="none"/>
-            <circle cx="3.3" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
-            <circle cx="12.7" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
+            <circle cx="8" cy="4.2" r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="3.3" cy="7" r="0.75" fill="currentColor" stroke="none"/>
+            <circle cx="12.7" cy="7" r="0.75" fill="currentColor" stroke="none"/>
           </svg>
         </button>
       ) : (
@@ -193,29 +194,30 @@ export function ConsultAgentButton({
           title="Consultar especialista"
           style={{
             width: 34, height: 34, borderRadius: 8,
-            border: `1px solid ${open ? 'rgba(34,197,94,0.6)' : 'var(--gray3)'}`,
+            border: `1px solid ${open ? 'rgba(34,197,94,0.4)' : 'var(--gray3)'}`,
             background: open ? 'rgba(34,197,94,0.08)' : 'transparent',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.12s, border-color 0.12s', flexShrink: 0,
+            transition: 'background 0.12s, border-color 0.12s, color 0.12s', flexShrink: 0,
+            color: open ? '#22C55E' : 'var(--gray2)',
           }}
           onMouseEnter={e => {
-            if (!open) {
-              e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
-              e.currentTarget.style.borderColor = 'rgba(34,197,94,0.6)'
-            }
+            e.currentTarget.style.color = '#22C55E'
+            e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
+            e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
           }}
           onMouseLeave={e => {
             if (!open) {
+              e.currentTarget.style.color = 'var(--gray2)'
               e.currentTarget.style.background = 'transparent'
               e.currentTarget.style.borderColor = 'var(--gray3)'
             }
           }}
         >
-          <svg width={15} height={15} viewBox="0 0 16 16" fill="none" stroke="#22C55E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <svg width={15} height={15} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 12h12M2 12l1.8-6 3.2 3 2.2-4.5L11.4 9l3.2-3L13 12"/>
-            <circle cx="8" cy="4.2" r="0.9" fill="#22C55E" stroke="none"/>
-            <circle cx="3.3" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
-            <circle cx="12.7" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
+            <circle cx="8" cy="4.2" r="0.9" fill="currentColor" stroke="none"/>
+            <circle cx="3.3" cy="7" r="0.75" fill="currentColor" stroke="none"/>
+            <circle cx="12.7" cy="7" r="0.75" fill="currentColor" stroke="none"/>
           </svg>
         </button>
       )}
