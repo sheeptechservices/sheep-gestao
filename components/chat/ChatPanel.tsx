@@ -1135,7 +1135,7 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
 
   // ── Voice mode ──────────────────────────────────────────────────────────────
 
-  /** Strip markdown so TTS reads clean prose */
+  /** Strip markdown and emojis so TTS reads clean prose */
   function stripMarkdownForTTS(md: string): string {
     return md
       .replace(/```[\s\S]*?```/g, '')
@@ -1149,6 +1149,8 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
       .replace(/^\s*[-*+]\s/gm, '')
       .replace(/^\s*\d+\.\s/gm, '')
       .replace(/\n{3,}/g, '\n\n')
+      // Strip all emoji (supplementary planes + misc symbols + variation selectors)
+      .replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]|[\u{2300}-\u{23FF}]|️/gu, '')
       .trim()
   }
 
@@ -1206,7 +1208,7 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
       setVoiceState('speaking')
       const utt = new SpeechSynthesisUtterance(clean)
       utt.lang = 'pt-BR'
-      utt.rate = 1.2
+      utt.rate = 2.0
       window.speechSynthesis.speak(utt)
     }
     spokenUpToRef.current = pos
@@ -1234,7 +1236,7 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
     if (remaining) {
       const utt = new SpeechSynthesisUtterance(remaining)
       utt.lang = 'pt-BR'
-      utt.rate = 1.2
+      utt.rate = 2.0
       utt.onend   = kickListen
       utt.onerror = kickListen
       window.speechSynthesis.speak(utt)
