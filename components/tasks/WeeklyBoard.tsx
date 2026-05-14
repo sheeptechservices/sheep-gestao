@@ -381,7 +381,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   const tag        = project?.client?.name ?? project?.name
   const bloqueado  = task.flags?.includes('bloqueado')
   const revisar    = task.flags?.includes('revisar')
-  const accentColor = bloqueado ? '#DC2626' : color
+  const accentColor = bloqueado ? '#DC2626' : revisar ? '#D97706' : color
 
   return (
     <div
@@ -392,10 +392,10 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.04)' : hov ? 'var(--white)' : 'var(--bg)',
+        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.04)' : revisar ? 'rgba(217,119,6,0.04)' : hov ? 'var(--white)' : 'var(--bg)',
         borderRadius: 10,
-        border: `1px solid ${isDragging ? accentColor + '55' : bloqueado ? 'rgba(220,38,38,0.30)' : hov ? color + '44' : 'var(--gray3)'}`,
-        borderLeft: `3px solid ${isDragging ? accentColor : bloqueado ? '#DC2626' : hov ? color : 'var(--gray3)'}`,
+        border: `1px solid ${isDragging ? accentColor + '55' : bloqueado ? 'rgba(220,38,38,0.30)' : revisar ? 'rgba(217,119,6,0.30)' : hov ? color + '44' : 'var(--gray3)'}`,
+        borderLeft: `3px solid ${isDragging ? accentColor : bloqueado ? '#DC2626' : revisar ? '#D97706' : hov ? color : 'var(--gray3)'}`,
         padding: '9px 10px 9px 9px',
         cursor: isDragging ? 'grabbing' : 'pointer',
         opacity: isDragging ? 0.5 : task.done ? 0.65 : 1,
@@ -725,6 +725,8 @@ function WBListRow({ task, projName, projColor, urgency, isLast, onClick, onTogg
 }) {
   const [hov, setHov] = useState(false)
   const [pop, setPop] = useState(false)
+  const isBloqueado = task.flags?.includes('bloqueado')
+  const isRevisar   = task.flags?.includes('revisar')
   return (
     <div
       onMouseEnter={() => setHov(true)}
@@ -734,7 +736,9 @@ function WBListRow({ task, projName, projColor, urgency, isLast, onClick, onTogg
         display: 'grid', gridTemplateColumns: '28px 1fr 110px 90px 90px',
         alignItems: 'center', gap: 0,
         padding: '9px 16px',
-        background: hov ? 'var(--bg)' : 'var(--white)',
+        paddingLeft: isBloqueado || isRevisar ? 13 : 16,
+        borderLeft: isBloqueado ? '3px solid #DC2626' : isRevisar ? '3px solid #D97706' : 'none',
+        background: isBloqueado ? 'rgba(220,38,38,0.03)' : isRevisar ? 'rgba(217,119,6,0.03)' : hov ? 'var(--bg)' : 'var(--white)',
         borderBottom: isLast ? 'none' : '1px solid var(--gray3)',
         cursor: 'pointer', transition: 'background 0.12s',
       }}
