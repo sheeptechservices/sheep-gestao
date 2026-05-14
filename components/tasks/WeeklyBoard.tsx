@@ -270,19 +270,13 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           />
         </div>
 
-        {/* Responsável + Semana */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Responsável</label>
-            <input value={form.assigned_to}
-              onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-              placeholder="Nome do responsável..." style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Semana</label>
-            <WeekPickerSelect value={form.week_id} onChange={v => setForm(f => ({ ...f, week_id: v }))} weeks={sorted} />
-          </div>
+        {/* Responsável */}
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Responsável</label>
+          <input value={form.assigned_to}
+            onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
+            placeholder="Nome do responsável..." style={inputStyle}
+          />
         </div>
 
         {/* Deadline */}
