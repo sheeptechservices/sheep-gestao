@@ -275,18 +275,23 @@ function EditModal({ agent, onSave, onClose }: {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 3000,
-      background: 'rgba(18,19,22,0.40)',
-      backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      animation: 'fadeIn 0.15s ease both',
-    }}>
-      <div style={{
-        background: 'var(--white)', borderRadius: 18,
-        width: '100%', maxWidth: 580,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-        animation: 'modalSlideUp 0.22s ease both',
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 3000,
+        background: 'rgba(18,19,22,0.40)',
+        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'fadeIn 0.15s ease both',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--white)', borderRadius: 18,
+          width: '100%', maxWidth: 580,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+          animation: 'modalSlideUp 0.22s ease both',
         display: 'flex', flexDirection: 'column', maxHeight: '90vh',
       }}>
         {/* Header */}

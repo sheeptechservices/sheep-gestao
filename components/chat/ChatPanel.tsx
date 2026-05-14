@@ -1422,8 +1422,8 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
 
       {/* ── Confirmation modal ───────────────────────────────────────────────── */}
       {confirmModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(18,19,22,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 16, padding: '24px 24px 20px', width: 268, boxShadow: '0 20px 60px rgba(0,0,0,0.28)', animation: 'fadeIn 0.15s ease both' }}>
+        <div onClick={() => setConfirmModal(null)} style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(18,19,22,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 16, padding: '24px 24px 20px', width: 268, boxShadow: '0 20px 60px rgba(0,0,0,0.28)', animation: 'fadeIn 0.15s ease both' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--black)', marginBottom: 8 }}>
               {confirmModal === 'clear' ? 'Limpar conversa?' : 'Fechar chat?'}
             </div>
