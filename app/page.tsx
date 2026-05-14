@@ -7,7 +7,8 @@ import { ProjectLineChart } from '@/components/dashboard/ProjectLineChart'
 import { ProjectsTable } from '@/components/dashboard/ProjectsTable'
 import { HorizontalBarsCard } from '@/components/dashboard/HorizontalBarsCard'
 import { NpsSection } from '@/components/dashboard/NpsSection'
-import type { Project, Task } from '@/lib/types'
+import { ClientMapCard } from '@/components/dashboard/ClientMapCard'
+import type { Project, Task, Client } from '@/lib/types'
 
 // ── Mock NPS surveys (always visible) ────────────────────────────────────────
 const MOCK_SURVEYS = [
@@ -35,10 +36,10 @@ function computeOverallNps(surveys: typeof MOCK_SURVEYS) {
 const MOCK_NPS = computeOverallNps(MOCK_SURVEYS)
 
 export default function DashboardPage() {
-  const [projects,     setProjects]     = useState<Project[]>([])
-  const [tasks,        setTasks]        = useState<Task[]>([])
-  const [clientCount,  setClientCount]  = useState(0)
-  const [loading,      setLoading]      = useState(true)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [tasks,    setTasks]    = useState<Task[]>([])
+  const [clients,  setClients]  = useState<Client[]>([])
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
     Promise.all([
@@ -46,7 +47,7 @@ export default function DashboardPage() {
       fetch('/api/tasks').then(r => r.json()),
       fetch('/api/clients').then(r => r.json()),
     ]).then(([p, t, c]) => {
-      setProjects(p); setTasks(t); setClientCount(c.length)
+      setProjects(p); setTasks(t); setClients(c)
       setLoading(false)
     })
   }, [])
@@ -177,7 +178,7 @@ export default function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         <StatCard label="Total de projetos" value={projects.length}       sub="projetos cadastrados" index={0} />
         <StatCard label="Em andamento"       value={activeProjects.length} sub="em execução agora"    index={1} />
-        <StatCard label="Total de clientes" value={clientCount}           sub="clientes ativos"      index={2} />
+        <StatCard label="Total de clientes" value={clients.length}        sub="clientes ativos"      index={2} />
         <StatCard
           label="NPS médio"
           value={MOCK_NPS}
@@ -237,6 +238,11 @@ export default function DashboardPage() {
               </div>
               <ProjectDonut projects={projects} />
             </div>
+          </div>
+
+          {/* Client map */}
+          <div className="animate-slide-up delay-5" style={{ marginBottom: 28 }}>
+            <ClientMapCard clients={clients} />
           </div>
 
           {/* NPS — always visible with mock data */}
