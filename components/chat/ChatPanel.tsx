@@ -1208,7 +1208,7 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
       setVoiceState('speaking')
       const utt = new SpeechSynthesisUtterance(clean)
       utt.lang = 'pt-BR'
-      utt.rate = 2.0
+      utt.rate = 3.5
       window.speechSynthesis.speak(utt)
     }
     spokenUpToRef.current = pos
@@ -1236,7 +1236,7 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
     if (remaining) {
       const utt = new SpeechSynthesisUtterance(remaining)
       utt.lang = 'pt-BR'
-      utt.rate = 2.0
+      utt.rate = 3.5
       utt.onend   = kickListen
       utt.onerror = kickListen
       window.speechSynthesis.speak(utt)
