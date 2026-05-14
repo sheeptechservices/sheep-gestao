@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useChatStore } from '@/stores/chatStore'
 import { useAgentsStore } from '@/stores/agentsStore'
 import type { Task, Project, AgentType, TaskUrgency } from '@/lib/types'
@@ -37,37 +38,103 @@ interface ConsultAgentButtonProps {
   direction?: 'up' | 'down'
 }
 
+// ── Popover rendered via portal to escape stacking contexts ───────────────────
+function PopoverPortal({
+  anchorRef,
+  direction,
+  onClose,
+  children,
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>
+  direction: 'up' | 'down'
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+
+  // Position relative to anchor
+  useEffect(() => {
+    if (!anchorRef.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    const POPOVER_W = 210
+    const POPOVER_H = 280 // approx max height
+
+    let top: number
+    if (direction === 'up') {
+      top = rect.top + window.scrollY - POPOVER_H - 6
+    } else {
+      top = rect.bottom + window.scrollY + 6
+    }
+    // Clamp so it doesn't go off-screen top
+    if (top < window.scrollY + 8) top = rect.bottom + window.scrollY + 6
+
+    const left = Math.min(
+      rect.right + window.scrollX - POPOVER_W,
+      window.innerWidth - POPOVER_W - 8,
+    )
+
+    setPos({ top, left: Math.max(left, 8) })
+  }, [anchorRef, direction])
+
+  // Close on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (
+        popRef.current && !popRef.current.contains(e.target as Node) &&
+        anchorRef.current && !anchorRef.current.contains(e.target as Node)
+      ) onClose()
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [anchorRef, onClose])
+
+  // Close on Escape
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
+  if (!pos) return null
+
+  return createPortal(
+    <div
+      ref={popRef}
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: 'absolute',
+        top: pos.top,
+        left: pos.left,
+        background: 'var(--white)',
+        borderRadius: 12,
+        border: '1px solid var(--gray3)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        padding: '8px',
+        display: 'flex', flexDirection: 'column', gap: 2,
+        zIndex: 99999,
+        minWidth: 200,
+        animation: 'slideUp 0.18s ease both',
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export function ConsultAgentButton({
   task, project,
   variant = 'icon',
   direction = 'up',
 }: ConsultAgentButtonProps) {
-  const [open, setOpen]   = useState(false)
-  const [hov, setHov]     = useState(false)
-  const wrapRef           = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const btnRef          = useRef<HTMLButtonElement>(null)
 
   const openChat        = useChatStore(s => s.openChat)
   const setPendingInput = useChatStore(s => s.setPendingInput)
   const agents          = useAgentsStore(s => s.agents).filter(a => a.enabled)
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open])
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [open])
 
   const handleSelectAgent = (agentType: AgentType) => {
     setOpen(false)
@@ -77,20 +144,19 @@ export function ConsultAgentButton({
   }
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+    <div style={{ position: 'relative', display: 'inline-flex' }}>
       {/* Trigger button */}
       {variant === 'icon' ? (
         <button
+          ref={btnRef}
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
           onMouseEnter={e => {
-            setHov(true)
             if (!open) {
               e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
               e.currentTarget.style.borderColor = '#22C55E'
             }
           }}
           onMouseLeave={e => {
-            setHov(false)
             if (!open) {
               e.currentTarget.style.background = 'var(--white)'
               e.currentTarget.style.borderColor = 'rgba(34,197,94,0.28)'
@@ -115,6 +181,7 @@ export function ConsultAgentButton({
         </button>
       ) : (
         <button
+          ref={btnRef}
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
@@ -135,34 +202,16 @@ export function ConsultAgentButton({
         </button>
       )}
 
-      {/* Agent picker popover */}
+      {/* Agent picker popover — rendered via portal to escape card stacking context */}
       {open && (
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            ...(direction === 'up'
-              ? { bottom: 'calc(100% + 6px)' }
-              : { top: 'calc(100% + 6px)' }),
-            right: 0,
-            background: 'var(--white)',
-            borderRadius: 12,
-            border: '1px solid var(--gray3)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.16)',
-            padding: '8px',
-            display: 'flex', flexDirection: 'column', gap: 2,
-            zIndex: 9999,
-            minWidth: 200,
-            animation: 'slideUp 0.18s ease both',
-          }}
-        >
+        <PopoverPortal anchorRef={btnRef} direction={direction} onClose={() => setOpen(false)}>
           <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 6px 6px' }}>
             Abrir chat com
           </div>
           {agents.map(agent => (
             <AgentRow key={agent.type} agent={agent} onSelect={() => handleSelectAgent(agent.type as AgentType)} />
           ))}
-        </div>
+        </PopoverPortal>
       )}
     </div>
   )
