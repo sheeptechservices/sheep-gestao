@@ -1152,6 +1152,9 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
       .trim()
   }
 
+  /** How many chars of the current assistant message are already queued for TTS */
+  const spokenUpToRef = useRef(0)
+
   const startListening = useCallback((sendFn: (t: string) => void) => {
     if (typeof window === 'undefined') return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1176,30 +1179,76 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
     setVoiceState('listening')
   }, [])
 
-  /** Speak text via SpeechSynthesis; when done, start listening again */
-  const speakAndListen = useCallback((text: string, sendFn: (t: string) => void) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(stripMarkdownForTTS(text))
-    utterance.lang = 'pt-BR'
-    utterance.rate = 1.05
-    utterance.onstart = () => setVoiceState('speaking')
-    utterance.onend   = () => startListening(sendFn)
-    utterance.onerror = () => { setVoiceState('idle'); startListening(sendFn) }
-    setVoiceState('speaking')
-    window.speechSynthesis.speak(utterance)
-  }, [startListening])
-
-  /** Watch streaming: when it goes true→false in voice mode, speak the response */
+  /**
+   * During streaming: as soon as a complete sentence is available in the
+   * assistant message, queue it for TTS immediately — no waiting for the
+   * full response.
+   */
   useEffect(() => {
-    if (voiceMode && prevStreamingRef.current && !streaming) {
-      const last = messages[messages.length - 1]
-      if (last?.role === 'assistant' && last.content) {
-        speakAndListen(last.content, (t) => sendMessage(t))
-      }
+    if (!voiceMode || !streaming) return
+    const last = messages[messages.length - 1]
+    if (!last || last.role !== 'assistant' || !last.content) return
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+
+    // Drain all complete sentences from the unspoken tail
+    let pos = spokenUpToRef.current
+    const content = last.content
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const unspoken = content.slice(pos)
+      // Sentence boundary: . ! ? followed by whitespace/newline, or a lone newline
+      const idx = unspoken.search(/[.!?](\s|\n|$)|\n/)
+      if (idx === -1) break
+      const raw = unspoken.slice(0, idx + 1)
+      pos += idx + 1
+      const clean = stripMarkdownForTTS(raw).trim()
+      if (!clean) continue
+      setVoiceState('speaking')
+      const utt = new SpeechSynthesisUtterance(clean)
+      utt.lang = 'pt-BR'
+      utt.rate = 1.2
+      window.speechSynthesis.speak(utt)
     }
+    spokenUpToRef.current = pos
+  }, [messages, streaming, voiceMode])
+
+  /**
+   * When streaming ends: speak any remaining text (last partial sentence),
+   * then kick off listening again.
+   */
+  useEffect(() => {
+    if (!voiceMode) { prevStreamingRef.current = streaming; return }
+    const justFinished = prevStreamingRef.current && !streaming
     prevStreamingRef.current = streaming
-  }, [streaming, voiceMode, messages, speakAndListen, sendMessage])
+    if (!justFinished) return
+
+    const last = messages[messages.length - 1]
+    const remaining = stripMarkdownForTTS(
+      (last?.role === 'assistant' ? last.content ?? '' : '').slice(spokenUpToRef.current)
+    ).trim()
+    spokenUpToRef.current = 0   // reset for next turn
+
+    const kickListen = () => startListening((t) => sendMessage(t))
+    if (typeof window === 'undefined' || !window.speechSynthesis) { kickListen(); return }
+
+    if (remaining) {
+      const utt = new SpeechSynthesisUtterance(remaining)
+      utt.lang = 'pt-BR'
+      utt.rate = 1.2
+      utt.onend   = kickListen
+      utt.onerror = kickListen
+      window.speechSynthesis.speak(utt)
+    } else if (window.speechSynthesis.speaking) {
+      // Sentences from the streaming phase are still playing — poll until done
+      const poll = () => {
+        if (window.speechSynthesis.speaking) setTimeout(poll, 150)
+        else kickListen()
+      }
+      setTimeout(poll, 150)
+    } else {
+      kickListen()
+    }
+  }, [streaming, voiceMode, messages, startListening, sendMessage])
 
   const toggleVoiceMode = useCallback(() => {
     if (voiceMode) {
