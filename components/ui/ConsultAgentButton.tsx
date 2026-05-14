@@ -179,10 +179,11 @@ export function ConsultAgentButton({
             padding: 0, flexShrink: 0,
           }}
         >
-          <svg width={10} height={10} viewBox="0 0 14 14" fill="none">
-            <path d="M12 2H2C1.45 2 1 2.45 1 3v7c0 .55.45 1 1 1h2v2.5l3-2.5h5c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1Z"
-              stroke="#22C55E" strokeWidth={1.4} strokeLinejoin="round"/>
-            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="#22C55E" strokeWidth={1.3} strokeLinecap="round"/>
+          <svg width={11} height={11} viewBox="0 0 16 16" fill="none" stroke="#22C55E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12h12M2 12l1.8-6 3.2 3 2.2-4.5L11.4 9l3.2-3L13 12"/>
+            <circle cx="8" cy="4.2" r="0.9" fill="#22C55E" stroke="none"/>
+            <circle cx="3.3" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
+            <circle cx="12.7" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
           </svg>
         </button>
       ) : (
@@ -210,10 +211,11 @@ export function ConsultAgentButton({
             }
           }}
         >
-          <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-            <path d="M12 2H2C1.45 2 1 2.45 1 3v7c0 .55.45 1 1 1h2v2.5l3-2.5h5c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1Z"
-              stroke="#22C55E" strokeWidth={1.4} strokeLinejoin="round"/>
-            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="#22C55E" strokeWidth={1.3} strokeLinecap="round"/>
+          <svg width={15} height={15} viewBox="0 0 16 16" fill="none" stroke="#22C55E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12h12M2 12l1.8-6 3.2 3 2.2-4.5L11.4 9l3.2-3L13 12"/>
+            <circle cx="8" cy="4.2" r="0.9" fill="#22C55E" stroke="none"/>
+            <circle cx="3.3" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
+            <circle cx="12.7" cy="7" r="0.75" fill="#22C55E" stroke="none"/>
           </svg>
         </button>
       )}
