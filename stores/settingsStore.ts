@@ -85,27 +85,35 @@ export function matchesHotkey(e: KeyboardEvent, h: HotkeyConfig): boolean {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
+export type ColorMode = 'light' | 'dark'
+
 interface SettingsState {
   title: string
   description: string
   primaryColor: string
+  colorMode: ColorMode
   quickSearchHotkey: HotkeyConfig
   setTitle: (v: string) => void
   setDescription: (v: string) => void
   setPrimaryColor: (v: string) => void
+  setColorMode: (v: ColorMode) => void
+  toggleColorMode: () => void
   setQuickSearchHotkey: (v: HotkeyConfig) => void
 }
 
 export const useSettings = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       title:               'Sheep Tech',
       description:         'Gestão de Projetos',
       primaryColor:        '#84CC16',
+      colorMode:           'light',
       quickSearchHotkey:   DEFAULT_QUICK_SEARCH_HOTKEY,
       setTitle:               (title)               => set({ title }),
       setDescription:         (description)         => set({ description }),
       setPrimaryColor:        (primaryColor)         => set({ primaryColor }),
+      setColorMode:           (colorMode)            => set({ colorMode }),
+      toggleColorMode:        ()                     => set({ colorMode: get().colorMode === 'light' ? 'dark' : 'light' }),
       setQuickSearchHotkey:   (quickSearchHotkey)   => set({ quickSearchHotkey }),
     }),
     { name: 'sheep-settings' }

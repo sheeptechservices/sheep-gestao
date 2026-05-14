@@ -43,6 +43,18 @@
   --font-sans: 'Manrope', sans-serif;
 }
 
+/* ── Dark Mode ── */
+[data-theme="dark"] {
+  --bg:    #0F1117;
+  --white: #1A1D26;
+  --black: #EEEEF0;
+  --gray:  #9CA3AF;
+  --gray2: #6B7280;
+  --gray3: #2A2E3D;
+  --shadow:    0 1px 3px rgba(0,0,0,0.30);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.40);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 15px; }

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { initials } from '@/lib/utils'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useSettings, hotkeyLabel } from '@/stores/settingsStore'
+import type { ColorMode } from '@/stores/settingsStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 
@@ -14,7 +15,7 @@ export function Topbar() {
   const { toggle } = useSidebar()
   const userName = 'Guilherme Zaidan'
   const router = useRouter()
-  const { title, description, quickSearchHotkey } = useSettings()
+  const { title, description, quickSearchHotkey, colorMode, toggleColorMode } = useSettings()
   const { open: openSearch } = useQuickSearch()
   const { isMobile } = useBreakpoint()
 
@@ -128,6 +129,41 @@ export function Topbar() {
             </svg>
           </button>
         )}
+
+        {/* Light / Dark toggle */}
+        <button
+          onClick={toggleColorMode}
+          title={colorMode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
+          style={{
+            width: 34, height: 34, borderRadius: 8, border: 'none',
+            background: 'transparent', color: 'var(--gray2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+            transition: 'background .15s, color .15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+        >
+          {colorMode === 'light' ? (
+            /* Moon */
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          ) : (
+            /* Sun */
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1"  x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22"  x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1"  y1="12" x2="3"  y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+            </svg>
+          )}
+        </button>
 
         {/* Avatar + dropdown */}
         <div>
