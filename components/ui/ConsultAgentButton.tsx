@@ -189,22 +189,32 @@ export function ConsultAgentButton({
         <button
           ref={btnRef}
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+          title="Consultar especialista"
           style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            padding: '8px 14px', borderRadius: 10, border: '1px solid var(--primary-mid)',
-            background: open ? 'var(--primary-dim)' : 'var(--white)',
-            cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--primary-text)',
-            transition: 'all 0.15s', width: '100%', justifyContent: 'center',
+            width: 34, height: 34, borderRadius: 8,
+            border: `1px solid ${open ? 'rgba(34,197,94,0.6)' : 'var(--gray3)'}`,
+            background: open ? 'rgba(34,197,94,0.08)' : 'transparent',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.12s, border-color 0.12s', flexShrink: 0,
           }}
-          onMouseEnter={e => { if (!open) e.currentTarget.style.background = 'var(--primary-dim)' }}
-          onMouseLeave={e => { if (!open) e.currentTarget.style.background = 'var(--white)' }}
+          onMouseEnter={e => {
+            if (!open) {
+              e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(34,197,94,0.6)'
+            }
+          }}
+          onMouseLeave={e => {
+            if (!open) {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.borderColor = 'var(--gray3)'
+            }
+          }}
         >
-          <svg width={13} height={13} viewBox="0 0 14 14" fill="none">
+          <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
             <path d="M12 2H2C1.45 2 1 2.45 1 3v7c0 .55.45 1 1 1h2v2.5l3-2.5h5c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1Z"
-              stroke="currentColor" strokeWidth={1.4} strokeLinejoin="round"/>
-            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round"/>
+              stroke="#22C55E" strokeWidth={1.4} strokeLinejoin="round"/>
+            <path d="M4.5 6.5h5M4.5 4.5h3" stroke="#22C55E" strokeWidth={1.3} strokeLinecap="round"/>
           </svg>
-          Consultar especialista
         </button>
       )}
 
@@ -240,10 +250,10 @@ function AgentRow({ agent, onSelect }: { agent: { type: string; name: string; ro
       }}
     >
       <div style={{
-        width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-        background: agent.color + '18', border: `1px solid ${agent.color}30`,
+        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+        background: agent.color + '15', border: `1.5px solid ${agent.color}33`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, lineHeight: 1,
+        fontSize: 15, lineHeight: 1,
       }}>
         {agent.emoji}
       </div>
