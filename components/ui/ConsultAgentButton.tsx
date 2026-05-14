@@ -157,27 +157,25 @@ export function ConsultAgentButton({
           ref={btnRef}
           onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = '#22C55E'
-            e.currentTarget.style.background = 'rgba(34,197,94,0.08)'
-            e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'
+            e.currentTarget.style.background = 'rgba(34,197,94,0.12)'
+            e.currentTarget.style.borderColor = '#22C55E'
           }}
           onMouseLeave={e => {
             if (!open) {
-              e.currentTarget.style.color = 'var(--gray2)'
               e.currentTarget.style.background = 'var(--white)'
-              e.currentTarget.style.borderColor = 'var(--gray3)'
+              e.currentTarget.style.borderColor = 'rgba(34,197,94,0.28)'
             }
           }}
           title="Consultar especialista"
           style={{
             width: 20, height: 20, borderRadius: 5,
-            background: open ? 'rgba(34,197,94,0.08)' : 'var(--white)',
-            border: `1px solid ${open ? 'rgba(34,197,94,0.4)' : 'var(--gray3)'}`,
+            background: open ? 'rgba(34,197,94,0.12)' : 'var(--white)',
+            border: `1px solid ${open ? '#22C55E' : 'rgba(34,197,94,0.28)'}`,
             boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.12s, border-color 0.12s, color 0.12s',
+            transition: 'background 0.12s, border-color 0.12s',
             padding: 0, flexShrink: 0,
-            color: open ? '#22C55E' : 'var(--gray2)',
+            color: '#22C55E',
           }}
         >
           <svg width={11} height={11} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
