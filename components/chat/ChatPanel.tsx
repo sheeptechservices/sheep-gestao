@@ -810,13 +810,15 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
   const appendToLast = useChatStore(s => s.appendToLast)
   const updateMessage = useChatStore(s => s.updateMessage)
   const setStreaming = useChatStore(s => s.setStreaming)
-  const setProject = useChatStore(s => s.setProject)
-  const setTask    = useChatStore(s => s.setTask)
+  const setProject      = useChatStore(s => s.setProject)
+  const setTask         = useChatStore(s => s.setTask)
+  const setPendingInput = useChatStore(s => s.setPendingInput)
 
   const messages   = instance?.messages   ?? []
   const streaming  = instance?.streaming  ?? false
   const selectedProjectId = instance?.selectedProjectId ?? null
   const selectedTaskId    = instance?.selectedTaskId    ?? null
+  const pendingInput      = instance?.pendingInput      ?? null
 
   const [projects,  setProjects]            = useState<Project[]>([])
   const [weeks,     setWeeks]               = useState<Week[]>([])
@@ -859,6 +861,14 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
   const textareaRef     = useRef<HTMLTextAreaElement>(null)
   const abortRef        = useRef<AbortController | null>(null)
   const fileInputRef    = useRef<HTMLInputElement>(null)
+
+  // Consume pendingInput (context injected from task/project shortcut)
+  useEffect(() => {
+    if (!pendingInput) return
+    setInput(pendingInput)
+    setPendingInput(agentType, '')
+    setTimeout(() => textareaRef.current?.focus(), 80)
+  }, [pendingInput, agentType, setPendingInput])
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

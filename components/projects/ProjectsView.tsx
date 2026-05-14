@@ -10,6 +10,7 @@ import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
+import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 
 // ── Troque para visualizar as variantes de navegação de semanas ───────────────
 // 'pills' | 'accordion' | 'prevnext'
@@ -1643,9 +1644,10 @@ function GlobalWeekNav({ weeks, idx, onChange }: {
 }
 
 // ── Day view card (top-level to avoid remount-on-drag bug) ────────────────────
-function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange }: {
+function DayTaskCard({ task, color, project, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange }: {
   task: Task
   color: string
+  project?: Project
   isDragging: boolean
   compact?: boolean
   onDragStart: () => void
@@ -1714,6 +1716,7 @@ function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, on
               color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
             }}>{URGENCY_CONFIG[task.urgency].label}</span>
           )}
+          <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
         </>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
@@ -1735,6 +1738,7 @@ function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, on
                   {task.assigned_to.split(' ')[0]}
                 </span>
               )}
+              <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
             </div>
           )}
         </div>
@@ -1744,10 +1748,11 @@ function DayTaskCard({ task, color, isDragging, compact = false, onDragStart, on
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
-function DayView({ tasks, weekStart, color, onEdit, onStatusChange }: {
+function DayView({ tasks, weekStart, color, project, onEdit, onStatusChange }: {
   tasks: Task[]
   weekStart: string   // 'YYYY-MM-DD' of Monday
   color: string
+  project?: Project
   onEdit: (t: Task) => void
   onStatusChange: (id: string, done: boolean) => void
 }) {
@@ -1852,6 +1857,7 @@ function DayView({ tasks, weekStart, color, onEdit, onStatusChange }: {
                         key={task.id}
                         task={task}
                         color={color}
+                        project={project}
                         isDragging={dragId === task.id}
                         onDragStart={() => setDragId(task.id)}
                         onDragEnd={() => { setDragId(null); setOverZone(null) }}
@@ -2175,7 +2181,7 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onEdit, onDelete,
             ) : view === 'kanban' ? (
               <KanbanView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : view === 'day' ? (
-              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} onEdit={onEdit} onStatusChange={onStatusChange} />
+              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} project={project} onEdit={onEdit} onStatusChange={onStatusChange} />
             ) : (
               <ListView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             )}

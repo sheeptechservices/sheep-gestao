@@ -21,6 +21,7 @@ export interface ChatInstance {
   streaming: boolean
   selectedProjectId: string | null
   selectedTaskId: string | null
+  pendingInput?: string | null   // pre-filled context from task/project shortcut
 }
 
 const EMPTY_INSTANCE: ChatInstance = {
@@ -45,6 +46,7 @@ interface ChatState {
   setStreaming: (agentType: AgentType, v: boolean) => void
   setProject: (agentType: AgentType, id: string | null) => void
   setTask: (agentType: AgentType, id: string | null) => void
+  setPendingInput: (agentType: AgentType, text: string) => void
 }
 
 function patch(
@@ -110,4 +112,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
   setTask: (agentType, id) =>
     set((s) => ({ instances: patch(s.instances, agentType, i => ({ ...i, selectedTaskId: id })) })),
+
+  setPendingInput: (agentType, text) =>
+    set((s) => ({ instances: patch(s.instances, agentType, i => ({ ...i, pendingInput: text })) })),
 }))

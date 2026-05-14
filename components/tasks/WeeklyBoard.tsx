@@ -9,6 +9,7 @@ import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
+import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,14 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               </svg>
             </button>
           )}
+          {isEdit && task && (
+            <ConsultAgentButton
+              task={task}
+              project={projects.find(p => p.id === form.project_id)}
+              variant="full"
+              direction="up"
+            />
+          )}
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{
             padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
@@ -496,6 +505,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
           display: 'flex', gap: 4,
           animation: 'fadeIn 0.12s ease both',
         }}>
+          {/* Consult agent */}
+          <ConsultAgentButton task={task} project={project} variant="icon" direction="down" />
           {/* Edit */}
           <div style={{
             width: 20, height: 20, borderRadius: 5,
