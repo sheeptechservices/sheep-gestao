@@ -290,7 +290,18 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
             Previsão de entrega <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
           </label>
-          <AppDatePicker value={form.deadline} onChange={v => setForm(f => ({ ...f, deadline: v }))} placeholder="Selecione uma data..." clearable />
+          <AppDatePicker
+            value={form.deadline}
+            onChange={v => {
+              // Auto-select the week that contains this deadline
+              const matchingWeek = v
+                ? sorted.find(w => v >= w.start_date && v <= w.end_date) ?? null
+                : null
+              setForm(f => ({ ...f, deadline: v, week_id: matchingWeek ? matchingWeek.id : f.week_id }))
+            }}
+            placeholder="Selecione uma data..."
+            clearable
+          />
         </div>
 
         {/* Flags */}
