@@ -333,7 +333,7 @@ function LeftPanel() {
     <div style={{
       background: 'var(--black)',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      padding: 48, position: 'relative', overflow: 'hidden',
+      padding: 48, position: 'relative', overflow: 'hidden', height: '100%',
     }}>
       {/* Matrix rain */}
       <MatrixRain />
@@ -400,13 +400,20 @@ export default function LoginPage() {
           60%       { transform: translateX(-4px); }
           80%       { transform: translateX(4px); }
         }
+        @media (max-width: 767px) {
+          .login-grid { grid-template-columns: 1fr !important; }
+          .login-left { display: none !important; }
+          .login-right { padding: 40px 24px !important; align-items: flex-start !important; padding-top: 72px !important; }
+        }
       `}</style>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
-        <LeftPanel />
+      <div className="login-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
+        <div className="login-left">
+          <LeftPanel />
+        </div>
 
         {/* Right panel */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, background: 'var(--bg)' }}>
+        <div className="login-right" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, background: 'var(--bg)' }}>
           <Suspense>
             <LoginForm />
           </Suspense>
