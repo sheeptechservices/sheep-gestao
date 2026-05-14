@@ -10,6 +10,7 @@ import type { AgentType, Project, Week, Client } from '@/lib/types'
 import { useTasksStore } from '@/stores/tasksStore'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const PANEL_W     = 400
 const PANEL_W_MAX = 1000
@@ -800,9 +801,10 @@ function AgentPicker({ currentAgentType }: { currentAgentType: AgentType }) {
 interface ChatPanelProps {
   agentType: AgentType
   rightOffset: number  // px from right edge
+  isMobile?: boolean
 }
 
-function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
+function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const instance   = useChatStore(s => s.instances[agentType])
   const closeChat  = useChatStore(s => s.closeChat)
   const clearMessages = useChatStore(s => s.clearMessages)
@@ -1315,29 +1317,51 @@ function ChatPanelInner({ agentType, rightOffset }: ChatPanelProps) {
   const handleNewChat = () => { stopVoice(); clearMessages(agentType); setConsultations([]); setQuickReplies({}); setTaskProposals([]); setProjectProposals([]); setArtifactTitles({}); setInput(''); setAttachments([]) }
   const canSend = (!!(input.trim()) || attachments.length > 0 || pastedImages.length > 0) && !uploading
 
+  const panelStyle: React.CSSProperties = isMobile
+    ? {
+        position: 'fixed', left: 0, right: 0, bottom: 0,
+        height: '92vh', width: '100%',
+        zIndex: 2000,
+        background: 'var(--white)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+        borderRadius: '20px 20px 0 0',
+        display: 'flex', flexDirection: 'column',
+        animation: 'panelUp 0.32s cubic-bezier(0.34,1.1,0.64,1) both',
+      }
+    : {
+        position: 'fixed', top: 0, bottom: 0,
+        right: rightOffset, width: panelWidth,
+        zIndex: 2000,
+        background: 'var(--white)',
+        boxShadow: '-8px 0 40px rgba(0,0,0,0.14)',
+        display: 'flex', flexDirection: 'column',
+        animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
+        transition: 'right 0.28s cubic-bezier(0.34,1.1,0.64,1)',
+      }
+
   return (
-    <div style={{
-      position: 'fixed', top: 0, bottom: 0,
-      right: rightOffset, width: panelWidth,
-      zIndex: 2000,
-      background: 'var(--white)',
-      boxShadow: '-8px 0 40px rgba(0,0,0,0.14)',
-      display: 'flex', flexDirection: 'column',
-      animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
-      transition: 'right 0.28s cubic-bezier(0.34,1.1,0.64,1)',
-    }}>
-      {/* Resize handle — drag left edge to widen */}
-      <div
-        onMouseDown={handleResizeStart}
-        style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0, width: 6,
-          cursor: 'ew-resize', zIndex: 10,
-          background: 'transparent',
-          transition: 'background 0.15s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = agent.color + '30')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      />
+    <div style={panelStyle}>
+      {/* Resize handle — drag left edge to widen (desktop only) */}
+      {!isMobile && (
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 6,
+            cursor: 'ew-resize', zIndex: 10,
+            background: 'transparent',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = agent.color + '30')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        />
+      )}
+
+      {/* Drag handle pill — mobile bottom sheet */}
+      {isMobile && (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 2, flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--gray3)' }} />
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ background: `linear-gradient(135deg, ${agent.color}14 0%, ${agent.color}05 100%)`, borderBottom: `1px solid ${agent.color}22`, flexShrink: 0 }}>
@@ -1662,10 +1686,13 @@ export function ChatPanels() {
   const openChats = useChatStore(s => s.openChats)
   const closeAll  = useChatStore(s => s.closeAll)
   const [mounted, setMounted] = useState(false)
+  const { isMobile } = useBreakpoint()
   useEffect(() => { setMounted(true) }, [])
   if (!mounted || openChats.length === 0) return null
 
-  const totalWidth = openChats.length * PANEL_W + (openChats.length - 1) * PANEL_GAP
+  // On mobile show only the last opened chat (one at a time)
+  const visibleChats = isMobile ? [openChats[openChats.length - 1]] : openChats
+  const totalWidth   = visibleChats.length * PANEL_W + (visibleChats.length - 1) * PANEL_GAP
 
   return (
     <>
@@ -1674,15 +1701,15 @@ export function ChatPanels() {
         onClick={closeAll}
         style={{
           position: 'fixed', inset: 0, zIndex: 1999,
-          background: `rgba(18,19,22,${openChats.length === 1 ? '0.20' : '0.12'})`,
-          backdropFilter: openChats.length === 1 ? 'blur(2px)' : 'none',
-          WebkitBackdropFilter: openChats.length === 1 ? 'blur(2px)' : 'none',
+          background: `rgba(18,19,22,${visibleChats.length === 1 ? '0.20' : '0.12'})`,
+          backdropFilter: visibleChats.length === 1 ? 'blur(2px)' : 'none',
+          WebkitBackdropFilter: visibleChats.length === 1 ? 'blur(2px)' : 'none',
           animation: 'fadeIn 0.18s ease both',
         }}
       />
 
-      {/* Clip hint — shows how many panels are open */}
-      {openChats.length > 1 && (
+      {/* Clip hint — shows how many panels are open (desktop only) */}
+      {!isMobile && visibleChats.length > 1 && (
         <div style={{
           position: 'fixed', bottom: 32, right: totalWidth + 16, zIndex: 2001,
           background: 'var(--black)', color: '#fff',
@@ -1695,10 +1722,10 @@ export function ChatPanels() {
         </div>
       )}
 
-      {openChats.map((type, i) => {
+      {visibleChats.map((type, i) => {
         // Rightmost = last in array = right: 0
-        const fromRight = (openChats.length - 1 - i) * (PANEL_W + PANEL_GAP)
-        return <ChatPanelInner key={type} agentType={type} rightOffset={fromRight} />
+        const fromRight = (visibleChats.length - 1 - i) * (PANEL_W + PANEL_GAP)
+        return <ChatPanelInner key={type} agentType={type} rightOffset={fromRight} isMobile={isMobile} />
       })}
     </>
   )
