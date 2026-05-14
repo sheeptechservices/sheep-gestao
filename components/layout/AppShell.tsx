@@ -53,38 +53,72 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ThemeProvider />
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: inGrid ? '220px 1fr' : '0px 1fr',
-        gridTemplateRows: '60px 1fr',
-        minHeight: '100vh',
-        transition: 'grid-template-columns 0.25s ease',
-      }}>
-        <Topbar />
 
-        {open && !pinned && (
-          <div
-            onClick={() => setOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 290,
-              background: 'rgba(18,19,22,0.35)',
-              animation: 'fadeIn .2s ease both',
-            }}
-          />
-        )}
+      {isMobile ? (
+        /* ── Mobile: flex column, sidebar always overlay ── */
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Topbar />
 
-        <Sidebar />
+          {open && (
+            <div
+              onClick={() => setOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 290,
+                background: 'rgba(18,19,22,0.35)',
+                animation: 'fadeIn .2s ease both',
+              }}
+            />
+          )}
 
-        <main style={{
-          padding: mainPadding,
-          paddingBottom: mainPaddingBottom,
-          overflowY: 'auto',
-          background: 'var(--bg)',
-          minHeight: 0,
+          <Sidebar />
+
+          <main style={{
+            flex: 1,
+            width: '100%',
+            padding: mainPadding,
+            paddingBottom: mainPaddingBottom,
+            overflowY: 'auto',
+            background: 'var(--bg)',
+          }}>
+            {children}
+          </main>
+        </div>
+      ) : (
+        /* ── Tablet / Desktop: CSS Grid with optional sidebar column ── */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: inGrid ? '220px 1fr' : '1fr',
+          gridTemplateRows: '60px 1fr',
+          minHeight: '100vh',
+          transition: 'grid-template-columns 0.25s ease',
         }}>
-          {children}
-        </main>
-      </div>
+          <Topbar />
+
+          {open && !pinned && (
+            <div
+              onClick={() => setOpen(false)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 290,
+                background: 'rgba(18,19,22,0.35)',
+                animation: 'fadeIn .2s ease both',
+              }}
+            />
+          )}
+
+          <Sidebar />
+
+          <main style={{
+            padding: mainPadding,
+            paddingBottom: mainPaddingBottom,
+            overflowY: 'auto',
+            background: 'var(--bg)',
+            minHeight: 0,
+            gridColumn: inGrid ? '2' : '1',
+          }}>
+            {children}
+          </main>
+        </div>
+      )}
 
       {isMobile && <BottomNav />}
       <FloatingAgents />
