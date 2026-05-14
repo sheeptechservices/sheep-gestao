@@ -15,7 +15,11 @@ export function ThemeProvider() {
   }, [primaryColor])
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', colorMode)
+    const root = document.documentElement
+    root.classList.add('theme-switching')
+    root.setAttribute('data-theme', colorMode)
+    const t = setTimeout(() => root.classList.remove('theme-switching'), 400)
+    return () => clearTimeout(t)
   }, [colorMode])
 
   return null
