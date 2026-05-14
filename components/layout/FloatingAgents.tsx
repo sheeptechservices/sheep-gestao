@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { useAgentsStore } from '@/stores/agentsStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { AgentType } from '@/lib/types'
 
 export function FloatingAgents() {
@@ -10,6 +11,7 @@ export function FloatingAgents() {
   const [fabHov,  setFabHov]  = useState(false)
   const [mounted, setMounted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { isMobile } = useBreakpoint()
   const openChat  = useChatStore(s => s.openChat)
   const closeChat = useChatStore(s => s.closeChat)
   const openChats = useChatStore(s => s.openChats)
@@ -44,7 +46,7 @@ export function FloatingAgents() {
         />
       )}
 
-      <div ref={ref} style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, pointerEvents: 'none' }}>
+      <div ref={ref} style={{ position: 'fixed', bottom: isMobile ? 72 : 32, right: isMobile ? 16 : 32, zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, pointerEvents: 'none' }}>
 
         {/* Vertical agent list — rendered top-to-bottom (reversed so PO is nearest FAB) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', pointerEvents: open ? 'auto' : 'none' }}>
@@ -91,15 +93,15 @@ export function FloatingAgents() {
                   </div>
                 </div>
 
-                {/* Emoji circle — wrapper matches FAB width (52px) so circles align */}
-                <div style={{ width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                {/* Emoji circle — wrapper matches FAB width so circles align */}
+                <div style={{ width: isMobile ? 44 : 52, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
                   <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
+                    width: isMobile ? 34 : 40, height: isMobile ? 34 : 40, borderRadius: '50%',
                     background: isH ? agent.color : '#fff',
                     border: `2px solid ${isOpen ? agent.color : agent.color}`,
                     boxShadow: isOpen ? `0 0 0 3px ${agent.color}30, 0 4px 14px ${agent.shadow}` : isH ? `0 4px 14px ${agent.shadow}` : '0 2px 8px rgba(0,0,0,0.10)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
+                    fontSize: isMobile ? 15 : 18,
                     transform: isH ? 'scale(1.12)' : 'scale(1)',
                     transition: 'background 0.18s, box-shadow 0.18s, transform 0.18s',
                   }}>
@@ -121,7 +123,7 @@ export function FloatingAgents() {
           onMouseEnter={() => setFabHov(true)}
           onMouseLeave={() => setFabHov(false)}
           style={{
-            width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+            width: isMobile ? 44 : 52, height: isMobile ? 44 : 52, borderRadius: '50%', flexShrink: 0,
             pointerEvents: 'auto',
             background: open ? 'var(--black)' : 'var(--primary)',
             filter: fabHov && !open ? 'brightness(1.12)' : 'none',
@@ -149,11 +151,11 @@ export function FloatingAgents() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {open ? (
-              <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
+              <svg width={isMobile ? 15 : 18} height={isMobile ? 15 : 18} viewBox="0 0 18 18" fill="none">
                 <path d="M2 2l14 14M16 2L2 16" stroke="#fff" strokeWidth={2.2} strokeLinecap="round"/>
               </svg>
             ) : (
-              <svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+              <svg width={isMobile ? 18 : 22} height={isMobile ? 18 : 22} viewBox="0 0 22 22" fill="none">
                 {/* Crown */}
                 <path d="M3 16h16M3 16l2.5-8 4.5 4 3-6 3 6 4.5-4L19 16" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
                 <circle cx="11" cy="6" r="1.2" fill="#fff"/>
