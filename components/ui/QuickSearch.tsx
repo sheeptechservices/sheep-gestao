@@ -10,6 +10,7 @@ import type { AgentDefinition } from '@/lib/agents'
 import { ProjectDetailDrawer } from './ProjectDetailDrawer'
 import { ClientDetailDrawer } from './ClientDetailDrawer'
 import { useTaskModalStore } from '@/stores/taskModalStore'
+import { useCreateStore } from '@/stores/createStore'
 
 // ── Status configs ────────────────────────────────────────────────────────────
 
@@ -48,12 +49,26 @@ const PAGES: PageDef[] = [
   { label: 'Configurações', href: '/settings',   description: 'Preferências do sistema',       section: 'Sistema'    },
 ]
 
+// ── Create actions ────────────────────────────────────────────────────────────
+
+type CreateKind = 'project' | 'client' | 'task'
+type CreateActionDef = { kind: CreateKind; label: string; description: string; color: string }
+
+const CREATE_ACTIONS: CreateActionDef[] = [
+  { kind: 'project', label: 'Novo projeto',     description: 'Criar um novo projeto',          color: '#6366F1' },
+  { kind: 'client',  label: 'Novo cliente',     description: 'Cadastrar um novo cliente',      color: '#0EA5E9' },
+  { kind: 'task',    label: 'Novo entregável',  description: 'Criar um novo entregável',       color: '#22C55E' },
+]
+
+const CREATE_KEYWORDS = ['novo', 'criar', 'new', 'add', 'projeto', 'cliente', 'entregavel', 'entregável', 'task']
+
 // ── Result item types ─────────────────────────────────────────────────────────
 
 type EnrichedTask = Task & { projectName?: string; projectColor?: string }
 
 type ResultItem =
   | { kind: 'page';    data: PageDef }
+  | { kind: 'create';  data: CreateActionDef }
   | { kind: 'project'; data: Project }
   | { kind: 'task';    data: EnrichedTask }
   | { kind: 'client';  data: Client }
@@ -122,6 +137,18 @@ export function QuickSearch() {
 
   // ── Filtered results ────────────────────────────────────────────────────────
 
+  const filteredCreate: CreateActionDef[] = query
+    ? (() => {
+        const q = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        const matchesKeyword = CREATE_KEYWORDS.some(kw => kw.includes(q) || q.includes(kw))
+        if (!matchesKeyword) return []
+        return CREATE_ACTIONS.filter(a => {
+          const label = a.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+          return label.includes(q) || matchesKeyword
+        })
+      })()
+    : CREATE_ACTIONS // always show all 3 when query is empty
+
   const filteredPages = query
     ? PAGES.filter(p => {
         const q = query.toLowerCase()
@@ -164,8 +191,9 @@ export function QuickSearch() {
       })
     : []
 
-  // Flat list for keyboard navigation: pages → projects → tasks → clients → agents
+  // Flat list for keyboard navigation: create → pages → projects → tasks → clients → agents
   const allResults: ResultItem[] = [
+    ...filteredCreate.map(a   => ({ kind: 'create'  as const, data: a })),
     ...filteredPages.map(p    => ({ kind: 'page'    as const, data: p })),
     ...filteredProjects.map(p => ({ kind: 'project' as const, data: p })),
     ...filteredTasks.map(t    => ({ kind: 'task'    as const, data: t })),
@@ -194,13 +222,22 @@ export function QuickSearch() {
     setDetailClient(client)
   }, [close])
 
-  const requestOpen = useTaskModalStore(s => s.requestOpen)
+  const requestOpen   = useTaskModalStore(s => s.requestOpen)
+  const requestCreate = useCreateStore(s => s.requestCreate)
 
   const handleSelectTask = useCallback((task: EnrichedTask) => {
     close()
     requestOpen(task.id)
     router.push('/tasks')
   }, [close, router, requestOpen])
+
+  const handleCreate = useCallback((action: CreateActionDef) => {
+    close()
+    requestCreate(action.kind)
+    if (action.kind === 'project') router.push('/projects')
+    else if (action.kind === 'client')  router.push('/clients')
+    else                                router.push('/tasks')
+  }, [close, router, requestCreate])
 
   const handleSelectAgent = useCallback((agent: AgentDefinition) => {
     close()
@@ -209,11 +246,12 @@ export function QuickSearch() {
 
   const handleSelect = useCallback((item: ResultItem) => {
     if (item.kind === 'page')         handleSelectPage(item.data as PageDef)
+    else if (item.kind === 'create')  handleCreate(item.data as CreateActionDef)
     else if (item.kind === 'project') handleSelectProject(item.data as Project)
     else if (item.kind === 'task')    handleSelectTask(item.data as EnrichedTask)
     else if (item.kind === 'client')  handleSelectClient(item.data as Client)
     else                              handleSelectAgent(item.data as AgentDefinition)
-  }, [handleSelectPage, handleSelectProject, handleSelectTask, handleSelectClient, handleSelectAgent])
+  }, [handleSelectPage, handleCreate, handleSelectProject, handleSelectTask, handleSelectClient, handleSelectAgent])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     switch (e.key) {
@@ -243,10 +281,11 @@ export function QuickSearch() {
   const hasAny       = totalCount > 0
 
   // Global index offsets
-  const projectOffset = filteredPages.length
-  const taskOffset    = filteredPages.length + filteredProjects.length
-  const clientOffset  = filteredPages.length + filteredProjects.length + filteredTasks.length
-  const agentOffset   = filteredPages.length + filteredProjects.length + filteredTasks.length + filteredClients.length
+  const createOffset  = 0
+  const projectOffset = filteredCreate.length + filteredPages.length
+  const taskOffset    = filteredCreate.length + filteredPages.length + filteredProjects.length
+  const clientOffset  = filteredCreate.length + filteredPages.length + filteredProjects.length + filteredTasks.length
+  const agentOffset   = filteredCreate.length + filteredPages.length + filteredProjects.length + filteredTasks.length + filteredClients.length
 
   return createPortal(
     <>
@@ -329,10 +368,71 @@ export function QuickSearch() {
                     </div>
                   ) : (
                     <>
+                      {/* ── Criar ── */}
+                      {filteredCreate.length > 0 && (
+                        <>
+                          <SectionLabel label="Criar novo" count={filteredCreate.length} />
+                          {filteredCreate.map((action, i) => {
+                            const globalIdx     = createOffset + i
+                            const isHighlighted = globalIdx === selectedIdx
+                            return (
+                              <div
+                                key={action.kind}
+                                onMouseEnter={() => setSelectedIdx(globalIdx)}
+                                onClick={() => handleCreate(action)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 12,
+                                  padding: '10px 18px', cursor: 'pointer',
+                                  background: isHighlighted ? action.color + '10' : 'transparent',
+                                  borderLeft: `2px solid ${isHighlighted ? action.color : 'transparent'}`,
+                                  transition: 'background 0.08s',
+                                }}
+                              >
+                                {/* + icon */}
+                                <div style={{
+                                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                                  background: action.color + '15',
+                                  border: `1px solid ${action.color}30`,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  color: action.color,
+                                }}>
+                                  <svg width={13} height={13} viewBox="0 0 14 14" fill="none">
+                                    <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+                                  </svg>
+                                </div>
+
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: action.color }}>
+                                    {action.label}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 1 }}>
+                                    {action.description}
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700,
+                                  color: action.color, background: action.color + '15',
+                                  border: `1px solid ${action.color}30`,
+                                  padding: '2px 8px', borderRadius: 100,
+                                  flexShrink: 0, whiteSpace: 'nowrap',
+                                }}>
+                                  Criar
+                                </span>
+                              </div>
+                            )
+                          })}
+                          {filteredPages.length > 0 && (
+                            <div style={{ height: 1, background: 'var(--gray3)', margin: '4px 0' }} />
+                          )}
+                        </>
+                      )}
+
                       {/* ── Páginas ── */}
                       {filteredPages.length > 0 && (
                         <>
                           <SectionLabel label={query ? 'Páginas' : 'Ir para'} count={filteredPages.length} />
+
                           {filteredPages.map((page, i) => {
                             const globalIdx     = i
                             const isHighlighted = globalIdx === selectedIdx

@@ -6,6 +6,7 @@ import { PageNav } from '@/components/layout/PageNav'
 import { ProjectsView } from '@/components/projects/ProjectsView'
 import { calcProgress } from '@/lib/utils'
 import { toast } from '@/stores/toastStore'
+import { useCreateStore } from '@/stores/createStore'
 import {
   EditProjectDrawer,
   STATUS_CONFIG,
@@ -301,6 +302,16 @@ function ProjectsOverview({ autoOpenId }: { autoOpenId?: string }) {
       setLoading(false)
     })
   }, [autoOpenId])
+
+  // Open new project drawer from Quick Search (createStore)
+  const pendingCreate = useCreateStore(s => s.pendingCreate)
+  const consumeCreate = useCreateStore(s => s.consumeCreate)
+  useEffect(() => {
+    if (pendingCreate !== 'project' || clients.length === 0) return
+    setEditing(newEmptyProject(clients))
+    setIsNew(true)
+    consumeCreate()
+  }, [pendingCreate, clients, consumeCreate])
 
   const filtered = filterStatus
     ? projects.filter(p => p.status === filterStatus)

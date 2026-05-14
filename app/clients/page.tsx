@@ -6,6 +6,7 @@ import { AppSelect } from '@/components/ui/AppSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { AppCombobox } from '@/components/ui/AppCombobox'
 import { toast } from '@/stores/toastStore'
+import { useCreateStore } from '@/stores/createStore'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -699,6 +700,16 @@ function ClientsPageInner() {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Open new client drawer from Quick Search (createStore)
+  const pendingCreate = useCreateStore(s => s.pendingCreate)
+  const consumeCreate = useCreateStore(s => s.consumeCreate)
+  useEffect(() => {
+    if (pendingCreate !== 'client') return
+    setEditing(newEmptyClient())
+    setIsNew(true)
+    consumeCreate()
+  }, [pendingCreate, consumeCreate])
 
   const withStats: ClientWithStats[] = clients.map((c, i) => {
     const projs     = rawProjects.filter(p => p.client_id === c.id)

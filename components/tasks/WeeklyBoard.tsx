@@ -11,6 +11,7 @@ import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
 import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import { useTaskModalStore } from '@/stores/taskModalStore'
+import { useCreateStore } from '@/stores/createStore'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -983,6 +984,15 @@ export function WeeklyBoard() {
       consumeOpen()
     }
   }, [pendingOpenId, tasks, consumeOpen])
+
+  // Open new task modal from Quick Search (createStore)
+  const pendingCreate  = useCreateStore(s => s.pendingCreate)
+  const consumeCreate  = useCreateStore(s => s.consumeCreate)
+  useEffect(() => {
+    if (pendingCreate !== 'task') return
+    setEditing('new')
+    consumeCreate()
+  }, [pendingCreate, consumeCreate])
 
   // Load data
   useEffect(() => {
