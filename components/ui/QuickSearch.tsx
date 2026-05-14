@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useChatStore } from '@/stores/chatStore'
 import { DEFAULT_AGENTS } from '@/lib/agents'
@@ -26,9 +27,24 @@ const CLIENT_STATUS: Record<ClientStatus, { label: string; color: string; bg: st
   cancelled: { label: 'Encerrado', color: '#D93025', bg: 'rgba(217,48,37,0.10)'   },
 }
 
+// ── Pages ─────────────────────────────────────────────────────────────────────
+
+type PageDef = { label: string; href: string; description: string; section: string }
+
+const PAGES: PageDef[] = [
+  { label: 'Dashboard',     href: '/',           description: 'Visão geral e resumo',         section: 'Principal'  },
+  { label: 'Gestão',        href: '/tasks',      description: 'Quadro semanal de entregáveis', section: 'Principal'  },
+  { label: 'Gerador',       href: '/documentos', description: 'Geração de documentos',         section: 'Principal'  },
+  { label: 'Projetos',      href: '/projects',   description: 'Lista de projetos',             section: 'Cadastros'  },
+  { label: 'Clientes',      href: '/clients',    description: 'Cadastro de clientes',          section: 'Cadastros'  },
+  { label: 'Especialistas', href: '/specialists',description: 'Agentes especialistas',         section: 'Cadastros'  },
+  { label: 'Configurações', href: '/settings',   description: 'Preferências do sistema',       section: 'Sistema'    },
+]
+
 // ── Result item types ─────────────────────────────────────────────────────────
 
 type ResultItem =
+  | { kind: 'page';    data: PageDef }
   | { kind: 'project'; data: Project }
   | { kind: 'client';  data: Client }
   | { kind: 'agent';   data: AgentDefinition }
@@ -52,6 +68,7 @@ function SectionLabel({ label, count }: { label: string; count: number }) {
 export function QuickSearch() {
   const { isOpen, close }   = useQuickSearch()
   const openChat            = useChatStore(s => s.openChat)
+  const router              = useRouter()
 
   const [mounted,       setMounted]       = useState(false)
   const [query,         setQuery]         = useState('')
@@ -91,6 +108,13 @@ export function QuickSearch() {
 
   // ── Filtered results ────────────────────────────────────────────────────────
 
+  const filteredPages = query
+    ? PAGES.filter(p => {
+        const q = query.toLowerCase()
+        return p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+      })
+    : PAGES   // always show all pages when query is empty
+
   const filteredProjects = query
     ? projects.filter(p => {
         const q = query.toLowerCase()
@@ -109,8 +133,9 @@ export function QuickSearch() {
       })
     : []
 
-  // Flat list for keyboard navigation: projects → clients → agents
+  // Flat list for keyboard navigation: pages → projects → clients → agents
   const allResults: ResultItem[] = [
+    ...filteredPages.map(p    => ({ kind: 'page'    as const, data: p })),
     ...filteredProjects.map(p => ({ kind: 'project' as const, data: p })),
     ...filteredClients.map(c  => ({ kind: 'client'  as const, data: c })),
     ...filteredAgents.map(a   => ({ kind: 'agent'   as const, data: a })),
@@ -121,6 +146,11 @@ export function QuickSearch() {
   useEffect(() => { setSelectedIdx(0) }, [query])
 
   // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleSelectPage = useCallback((page: PageDef) => {
+    close()
+    router.push(page.href)
+  }, [close, router])
 
   const handleSelectProject = useCallback((project: Project) => {
     close()
@@ -138,10 +168,11 @@ export function QuickSearch() {
   }, [close, openChat])
 
   const handleSelect = useCallback((item: ResultItem) => {
-    if (item.kind === 'project') handleSelectProject(item.data as Project)
-    else if (item.kind === 'client') handleSelectClient(item.data as Client)
-    else                         handleSelectAgent(item.data as AgentDefinition)
-  }, [handleSelectProject, handleSelectClient, handleSelectAgent])
+    if (item.kind === 'page')    handleSelectPage(item.data as PageDef)
+    else if (item.kind === 'project') handleSelectProject(item.data as Project)
+    else if (item.kind === 'client')  handleSelectClient(item.data as Client)
+    else                              handleSelectAgent(item.data as AgentDefinition)
+  }, [handleSelectPage, handleSelectProject, handleSelectClient, handleSelectAgent])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     switch (e.key) {
@@ -166,12 +197,14 @@ export function QuickSearch() {
 
   if (!mounted) return null
 
-  const showResults  = query.length > 0
+  // Show results panel when there is a query OR when pages are shown (always)
+  const showResults  = true
   const hasAny       = totalCount > 0
 
   // Global index offsets
-  const clientOffset = filteredProjects.length
-  const agentOffset  = filteredProjects.length + filteredClients.length
+  const projectOffset = filteredPages.length
+  const clientOffset  = filteredPages.length + filteredProjects.length
+  const agentOffset   = filteredPages.length + filteredProjects.length + filteredClients.length
 
   return createPortal(
     <>
@@ -212,7 +245,7 @@ export function QuickSearch() {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 18px',
-                borderBottom: showResults ? '1px solid var(--gray3)' : 'none',
+                borderBottom: '1px solid var(--gray3)',
               }}>
                 <svg width={17} height={17} viewBox="0 0 17 17" fill="none"
                   style={{ flexShrink: 0, color: 'var(--gray2)' }}>
@@ -225,7 +258,7 @@ export function QuickSearch() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Pesquisar projeto, cliente ou especialista…"
+                  placeholder="Ir para página, projeto, cliente…"
                   style={{
                     flex: 1, border: 'none', outline: 'none', fontSize: 15,
                     color: 'var(--black)', background: 'transparent',
@@ -254,12 +287,74 @@ export function QuickSearch() {
                     </div>
                   ) : (
                     <>
+                      {/* ── Páginas ── */}
+                      {filteredPages.length > 0 && (
+                        <>
+                          <SectionLabel label={query ? 'Páginas' : 'Ir para'} count={filteredPages.length} />
+                          {filteredPages.map((page, i) => {
+                            const globalIdx     = i
+                            const isHighlighted = globalIdx === selectedIdx
+                            return (
+                              <div
+                                key={page.href}
+                                onMouseEnter={() => setSelectedIdx(globalIdx)}
+                                onClick={() => handleSelectPage(page)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 12,
+                                  padding: '10px 18px', cursor: 'pointer',
+                                  background: isHighlighted ? 'var(--primary-dim)' : 'transparent',
+                                  borderLeft: `2px solid ${isHighlighted ? 'var(--primary)' : 'transparent'}`,
+                                  transition: 'background 0.08s',
+                                }}
+                              >
+                                {/* Page icon */}
+                                <div style={{
+                                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                                  background: 'var(--primary-dim)',
+                                  border: '1px solid var(--primary-dim)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  color: 'var(--primary)',
+                                }}>
+                                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M6 8h4M8 6v4"/>
+                                    <rect x="2" y="2" width="12" height="12" rx="3"/>
+                                  </svg>
+                                </div>
+
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)' }}>
+                                    {page.label}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 1 }}>
+                                    {page.description}
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700,
+                                  color: 'var(--gray2)',
+                                  background: 'var(--bg)',
+                                  border: '1px solid var(--gray3)',
+                                  padding: '2px 8px', borderRadius: 100,
+                                  flexShrink: 0, whiteSpace: 'nowrap',
+                                }}>
+                                  {page.section}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </>
+                      )}
+
                       {/* ── Projetos ── */}
                       {filteredProjects.length > 0 && (
                         <>
+                          {filteredPages.length > 0 && (
+                            <div style={{ height: 1, background: 'var(--gray3)', margin: '4px 0' }} />
+                          )}
                           <SectionLabel label="Projetos" count={filteredProjects.length} />
                           {filteredProjects.map((p, i) => {
-                            const globalIdx     = i
+                            const globalIdx     = projectOffset + i
                             const isHighlighted = globalIdx === selectedIdx
                             const status        = PROJECT_STATUS[p.status] ?? PROJECT_STATUS['active']
                             return (
@@ -315,7 +410,7 @@ export function QuickSearch() {
                       {/* ── Clientes ── */}
                       {filteredClients.length > 0 && (
                         <>
-                          {filteredProjects.length > 0 && (
+                          {(filteredProjects.length > 0 || filteredPages.length > 0) && (
                             <div style={{ height: 1, background: 'var(--gray3)', margin: '4px 0' }} />
                           )}
                           <SectionLabel label="Clientes" count={filteredClients.length} />
