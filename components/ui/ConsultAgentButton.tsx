@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useChatStore } from '@/stores/chatStore'
 import { useAgentsStore } from '@/stores/agentsStore'
+import { stripHtml } from '@/components/ui/RichTextEditor'
 import type { Task, Project, AgentType, TaskUrgency } from '@/lib/types'
 
 // ── Urgency labels ─────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ function buildContext(task: Task, project?: Project): string {
   if (task.assigned_to) lines.push(`**Responsável:** ${task.assigned_to}`)
   if (task.deadline) lines.push(`**Prazo:** ${task.deadline}`)
   lines.push(`**Status:** ${task.done ? 'Concluído ✓' : 'Pendente'}`)
-  if (task.description?.trim()) lines.push(`\n**Descrição:** ${task.description.trim()}`)
+  if (task.description?.trim()) lines.push(`\n**Descrição:** ${stripHtml(task.description).trim()}`)
   lines.push('\n')
   return lines.join('\n')
 }

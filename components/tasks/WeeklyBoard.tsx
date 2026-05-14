@@ -11,6 +11,7 @@ import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
 import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import { useTaskModalStore } from '@/stores/taskModalStore'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -220,10 +221,11 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
         {/* Description */}
         <div>
           <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Descrição</label>
-          <textarea value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="Detalhes adicionais..." rows={3}
-            style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, cursor: 'text' }}
+          <RichTextEditor
+            value={form.description}
+            onChange={html => setForm(f => ({ ...f, description: html }))}
+            placeholder="Detalhes adicionais..."
+            minHeight={120}
           />
         </div>
 
