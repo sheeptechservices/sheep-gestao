@@ -14,6 +14,7 @@ import { useTaskModalStore } from '@/stores/taskModalStore'
 import { useCreateStore } from '@/stores/createStore'
 import { stripHtml } from '@/lib/stripHtml'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -92,10 +93,12 @@ function WBDeleteModal({ task, onConfirm, onClose }: {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--white)', borderRadius: 16,
-        padding: '28px 32px 24px', width: 420,
+        padding: '28px 32px 24px',
+        width: 'min(420px, calc(100vw - 32px))',
         boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
         animation: 'modalSlideUp 0.22s ease both',
         display: 'flex', flexDirection: 'column', gap: 16,
+        margin: '0 16px',
       }}>
         {/* Icon */}
         <div style={{
@@ -165,6 +168,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     deadline:     task?.deadline     ?? defaultDeadline ?? '',
   })
   const inputRef = useRef<HTMLInputElement>(null)
+  const { isMobile } = useBreakpoint()
   useEffect(() => { inputRef.current?.focus() }, [])
   useEffect(() => {
     function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -185,16 +189,20 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(18,19,22,0.35)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex',
+      alignItems: isMobile ? 'flex-end' : 'center',
+      justifyContent: 'center',
       animation: 'fadeIn 0.15s ease both',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--white)', borderRadius: 16,
-        padding: '28px 32px 24px', width: 560,
+        background: 'var(--white)',
+        borderRadius: isMobile ? '20px 20px 0 0' : 16,
+        padding: isMobile ? '20px 20px 32px' : '28px 32px 24px',
+        width: isMobile ? '100%' : 560,
         boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
-        animation: 'modalSlideUp 0.22s ease both',
+        animation: isMobile ? 'panelUp 0.25s ease both' : 'modalSlideUp 0.22s ease both',
         display: 'flex', flexDirection: 'column', gap: 18,
-        maxHeight: '90vh', overflowY: 'auto',
+        maxHeight: isMobile ? '92vh' : '90vh', overflowY: 'auto',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -946,6 +954,9 @@ export function WeeklyBoard() {
   const [weekIdx,  setWeekIdx]  = useState(0)
   const [loading,  setLoading]  = useState(true)
 
+  // Responsive
+  const { isMobile } = useBreakpoint()
+
   // View mode
   const [view,    setView]    = useState<'kanban' | 'list'>('kanban')
   const [viewKey, setViewKey] = useState(0)
@@ -1182,9 +1193,12 @@ export function WeeklyBoard() {
         <div className="shimmer-bar" style={{ width: 130, height: 28, borderRadius: 8, background: 'var(--gray3)' }} />
       </div>
       {/* Kanban columns skeleton */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+      <div
+        className={isMobile ? 'kanban-scroll-row' : undefined}
+        style={isMobile ? {} : { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}
+      >
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} style={{ borderRadius: 12, border: '1.5px solid var(--gray3)', background: 'var(--bg)', overflow: 'hidden', minHeight: 300 }}>
+          <div key={i} className={isMobile ? 'kanban-day-col' : undefined} style={{ borderRadius: 12, border: '1.5px solid var(--gray3)', background: 'var(--bg)', overflow: 'hidden', minHeight: 300 }}>
             <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div className="shimmer-bar" style={{ width: 36, height: 12, borderRadius: 4, background: 'var(--gray3)', animationDelay: `${i * 0.07}s` }} />
@@ -1216,30 +1230,44 @@ export function WeeklyBoard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Header — título + WeekNav + ações, tudo na mesma linha (igual Projetos/Gestão) */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
-        gap: 16,
-      }}>
-        {/* Esquerda — título e descrição */}
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Semana</h1>
-          <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>Visão global de todos os entregáveis da semana</p>
+      {/* Header — título + WeekNav + ações */}
+      {isMobile ? (
+        /* Mobile: stack em coluna */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--black)' }}>Semana</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {totalCount > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>
+                  {doneCount}/{totalCount}
+                </span>
+              )}
+              <NewEntregavelBtn onClick={() => setEditing('new')} />
+            </div>
+          </div>
+          <WeekNav weeks={weeks} idx={weekIdx} onChange={setWeekIdx} />
         </div>
-
-        {/* Centro — navegador de semana */}
-        <WeekNav weeks={weeks} idx={weekIdx} onChange={setWeekIdx} />
-
-        {/* Direita — stats + botão */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
-          {totalCount > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>
-              {doneCount}/{totalCount} feito{totalCount !== 1 ? 's' : ''}
-            </span>
-          )}
-          <NewEntregavelBtn onClick={() => setEditing('new')} />
+      ) : (
+        /* Desktop: 3-column grid */
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
+          gap: 16,
+        }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Semana</h1>
+            <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>Visão global de todos os entregáveis da semana</p>
+          </div>
+          <WeekNav weeks={weeks} idx={weekIdx} onChange={setWeekIdx} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+            {totalCount > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>
+                {doneCount}/{totalCount} feito{totalCount !== 1 ? 's' : ''}
+              </span>
+            )}
+            <NewEntregavelBtn onClick={() => setEditing('new')} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter bar + botão "Novo entregável" */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -1318,7 +1346,10 @@ export function WeeklyBoard() {
       {view === 'kanban' && (
         <>
           {/* Day columns — Kanban */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+          <div
+            className={isMobile ? 'kanban-scroll-row' : undefined}
+            style={isMobile ? {} : { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}
+          >
             {days.map((date, i) => {
               const isToday  = date === today
               const dayTasks = tasksByDay[date] ?? []
@@ -1327,6 +1358,7 @@ export function WeeklyBoard() {
               return (
                 <div
                   key={date}
+                  className={isMobile ? 'kanban-day-col' : undefined}
                   onDragOver={onDragOver}
                   onDragLeave={onDragLeave}
                   onDrop={onDrop}

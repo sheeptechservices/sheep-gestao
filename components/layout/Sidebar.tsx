@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/stores/sidebarStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const navItems = [
   {
@@ -66,6 +67,10 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const { open, pinned, setOpen } = useSidebar()
+  const { isMobile } = useBreakpoint()
+
+  // On mobile, sidebar is always overlay (never pinned to grid)
+  const effectivePinned = isMobile ? false : pinned
 
   return (
     <aside style={{
@@ -75,10 +80,10 @@ export function Sidebar() {
       display: 'flex',
       flexDirection: 'column',
       overflowX: 'hidden',
-      overflowY: pinned && !open ? 'hidden' : 'auto',
+      overflowY: effectivePinned && !open ? 'hidden' : 'auto',
       width: 220,
-      visibility: pinned && !open ? 'hidden' : 'visible',
-      ...(pinned ? {} : {
+      visibility: effectivePinned && !open ? 'hidden' : 'visible',
+      ...(effectivePinned ? {} : {
         position: 'fixed',
         left: 0,
         top: 60,

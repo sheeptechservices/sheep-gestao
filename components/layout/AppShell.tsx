@@ -4,8 +4,10 @@ import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useSettings, matchesHotkey } from '@/stores/settingsStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
+import { BottomNav } from './BottomNav'
 import { ThemeProvider } from './ThemeProvider'
 import { FloatingAgents } from './FloatingAgents'
 import { ChatPanels } from '@/components/chat/ChatPanel'
@@ -17,9 +19,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { open, pinned, setOpen } = useSidebar()
   const { toggle } = useQuickSearch()
   const { quickSearchHotkey } = useSettings()
-  const inGrid = open && pinned
+  const { isMobile, isTablet } = useBreakpoint()
 
-  // Global quick search hotkey (configurable in Settings)
+  // On mobile/tablet: sidebar is always overlay (never in grid)
+  const inGrid = !isMobile && !isTablet && open && pinned
+
+  // Auto-close sidebar when resizing to mobile
+  useEffect(() => {
+    if (isMobile && open && pinned) setOpen(false)
+  }, [isMobile]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Global quick search hotkey
   useEffect(() => {
     if (pathname === '/login') return
     function handler(e: KeyboardEvent) {
@@ -32,10 +42,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', handler)
   }, [toggle, quickSearchHotkey, pathname])
 
-  // Rotas públicas — renderiza só o children, sem shell
+  // Rotas públicas
   if (pathname === '/login') {
     return <>{children}</>
   }
+
+  const mainPadding = isMobile ? '20px 16px' : isTablet ? '24px 24px' : '32px 36px'
+  const mainPaddingBottom = isMobile ? '96px' : isTablet ? '24px' : '32px'
 
   return (
     <>
@@ -54,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setOpen(false)}
             style={{
               position: 'fixed', inset: 0, zIndex: 290,
-              background: 'rgba(18,19,22,0.25)',
+              background: 'rgba(18,19,22,0.35)',
               animation: 'fadeIn .2s ease both',
             }}
           />
@@ -63,7 +76,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
 
         <main style={{
-          padding: '32px 36px',
+          padding: mainPadding,
+          paddingBottom: mainPaddingBottom,
           overflowY: 'auto',
           background: 'var(--bg)',
           minHeight: 0,
@@ -72,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
+      {isMobile && <BottomNav />}
       <FloatingAgents />
       <ChatPanels />
       <ToastContainer />

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { calcProgress } from '@/lib/utils'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { ProjectDonut } from '@/components/dashboard/ProjectDonut'
 import { ProjectLineChart } from '@/components/dashboard/ProjectLineChart'
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const [tasks,    setTasks]    = useState<Task[]>([])
   const [clients,  setClients]  = useState<Client[]>([])
   const [loading,  setLoading]  = useState(true)
+  const { isMobile, isTablet } = useBreakpoint()
 
   useEffect(() => {
     Promise.all([
@@ -107,7 +109,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14, marginBottom: 28 }}>
         {[0,1,2,3].map(i => (
           <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 16, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: 'var(--shadow)' }}>
             {sk('50%', 10, 4)}
@@ -118,7 +120,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 10 : 14, marginBottom: 28 }}>
         {[0,1].map(i => (
           <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 12, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {sk(140, 10, 4)}
@@ -128,7 +130,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bars row */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 16, padding: '36px 36px', marginBottom: 28, boxShadow: 'var(--shadow)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 40 }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 16, padding: isMobile ? '24px 20px' : '36px 36px', marginBottom: 28, boxShadow: 'var(--shadow)', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : '1fr 1fr 1fr', gap: isMobile ? 24 : 40 }}>
         {[0,1,2].map(i => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {sk(100, 10, 4)}
@@ -175,7 +177,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14, marginBottom: 28 }}>
         <StatCard label="Total de projetos" value={projects.length}       sub="projetos cadastrados" index={0} />
         <StatCard label="Em andamento"       value={activeProjects.length} sub="em execução agora"    index={1} />
         <StatCard label="Total de clientes" value={clients.length}        sub="clientes ativos"      index={2} />
@@ -212,7 +214,7 @@ export default function DashboardPage() {
       {/* Charts — only when there's data */}
       {hasProjects && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 10 : 14, marginBottom: 28 }}>
             <div
               className="animate-slide-up delay-3"
               style={{
@@ -252,9 +254,11 @@ export default function DashboardPage() {
           {hasBars && (
             <div style={{
               background: 'var(--white)', border: '1px solid var(--gray3)',
-              borderRadius: 16, padding: '36px 36px', marginBottom: 28,
+              borderRadius: 16, padding: isMobile ? '24px 20px' : '36px 36px', marginBottom: 28,
               boxShadow: 'var(--shadow)',
-              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 40,
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr 1fr' : '1fr 1fr 1fr',
+              gap: isMobile ? 24 : 40,
             }}>
               <HorizontalBarsCard title="Projetos por gestor"  items={byGestor}  />
               <HorizontalBarsCard title="Projetos por dev"     items={byDev}     />

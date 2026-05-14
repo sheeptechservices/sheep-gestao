@@ -6,6 +6,7 @@ import { initials } from '@/lib/utils'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useSettings, hotkeyLabel } from '@/stores/settingsStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -15,6 +16,7 @@ export function Topbar() {
   const router = useRouter()
   const { title, description, quickSearchHotkey } = useSettings()
   const { open: openSearch } = useQuickSearch()
+  const { isMobile } = useBreakpoint()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -23,7 +25,7 @@ export function Topbar() {
       gridColumn: '1 / -1',
       background: 'var(--white)',
       borderBottom: '1px solid var(--gray3)',
-      padding: '0 28px',
+      padding: isMobile ? '0 16px' : '0 28px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -32,7 +34,7 @@ export function Topbar() {
       zIndex: 300,
       height: 60,
     }}>
-      {/* Sidebar toggle + Brand */}
+      {/* Left — Sidebar toggle + Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
           onClick={toggle}
@@ -62,47 +64,72 @@ export function Topbar() {
           {title.charAt(0).toUpperCase()}
         </div>
 
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--black)' }}>{title}</div>
-          <div style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 500, lineHeight: 1 }}>{description}</div>
-        </div>
+        {/* Brand text — hidden on mobile */}
+        {!isMobile && (
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--black)' }}>{title}</div>
+            <div style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 500, lineHeight: 1 }}>{description}</div>
+          </div>
+        )}
       </div>
 
-      {/* Center — Quick search */}
-      <button
-        onClick={openSearch}
-        style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '7px 14px', borderRadius: 10,
-          border: '1px solid var(--gray3)', background: 'var(--bg)',
-          cursor: 'pointer', transition: 'all 0.15s',
-          minWidth: 220,
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-dim)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.background = 'var(--bg)' }}
-      >
-        <svg width={13} height={13} viewBox="0 0 13 13" fill="none" style={{ color: 'var(--gray2)', flexShrink: 0 }}>
-          <circle cx="5.5" cy="5.5" r="3.8" stroke="currentColor" strokeWidth="1.4"/>
-          <path d="M8.2 8.2l2.6 2.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        </svg>
-        <span style={{ flex: 1, fontSize: 12, color: 'var(--gray2)', fontWeight: 500, textAlign: 'left' }}>
-          Pesquisa rápida
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-          {hotkeyLabel(quickSearchHotkey).split('+').map((part, i, arr) => (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-              <kbd style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>
-                {part}
-              </kbd>
-              {i < arr.length - 1 && <span style={{ fontSize: 9, color: 'var(--gray2)' }}>+</span>}
-            </span>
-          ))}
-        </span>
-      </button>
+      {/* Center — Quick search bar (desktop/tablet only) */}
+      {!isMobile && (
+        <button
+          onClick={openSearch}
+          style={{
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '7px 14px', borderRadius: 10,
+            border: '1px solid var(--gray3)', background: 'var(--bg)',
+            cursor: 'pointer', transition: 'all 0.15s',
+            minWidth: 220,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-dim)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.background = 'var(--bg)' }}
+        >
+          <svg width={13} height={13} viewBox="0 0 13 13" fill="none" style={{ color: 'var(--gray2)', flexShrink: 0 }}>
+            <circle cx="5.5" cy="5.5" r="3.8" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M8.2 8.2l2.6 2.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          <span style={{ flex: 1, fontSize: 12, color: 'var(--gray2)', fontWeight: 500, textAlign: 'left' }}>
+            Pesquisa rápida
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+            {hotkeyLabel(quickSearchHotkey).split('+').map((part, i, arr) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                <kbd style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>
+                  {part}
+                </kbd>
+                {i < arr.length - 1 && <span style={{ fontSize: 9, color: 'var(--gray2)' }}>+</span>}
+              </span>
+            ))}
+          </span>
+        </button>
+      )}
 
-      {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* Right — Search icon (mobile) + Avatar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12 }}>
+        {/* Search icon — mobile only */}
+        {isMobile && (
+          <button
+            onClick={openSearch}
+            title="Buscar"
+            style={{
+              width: 34, height: 34, borderRadius: 8, border: 'none',
+              background: 'transparent', color: 'var(--gray2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+              <circle cx="6.5" cy="6.5" r="4.2" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M9.5 9.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Avatar + dropdown */}
         <div>
           <div
             onClick={() => setMenuOpen(!menuOpen)}
@@ -119,14 +146,12 @@ export function Topbar() {
 
           {mounted && menuOpen && createPortal(
             <>
-              {/* Backdrop */}
               <div
                 style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                 onClick={() => setMenuOpen(false)}
               />
-              {/* Menu */}
               <div style={{
-                position: 'fixed', top: 56, right: 24,
+                position: 'fixed', top: 56, right: 16,
                 background: 'var(--white)', border: '1px solid var(--gray3)',
                 borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                 zIndex: 9999, minWidth: 180, overflow: 'hidden',

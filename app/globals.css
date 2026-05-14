@@ -213,3 +213,39 @@ body {
   color: var(--gray2);
   font-weight: 400;
 }
+
+/* ── Responsive grid helpers ── */
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+@media (max-width: 1023px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* ── Mobile safe-area (bottom nav) ── */
+.mobile-page-padding { padding-bottom: 80px; }
+
+/* ── Kanban day columns: horizontal scroll on mobile ── */
+@media (max-width: 767px) {
+  .kanban-scroll-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 10px;
+    padding-bottom: 8px;
+  }
+  .kanban-day-col {
+    flex: 0 0 85vw !important;
+    max-width: 85vw !important;
+    scroll-snap-align: start;
+  }
+}
