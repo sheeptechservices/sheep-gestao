@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useChatStore } from '@/stores/chatStore'
 import { useAgentsStore } from '@/stores/agentsStore'
-import { stripHtml } from '@/components/ui/RichTextEditor'
+import { stripHtml } from '@/lib/stripHtml'
 import type { Task, Project, AgentType, TaskUrgency } from '@/lib/types'
 
 // ── Urgency labels ─────────────────────────────────────────────────────────────

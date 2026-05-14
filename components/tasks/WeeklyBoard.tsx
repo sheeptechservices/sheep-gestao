@@ -12,7 +12,25 @@ import { playDoneSound } from '@/lib/sounds'
 import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import { useTaskModalStore } from '@/stores/taskModalStore'
 import { useCreateStore } from '@/stores/createStore'
-import { RichTextEditor } from '@/components/ui/RichTextEditor'
+import { stripHtml } from '@/lib/stripHtml'
+import dynamic from 'next/dynamic'
+
+const RichTextEditor = dynamic(
+  () => import('@/components/ui/RichTextEditor').then(m => ({ default: m.RichTextEditor })),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{
+        border: '1.5px solid var(--gray3)', borderRadius: 10,
+        background: 'var(--white)', minHeight: 120,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 12, color: 'var(--gray2)',
+      }}>
+        Carregando editor…
+      </div>
+    ),
+  },
+)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
