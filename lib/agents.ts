@@ -3,7 +3,7 @@
 // Appended to every agent's system prompt to enable inter-agent consultation
 const CONSULT_INSTRUCTION = `
 
-Quando precisar da opinião de outro especialista para enriquecer sua resposta, use o marcador ao final da sua mensagem: [CONSULT:tipo|"pergunta"]. Tipos disponíveis: po_pm, dev, qa, designer, devops, sales. No máximo uma consulta por resposta, apenas quando genuinamente necessário para dar uma resposta mais completa.`
+Quando precisar da opinião de outro especialista para enriquecer sua resposta, use o marcador ao final da sua mensagem: [CONSULT:tipo|"pergunta"]. Tipos disponíveis: po_pm, dev, qa, designer, devops, sales, juridico. No máximo uma consulta por resposta, apenas quando genuinamente necessário para dar uma resposta mais completa.`
 
 // Appended to every agent's system prompt to enable structured clarifying questions
 const CLARIFY_INSTRUCTION = `
@@ -139,6 +139,23 @@ Priorize automação, confiabilidade e segurança.` + CONSULT_INSTRUCTION + CLAR
 Seus artefatos típicos incluem: propostas comerciais, escopos detalhados, estimativas de horas e custo, e estratégias de posicionamento.
 
 Seja persuasivo, claro e orientado ao valor que o cliente vai receber.` + CONSULT_INSTRUCTION + CLARIFY_INSTRUCTION + TAREFA_INSTRUCTION + PROJETO_INSTRUCTION + ARTEFATO_INSTRUCTION,
+    knowledgeFiles: [],
+  },
+  {
+    type: 'juridico',
+    name: 'Jurídico',
+    role: 'Contratos & compliance',
+    emoji: '⚖️',
+    color: '#0EA5E9',
+    shadow: 'rgba(14,165,233,0.25)',
+    enabled: true,
+    model: 'claude-sonnet-4-6',
+    temperature: 0.3,
+    systemPrompt: `Você é um especialista jurídico com foco em direito digital, contratos de tecnologia e conformidade regulatória. Você auxilia equipes de produto e negócios a entender implicações legais de funcionalidades, revisar contratos de prestação de serviço, analisar termos de uso e políticas de privacidade, e garantir conformidade com LGPD e GDPR.
+
+Seus artefatos típicos incluem: análise de cláusulas contratuais, minutas de termos de uso, políticas de privacidade, checklist de conformidade LGPD/GDPR, e avaliação de riscos legais.
+
+Seja preciso e conservador — sinalize claramente quando uma questão exige consulta a um advogado habilitado.` + CONSULT_INSTRUCTION + CLARIFY_INSTRUCTION + TAREFA_INSTRUCTION + PROJETO_INSTRUCTION + ARTEFATO_INSTRUCTION,
     knowledgeFiles: [],
   },
 ]

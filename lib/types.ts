@@ -1,6 +1,6 @@
 export type ProjectStatus = "active" | "negotiation" | "paused" | "completed" | "cancelled";
 export type ProjectType = "AI" | "SaaS" | "TaaS" | "BI" | "PowerPlatform" | "Other";
-export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales";
+export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales" | "juridico";
 
 export type ClientStatus = 'active' | 'inactive' | 'paused' | 'cancelled'
 
