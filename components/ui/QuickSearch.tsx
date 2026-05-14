@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useChatStore } from '@/stores/chatStore'
 import { DEFAULT_AGENTS } from '@/lib/agents'
-import type { Project, ProjectStatus, Client, ClientStatus, AgentType } from '@/lib/types'
+import type { Project, ProjectStatus, Client, ClientStatus, AgentType, Task, TaskUrgency } from '@/lib/types'
 import type { AgentDefinition } from '@/lib/agents'
 import { ProjectDetailDrawer } from './ProjectDetailDrawer'
 import { ClientDetailDrawer } from './ClientDetailDrawer'
@@ -18,6 +18,12 @@ const PROJECT_STATUS: Record<ProjectStatus, { label: string; color: string; bg: 
   completed:   { label: 'Finalizado',      color: '#1E8A3E', bg: 'rgba(30,138,62,0.11)'  },
   paused:      { label: 'Pausado',         color: '#7C3AED', bg: 'rgba(124,58,237,0.11)' },
   cancelled:   { label: 'Cancelado',       color: '#D93025', bg: 'rgba(217,48,37,0.10)'  },
+}
+
+const URGENCY_CFG: Record<TaskUrgency, { label: string; color: string; bg: string }> = {
+  low:    { label: 'Baixa',  color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
+  medium: { label: 'Média',  color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
+  high:   { label: 'Alta',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
 }
 
 const CLIENT_STATUS: Record<ClientStatus, { label: string; color: string; bg: string }> = {
@@ -43,9 +49,12 @@ const PAGES: PageDef[] = [
 
 // ── Result item types ─────────────────────────────────────────────────────────
 
+type EnrichedTask = Task & { projectName?: string; projectColor?: string }
+
 type ResultItem =
   | { kind: 'page';    data: PageDef }
   | { kind: 'project'; data: Project }
+  | { kind: 'task';    data: EnrichedTask }
   | { kind: 'client';  data: Client }
   | { kind: 'agent';   data: AgentDefinition }
 
@@ -74,6 +83,7 @@ export function QuickSearch() {
   const [query,         setQuery]         = useState('')
   const [projects,      setProjects]      = useState<Project[]>([])
   const [clients,       setClients]       = useState<Client[]>([])
+  const [tasks,         setTasks]         = useState<Task[]>([])
   const [selectedIdx,   setSelectedIdx]   = useState(0)
   const [detailProject, setDetailProject] = useState<Project | null>(null)
   const [detailClient,  setDetailClient]  = useState<Client | null>(null)
@@ -83,15 +93,18 @@ export function QuickSearch() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Fetch projects + clients once on first open
+  // Fetch projects + clients + tasks once on first open
   useEffect(() => {
     if (isOpen && !fetchedRef.current) {
       fetchedRef.current = true
       Promise.all([
         fetch('/api/projects').then(r => r.json()),
         fetch('/api/clients').then(r => r.json()),
+        fetch('/api/tasks').then(r => r.json()),
       ])
-        .then(([projs, cls]: [Project[], Client[]]) => { setProjects(projs); setClients(cls) })
+        .then(([projs, cls, tks]: [Project[], Client[], Task[]]) => {
+          setProjects(projs); setClients(cls); setTasks(tks)
+        })
         .catch(console.error)
     }
   }, [isOpen])
@@ -126,6 +139,23 @@ export function QuickSearch() {
     ? clients.filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
     : []
 
+  const filteredTasks: EnrichedTask[] = query
+    ? tasks
+        .filter(t => {
+          const q = query.toLowerCase()
+          return (
+            t.title.toLowerCase().includes(q) ||
+            (t.description ?? '').toLowerCase().includes(q) ||
+            (t.assigned_to ?? '').toLowerCase().includes(q)
+          )
+        })
+        .slice(0, 8)   // cap at 8 so the list doesn't explode
+        .map(t => {
+          const proj = projects.find(p => p.id === t.project_id)
+          return { ...t, projectName: proj?.client?.name ?? proj?.name, projectColor: proj?.color_hex }
+        })
+    : []
+
   const filteredAgents = query
     ? DEFAULT_AGENTS.filter(a => {
         const q = query.toLowerCase()
@@ -133,10 +163,11 @@ export function QuickSearch() {
       })
     : []
 
-  // Flat list for keyboard navigation: pages → projects → clients → agents
+  // Flat list for keyboard navigation: pages → projects → tasks → clients → agents
   const allResults: ResultItem[] = [
     ...filteredPages.map(p    => ({ kind: 'page'    as const, data: p })),
     ...filteredProjects.map(p => ({ kind: 'project' as const, data: p })),
+    ...filteredTasks.map(t    => ({ kind: 'task'    as const, data: t })),
     ...filteredClients.map(c  => ({ kind: 'client'  as const, data: c })),
     ...filteredAgents.map(a   => ({ kind: 'agent'   as const, data: a })),
   ]
@@ -162,17 +193,23 @@ export function QuickSearch() {
     setDetailClient(client)
   }, [close])
 
+  const handleSelectTask = useCallback((_task: EnrichedTask) => {
+    close()
+    router.push('/tasks')
+  }, [close, router])
+
   const handleSelectAgent = useCallback((agent: AgentDefinition) => {
     close()
     openChat(agent.type as AgentType)
   }, [close, openChat])
 
   const handleSelect = useCallback((item: ResultItem) => {
-    if (item.kind === 'page')    handleSelectPage(item.data as PageDef)
+    if (item.kind === 'page')         handleSelectPage(item.data as PageDef)
     else if (item.kind === 'project') handleSelectProject(item.data as Project)
+    else if (item.kind === 'task')    handleSelectTask(item.data as EnrichedTask)
     else if (item.kind === 'client')  handleSelectClient(item.data as Client)
     else                              handleSelectAgent(item.data as AgentDefinition)
-  }, [handleSelectPage, handleSelectProject, handleSelectClient, handleSelectAgent])
+  }, [handleSelectPage, handleSelectProject, handleSelectTask, handleSelectClient, handleSelectAgent])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     switch (e.key) {
@@ -203,8 +240,9 @@ export function QuickSearch() {
 
   // Global index offsets
   const projectOffset = filteredPages.length
-  const clientOffset  = filteredPages.length + filteredProjects.length
-  const agentOffset   = filteredPages.length + filteredProjects.length + filteredClients.length
+  const taskOffset    = filteredPages.length + filteredProjects.length
+  const clientOffset  = filteredPages.length + filteredProjects.length + filteredTasks.length
+  const agentOffset   = filteredPages.length + filteredProjects.length + filteredTasks.length + filteredClients.length
 
   return createPortal(
     <>
@@ -258,7 +296,7 @@ export function QuickSearch() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ir para página, projeto, cliente…"
+                  placeholder="Ir para página, projeto, entregável, cliente…"
                   style={{
                     flex: 1, border: 'none', outline: 'none', fontSize: 15,
                     color: 'var(--black)', background: 'transparent',
@@ -407,10 +445,94 @@ export function QuickSearch() {
                         </>
                       )}
 
+                      {/* ── Entregáveis ── */}
+                      {filteredTasks.length > 0 && (
+                        <>
+                          {(filteredProjects.length > 0 || filteredPages.length > 0) && (
+                            <div style={{ height: 1, background: 'var(--gray3)', margin: '4px 0' }} />
+                          )}
+                          <SectionLabel label="Entregáveis" count={filteredTasks.length} />
+                          {filteredTasks.map((t, i) => {
+                            const globalIdx     = taskOffset + i
+                            const isHighlighted = globalIdx === selectedIdx
+                            const urgency       = t.urgency ? URGENCY_CFG[t.urgency] : null
+                            return (
+                              <div
+                                key={t.id}
+                                onMouseEnter={() => setSelectedIdx(globalIdx)}
+                                onClick={() => handleSelectTask(t)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 12,
+                                  padding: '10px 18px', cursor: 'pointer',
+                                  background: isHighlighted ? 'var(--primary-dim)' : 'transparent',
+                                  borderLeft: `2px solid ${isHighlighted ? 'var(--primary)' : 'transparent'}`,
+                                  transition: 'background 0.08s',
+                                }}
+                              >
+                                {/* Checkbox icon */}
+                                <div style={{
+                                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                  border: `1.5px solid ${t.done ? 'var(--primary)' : 'var(--gray3)'}`,
+                                  background: t.done ? 'var(--primary)' : 'transparent',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  {t.done && (
+                                    <svg width={9} height={9} viewBox="0 0 10 10" fill="none">
+                                      <path d="M2 5l2 2.5L8 3" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  )}
+                                </div>
+
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{
+                                    fontSize: 13, fontWeight: 700,
+                                    color: t.done ? 'var(--gray2)' : 'var(--black)',
+                                    textDecoration: t.done ? 'line-through' : 'none',
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                  }}>
+                                    {t.title}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                    {t.projectName && (
+                                      <span style={{
+                                        fontSize: 10, fontWeight: 700,
+                                        color: t.projectColor ?? 'var(--gray2)',
+                                        background: (t.projectColor ?? '#84CC16') + '18',
+                                        padding: '1px 6px', borderRadius: 100,
+                                        display: 'flex', alignItems: 'center', gap: 3,
+                                      }}>
+                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: t.projectColor ?? 'var(--gray2)', flexShrink: 0 }} />
+                                        {t.projectName}
+                                      </span>
+                                    )}
+                                    {t.assigned_to && (
+                                      <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                                        {t.assigned_to.split(' ')[0]}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {urgency && (
+                                  <span style={{
+                                    fontSize: 10, fontWeight: 700,
+                                    color: urgency.color, background: urgency.bg,
+                                    padding: '2px 8px', borderRadius: 100,
+                                    flexShrink: 0, whiteSpace: 'nowrap',
+                                  }}>
+                                    {urgency.label}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </>
+                      )}
+
                       {/* ── Clientes ── */}
                       {filteredClients.length > 0 && (
                         <>
-                          {(filteredProjects.length > 0 || filteredPages.length > 0) && (
+                          {(filteredProjects.length > 0 || filteredPages.length > 0 || filteredTasks.length > 0) && (
                             <div style={{ height: 1, background: 'var(--gray3)', margin: '4px 0' }} />
                           )}
                           <SectionLabel label="Clientes" count={filteredClients.length} />
