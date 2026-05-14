@@ -231,9 +231,12 @@ export function RichTextEditor({ value, onChange, placeholder = 'Descreva o entr
         .tiptap h1 { font-size: 16px; font-weight: 800; margin: 8px 0 4px; color: var(--black); }
         .tiptap h2 { font-size: 14px; font-weight: 700; margin: 6px 0 4px; color: var(--black); }
         .tiptap h3 { font-size: 13px; font-weight: 700; margin: 4px 0 3px; color: var(--black); }
-        .tiptap ul { margin: 4px 0; padding-left: 20px; }
-        .tiptap ol { margin: 4px 0; padding-left: 20px; }
-        .tiptap li { margin: 2px 0; }
+        .tiptap ul { margin: 4px 0; padding-left: 20px; list-style-type: disc; }
+        .tiptap ul ul { list-style-type: circle; }
+        .tiptap ul ul ul { list-style-type: square; }
+        .tiptap ol { margin: 4px 0; padding-left: 20px; list-style-type: decimal; }
+        .tiptap ol ol { list-style-type: lower-alpha; }
+        .tiptap li { margin: 2px 0; display: list-item; }
         .tiptap li p { margin: 0; }
         .tiptap blockquote {
           border-left: 3px solid var(--primary);
