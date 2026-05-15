@@ -3,34 +3,33 @@ import { initDb } from '@/lib/db'
 import { DEFAULT_AGENTS, type AgentDefinition } from '@/lib/agents'
 
 // ── GET /api/agents ────────────────────────────────────────────────────────────
-// Retorna DEFAULT_AGENTS mesclado com as customizações salvas no banco.
-// Agentes novos (adicionados no código mas ainda sem linha no banco) chegam
-// com os valores padrão — nenhuma ação manual necessária.
+// Lê os agentes diretamente do banco (source of truth).
+// O seed em initDb garante que todos os DEFAULT_AGENTS estão presentes.
+// Campos visuais (emoji, color, shadow, model) vêm do código — não são editáveis.
 export async function GET() {
   try {
     const db  = await initDb()
-    const res = await db.execute(`SELECT * FROM agents`)
+    const res = await db.execute(`SELECT * FROM agents ORDER BY rowid`)
 
-    // Indexar overrides por type para lookup O(1)
-    const overrides: Record<string, Record<string, unknown>> = {}
-    for (const row of res.rows) {
-      const r = row as unknown as Record<string, unknown>
-      overrides[r.type as string] = r
-    }
+    // Index dos campos visuais/modelo por type (não armazenados no banco)
+    const codeMap = Object.fromEntries(DEFAULT_AGENTS.map(a => [a.type, a]))
 
-    const agents: AgentDefinition[] = DEFAULT_AGENTS.map(def => {
-      const ov = overrides[def.type]
-      if (!ov) return def   // novo agente — usa defaults do código
-      return {
-        ...def,
-        enabled:        ov.enabled === 1 || ov.enabled === true,
-        name:           (ov.name           as string) ?? def.name,
-        role:           (ov.role           as string) ?? def.role,
-        temperature:    (ov.temperature    as number) ?? def.temperature,
-        systemPrompt:   (ov.system_prompt  as string) ?? def.systemPrompt,
-        knowledgeFiles: JSON.parse((ov.knowledge_files as string) ?? '[]'),
-      }
-    })
+    const agents: AgentDefinition[] = res.rows
+      .map(row => {
+        const r   = row as unknown as Record<string, unknown>
+        const def = codeMap[r.type as string]
+        if (!def) return null  // type obsoleto — ignora
+        return {
+          ...def,              // emoji, color, shadow, model do código
+          enabled:        r.enabled === 1 || r.enabled === true,
+          name:           r.name          as string,
+          role:           r.role          as string,
+          temperature:    r.temperature   as number,
+          systemPrompt:   r.system_prompt as string,
+          knowledgeFiles: JSON.parse((r.knowledge_files as string) ?? '[]'),
+        }
+      })
+      .filter((a): a is AgentDefinition => a !== null)
 
     return NextResponse.json(agents)
   } catch (err) {
@@ -40,40 +39,39 @@ export async function GET() {
 }
 
 // ── PUT /api/agents ────────────────────────────────────────────────────────────
-// Upsert de um agente. Recebe um AgentDefinition parcial com pelo menos { type }.
+// Atualiza um agente existente no banco. O registro sempre existe (seed no boot).
 export async function PUT(req: Request) {
   try {
     const body = await req.json() as Partial<AgentDefinition> & { type: string }
     const { type } = body
 
-    // Buscar defaults do código para esse type
-    const def = DEFAULT_AGENTS.find(a => a.type === type)
-    if (!def) return NextResponse.json({ error: 'Tipo de agente inválido' }, { status: 400 })
+    if (!DEFAULT_AGENTS.find(a => a.type === type)) {
+      return NextResponse.json({ error: 'Tipo de agente inválido' }, { status: 400 })
+    }
 
     const db  = await initDb()
     const now = new Date().toISOString()
 
     await db.execute({
       sql: `
-        INSERT INTO agents (type, enabled, name, role, temperature, system_prompt, knowledge_files, updated_at)
-        VALUES (:type, :enabled, :name, :role, :temperature, :system_prompt, :knowledge_files, :updated_at)
-        ON CONFLICT(type) DO UPDATE SET
-          enabled         = excluded.enabled,
-          name            = excluded.name,
-          role            = excluded.role,
-          temperature     = excluded.temperature,
-          system_prompt   = excluded.system_prompt,
-          knowledge_files = excluded.knowledge_files,
-          updated_at      = excluded.updated_at
+        UPDATE agents SET
+          enabled         = :enabled,
+          name            = :name,
+          role            = :role,
+          temperature     = :temperature,
+          system_prompt   = :system_prompt,
+          knowledge_files = :knowledge_files,
+          updated_at      = :updated_at
+        WHERE type = :type
       `,
       args: {
         type,
-        enabled:         (body.enabled ?? def.enabled) ? 1 : 0,
-        name:            body.name            ?? def.name,
-        role:            body.role            ?? def.role,
-        temperature:     body.temperature     ?? def.temperature,
-        system_prompt:   body.systemPrompt    ?? def.systemPrompt,
-        knowledge_files: JSON.stringify(body.knowledgeFiles ?? def.knowledgeFiles),
+        enabled:         body.enabled ? 1 : 0,
+        name:            body.name            ?? '',
+        role:            body.role            ?? '',
+        temperature:     body.temperature     ?? 0.7,
+        system_prompt:   body.systemPrompt    ?? '',
+        knowledge_files: JSON.stringify(body.knowledgeFiles ?? []),
         updated_at:      now,
       },
     })

@@ -1,5 +1,6 @@
 import { createClient, type Client } from '@libsql/client'
 import path from 'path'
+import { DEFAULT_AGENTS } from './agents'
 
 let _client: Client | null = null
 let _initialized = false
@@ -230,4 +231,14 @@ async function migrateDb(db: Client) {
       await db.batch(stmts.slice(i, i + 50), 'write')
     }
   }
+
+  // Seed de agentes — INSERT OR IGNORE garante idempotência.
+  // Agentes novos adicionados no código aparecem automaticamente no próximo boot.
+  // Customizações salvas pelo usuário (UPDATE) não são sobrescritas.
+  const now = new Date().toISOString()
+  const agentStmts = DEFAULT_AGENTS.map(a => ({
+    sql:  `INSERT OR IGNORE INTO agents (type, enabled, name, role, temperature, system_prompt, knowledge_files, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [a.type, a.enabled ? 1 : 0, a.name, a.role, a.temperature, a.systemPrompt, JSON.stringify(a.knowledgeFiles), now] as (string | number)[],
+  }))
+  await db.batch(agentStmts, 'write')
 }
