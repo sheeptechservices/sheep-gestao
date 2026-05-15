@@ -115,9 +115,10 @@ async function createTables(db: Client) {
       id         TEXT PRIMARY KEY,
       task_id    TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
       filename   TEXT NOT NULL,
-      url        TEXT NOT NULL,
+      url        TEXT NOT NULL DEFAULT '',
       size       INTEGER NOT NULL DEFAULT 0,
       mime_type  TEXT NOT NULL DEFAULT '',
+      data       TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -158,6 +159,8 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE projects ADD COLUMN team_members  TEXT`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN display_order INTEGER DEFAULT 0`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN github_repo  TEXT`),
+    // task_attachments — coluna data adicionada após a criação inicial
+    tryAlter(db, `ALTER TABLE task_attachments ADD COLUMN data TEXT`),
     // tasks
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN done         INTEGER NOT NULL DEFAULT 0`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN flag_comment TEXT`),
