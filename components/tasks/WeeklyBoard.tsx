@@ -576,41 +576,30 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             variant="full"
             direction="up"
           />
-          <div style={{ flex: 1 }} />
-          {/* Toggle concluído */}
+          {/* Toggle concluído — ícone único, verde primário */}
           <button
             type="button"
+            title={form.done ? 'Marcar como pendente' : 'Marcar como concluído'}
             onClick={() => setForm(f => ({ ...f, done: !f.done }))}
             style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-              border: `1.5px solid ${form.done ? '#059669' : 'var(--gray3)'}`,
-              background: form.done ? 'rgba(5,150,105,0.10)' : 'transparent',
-              color: form.done ? '#059669' : 'var(--gray2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+              border: `1.5px solid ${form.done ? 'var(--primary)' : 'var(--gray3)'}`,
+              background: form.done ? 'var(--primary)' : 'transparent',
               cursor: 'pointer', transition: 'all 0.18s',
             }}
             onMouseEnter={e => {
-              if (!form.done) { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.color = '#059669' }
+              if (!form.done) { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'rgba(var(--primary-rgb, 132,204,22),0.10)' }
             }}
             onMouseLeave={e => {
-              if (!form.done) { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }
+              if (!form.done) { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.background = 'transparent' }
             }}
           >
-            <span style={{
-              width: 14, height: 14, borderRadius: 4, flexShrink: 0,
-              border: `1.5px solid ${form.done ? '#059669' : 'var(--gray3)'}`,
-              background: form.done ? '#059669' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.18s',
-            }}>
-              {form.done && (
-                <svg width={9} height={9} viewBox="0 0 10 10" fill="none">
-                  <path d="M2 5l2 2.5L8 3" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </span>
-            {form.done ? 'Concluído' : 'Marcar como concluído'}
+            <svg width={15} height={15} viewBox="0 0 16 16" fill="none">
+              <path d="M3 8l3.5 3.5L13 4.5" stroke={form.done ? 'var(--primary-text, #fff)' : 'var(--gray2)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}/>
+            </svg>
           </button>
+          <div style={{ flex: 1 }} />
           <button onClick={() => onClose(draftIdRef.current ?? undefined)} style={{
             padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
             border: '1px solid var(--gray3)', background: 'transparent',
