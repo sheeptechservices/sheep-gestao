@@ -59,14 +59,14 @@
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
-  --bg:    #0F1117;
-  --white: #1A1D26;
-  --black: #EEEEF0;
-  --gray:  #9CA3AF;
-  --gray2: #6B7280;
-  --gray3: #2A2E3D;
-  --shadow:    0 1px 3px rgba(0,0,0,0.30);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.40);
+  --bg:    #08090C;       /* fundo geral — quase preto */
+  --white: #111318;       /* cards, topbar, sidebar */
+  --black: #E8E9EC;       /* texto principal */
+  --gray:  #8A94A6;       /* texto secundário */
+  --gray2: #525C6E;       /* texto desabilitado / placeholder */
+  --gray3: #1E2130;       /* bordas / divisores */
+  --shadow:    0 1px 4px rgba(0,0,0,0.55);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.65);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
