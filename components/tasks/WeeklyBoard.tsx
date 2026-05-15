@@ -586,17 +586,18 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               width: 34, height: 34, borderRadius: 8, flexShrink: 0,
               border: `1.5px solid ${form.done ? 'var(--primary)' : 'var(--gray3)'}`,
               background: form.done ? 'var(--primary)' : 'transparent',
+              color: form.done ? 'var(--primary-text, #fff)' : 'var(--gray2)',
               cursor: 'pointer', transition: 'all 0.18s',
             }}
             onMouseEnter={e => {
-              if (!form.done) { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'rgba(var(--primary-rgb, 132,204,22),0.10)' }
+              if (!form.done) { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'rgba(var(--primary-rgb, 132,204,22),0.10)'; e.currentTarget.style.color = 'var(--primary)' }
             }}
             onMouseLeave={e => {
-              if (!form.done) { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.background = 'transparent' }
+              if (!form.done) { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }
             }}
           >
             <svg width={15} height={15} viewBox="0 0 16 16" fill="none">
-              <path d="M3 8l3.5 3.5L13 4.5" stroke={form.done ? 'var(--primary-text, #fff)' : 'var(--primary)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}/>
+              <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}/>
             </svg>
           </button>
           <div style={{ flex: 1 }} />
