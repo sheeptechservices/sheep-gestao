@@ -466,7 +466,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           >
             {/* Upload icon */}
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none"
-              stroke={dragOver || attHover ? 'var(--primary)' : 'var(--gray2)'}>
+              stroke={dragOver || attHover ? 'var(--primary)' : 'var(--gray2)'}
               strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
               style={{ transition: 'stroke 0.15s' }}
             >
