@@ -294,30 +294,254 @@ function ArtifactDownloadBar({ msgId, title, content, agentColor }: {
     if (!el) return
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head>
-      <meta charset="utf-8">
-      <title>${title}</title>
-      <style>
-        body{font-family:-apple-system,system-ui,sans-serif;max-width:760px;margin:40px auto;line-height:1.65;color:#111;font-size:14px}
-        h1{font-size:22px;font-weight:800;margin:20px 0 10px}
-        h2{font-size:18px;font-weight:700;margin:16px 0 8px}
-        h3{font-size:15px;font-weight:700;margin:12px 0 6px}
-        p{margin:0 0 10px}
-        ul,ol{margin:4px 0 10px;padding-left:22px}
-        li{margin-bottom:4px}
-        code{font-family:monospace;background:#f3f3f3;padding:2px 5px;border-radius:3px;font-size:12px}
-        pre{background:#f5f5f5;border-radius:6px;padding:10px 14px;margin:8px 0;overflow-x:auto}
-        pre code{background:none;padding:0}
-        table{border-collapse:collapse;width:100%;margin:8px 0}
-        th{border-bottom:2px solid #ddd;padding:6px 10px;text-align:left;font-weight:700}
-        td{border-bottom:1px solid #eee;padding:5px 10px}
-        blockquote{border-left:3px solid #ccc;padding-left:12px;margin:8px 0;color:#555;font-style:italic}
-        hr{border:none;border-top:1px solid #eee;margin:14px 0}
-        @media print{body{margin:20px}}
-      </style>
-    </head><body>${el.innerHTML}</body></html>`)
+    const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const accent  = agentColor   // cor do agente para detalhe de marca
+    const bodyHtml = el.innerHTML
+
+    win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    body {
+      font-family: 'Manrope', -apple-system, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.75;
+      color: #1a1b1e;
+      background: #ffffff;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 56px 64px;
+    }
+
+    /* ── Cover header ─────────────────────────────────── */
+    .cover {
+      border-left: 4px solid ${accent};
+      padding: 28px 28px 24px 28px;
+      margin-bottom: 40px;
+      background: ${accent}09;
+      border-radius: 0 10px 10px 0;
+    }
+    .cover-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: ${accent};
+      margin-bottom: 8px;
+    }
+    .cover-title {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #0f1012;
+      margin-bottom: 10px;
+    }
+    .cover-meta {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #6b7280;
+    }
+
+    /* ── Body content ─────────────────────────────────── */
+    .body { }
+
+    .body h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f1012;
+      margin: 36px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid ${accent}30;
+      line-height: 1.3;
+    }
+    .body h1:first-child { margin-top: 0; }
+
+    .body h2 {
+      font-size: 15.5px;
+      font-weight: 800;
+      color: #1a1b1e;
+      margin: 28px 0 8px;
+      line-height: 1.35;
+    }
+
+    .body h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #374151;
+      margin: 20px 0 6px;
+      line-height: 1.4;
+    }
+
+    .body h4, .body h5, .body h6 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4b5563;
+      margin: 16px 0 4px;
+    }
+
+    .body p {
+      margin-bottom: 12px;
+      color: #1a1b1e;
+    }
+
+    .body ul, .body ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    .body ul { list-style: none; }
+    .body ul li { position: relative; padding-left: 14px; margin-bottom: 5px; }
+    .body ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: ${accent};
+    }
+    .body ol li { margin-bottom: 5px; padding-left: 4px; }
+
+    .body code {
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 12px;
+      background: #f3f4f6;
+      color: #111827;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .body pre {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-left: 3px solid ${accent}60;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .body pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .body blockquote {
+      border-left: 3px solid ${accent};
+      background: ${accent}07;
+      margin: 14px 0;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      color: #374151;
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    .body hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 24px 0;
+    }
+
+    .body table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .body thead {
+      background: ${accent}12;
+    }
+    .body th {
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: #111827;
+      border-bottom: 2px solid ${accent}30;
+      white-space: nowrap;
+    }
+    .body td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #374151;
+      vertical-align: top;
+    }
+    .body tr:last-child td { border-bottom: none; }
+
+    .body strong { font-weight: 700; }
+    .body em { font-style: italic; color: #374151; }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-brand {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: ${accent};
+      letter-spacing: 0.04em;
+    }
+    .footer-date {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #9ca3af;
+    }
+
+    /* ── Print ────────────────────────────────────────── */
+    @page {
+      margin: 18mm 20mm;
+      size: A4;
+    }
+    @media print {
+      body { padding: 0; max-width: 100%; }
+      .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .body pre, .body blockquote, .body thead {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .body h1, .body h2, .body h3 { page-break-after: avoid; }
+      .body pre, .body table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-label">Sheep Tech · Especialistas IA</div>
+    <div class="cover-title">${title}</div>
+    <div class="cover-meta">${dateStr}</div>
+  </div>
+  <div class="body">${bodyHtml}</div>
+  <div class="footer">
+    <span class="footer-brand">sheep-gestao</span>
+    <span class="footer-date">Gerado em ${dateStr}</span>
+  </div>
+  <script>
+    document.fonts.ready.then(function() {
+      window.print();
+    });
+  </script>
+</body>
+</html>`)
     win.document.close()
-    setTimeout(() => win.print(), 300)
   }
 
   const handleDocx = async () => {
