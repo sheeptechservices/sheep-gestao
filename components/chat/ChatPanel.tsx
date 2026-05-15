@@ -1590,7 +1590,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       <div style={{ padding: '10px 14px 12px', borderTop: `1px solid ${inputFocused ? agent.color + '30' : 'var(--gray3)'}`, background: inputFocused ? agent.color + '04' : 'var(--white)', flexShrink: 0, transition: 'border-color 0.2s ease, background 0.2s ease' }}>
 
         {/* Hidden file input */}
-        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.csv,.json,.xml,.html,.htm,.yaml,.yml" multiple onChange={handleFileChange} style={{ display: 'none' }} />
+        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.csv,.json,.xml,.html,.htm,.yaml,.yml" multiple onChange={handleFileChange} style={{ display: 'none' }} />
 
         {/* Attachment chips */}
         {attachments.length > 0 && (

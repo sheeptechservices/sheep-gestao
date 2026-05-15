@@ -51,6 +51,24 @@ export async function POST(req: NextRequest) {
       text = typeof ast?.toText === 'function' ? ast.toText() : String(ast)
     }
 
+    // ── XLSX / XLS ───────────────────────────────────────────────────────────
+    else if (ext === 'xlsx' || ext === 'xls') {
+      const XLSX = await import('xlsx')
+      const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true })
+      const parts: string[] = []
+
+      for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName]
+        // csv_output preserva a estrutura tabular com vírgulas — mais legível para o LLM
+        const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false })
+        if (csv.trim()) {
+          parts.push(`=== Planilha: ${sheetName} ===\n${csv}`)
+        }
+      }
+
+      text = parts.join('\n\n')
+    }
+
     // ── Texto puro ───────────────────────────────────────────────────────────
     else if (['txt', 'md', 'csv', 'json', 'xml', 'html', 'htm', 'yaml', 'yml'].includes(ext)) {
       text = buffer.toString('utf-8')
@@ -58,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     else {
       return NextResponse.json(
-        { error: `Formato .${ext} não suportado. Use PDF, DOCX, PPTX, TXT, MD ou CSV.` },
+        { error: `Formato .${ext} não suportado. Use PDF, DOCX, PPTX, XLSX, TXT, MD ou CSV.` },
         { status: 415 }
       )
     }
