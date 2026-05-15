@@ -31,7 +31,7 @@ function buildContext(task: Task, project?: Project): string {
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface ConsultAgentButtonProps {
-  task: Task
+  task?: Task
   project?: Project
   /** 'icon' = compact icon only (for cards). 'full' = labeled button (for modals). */
   variant?: 'icon' | 'full'
@@ -141,12 +141,16 @@ export function ConsultAgentButton({
 
   const handleSelectAgent = (agentType: AgentType) => {
     setOpen(false)
-    // Pre-select project + task context dropdowns
-    if (task.project_id) setProject(agentType, task.project_id)
-    setTask(agentType, task.id)
-    // Pre-fill textarea with deliverable context
-    const context = buildContext(task, project)
-    setPendingInput(agentType, context)
+    if (task) {
+      // Pre-select project + task context dropdowns
+      if (task.project_id) setProject(agentType, task.project_id)
+      setTask(agentType, task.id)
+      // Pre-fill textarea with deliverable context
+      const context = buildContext(task, project)
+      setPendingInput(agentType, context)
+    } else if (project) {
+      setProject(agentType, project.id)
+    }
     openChat(agentType)
   }
 

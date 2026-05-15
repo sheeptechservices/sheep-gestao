@@ -389,8 +389,8 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           )}
         </div>
 
-        {/* Attachments — só em modo edição (task já existe no banco) */}
-        {isEdit && (
+        {/* Attachments */}
+        {(
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -398,16 +398,18 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               </label>
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={attUploading}
+                onClick={() => isEdit ? fileRef.current?.click() : undefined}
+                disabled={!isEdit || attUploading}
+                title={!isEdit ? 'Salve o entregável primeiro para anexar arquivos' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: attUploading ? 'not-allowed' : 'pointer',
+                  padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                  cursor: !isEdit || attUploading ? 'not-allowed' : 'pointer',
                   border: '1px solid var(--gray3)', background: 'var(--bg)',
-                  color: attUploading ? 'var(--gray2)' : 'var(--black)', transition: 'all 0.15s',
-                  opacity: attUploading ? 0.6 : 1,
+                  color: !isEdit || attUploading ? 'var(--gray2)' : 'var(--black)',
+                  transition: 'all 0.15s', opacity: !isEdit || attUploading ? 0.45 : 1,
                 }}
-                onMouseEnter={e => { if (!attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
+                onMouseEnter={e => { if (isEdit && !attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
               >
                 <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
@@ -486,7 +488,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
 
             {attachments.length === 0 && !attUploading && (
               <div style={{ fontSize: 11, color: 'var(--gray2)', fontStyle: 'italic' }}>
-                Nenhum arquivo anexado ainda.
+                {isEdit ? 'Nenhum arquivo anexado ainda.' : 'Salve o entregável para adicionar anexos.'}
               </div>
             )}
           </div>
@@ -510,14 +512,12 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               </svg>
             </button>
           )}
-          {isEdit && task && (
-            <ConsultAgentButton
-              task={task}
-              project={projects.find(p => p.id === form.project_id)}
-              variant="full"
-              direction="up"
-            />
-          )}
+          <ConsultAgentButton
+            task={task}
+            project={projects.find(p => p.id === form.project_id)}
+            variant="full"
+            direction="up"
+          />
           <div style={{ flex: 1 }} />
           {/* Toggle concluído */}
           <button
