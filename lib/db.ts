@@ -122,6 +122,17 @@ async function createTables(db: Client) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS agents (
+      type            TEXT PRIMARY KEY,
+      enabled         INTEGER NOT NULL DEFAULT 1,
+      name            TEXT NOT NULL,
+      role            TEXT NOT NULL,
+      temperature     REAL NOT NULL DEFAULT 0.7,
+      system_prompt   TEXT NOT NULL,
+      knowledge_files TEXT NOT NULL DEFAULT '[]',
+      updated_at      TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tasks_week_id       ON tasks(week_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_project_id    ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_projects_client_id  ON projects(client_id);

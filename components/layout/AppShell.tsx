@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useSettings, matchesHotkey } from '@/stores/settingsStore'
+import { useAgentsStore } from '@/stores/agentsStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
@@ -20,6 +21,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { toggle } = useQuickSearch()
   const { quickSearchHotkey } = useSettings()
   const { isMobile, isTablet } = useBreakpoint()
+  const fetchAgents = useAgentsStore(s => s.fetchAgents)
+
+  // Carrega especialistas do banco uma única vez ao montar o shell
+  useEffect(() => { fetchAgents() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sidebar occupies a grid column on desktop when pinned (open state only controls width via CSS)
   const inGrid = !isMobile && !isTablet && pinned
