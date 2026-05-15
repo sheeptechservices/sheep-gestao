@@ -202,7 +202,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
         id, title: '(rascunho)', done: false, created_at: now,
         week_id:    null, project_id: null, urgency: null,
         description: null, assigned_to: null, flags: null,
-        flag_comment: null, deadline: null,
+        flag_comment: null, deadline: null, is_draft: true,
       }),
     }).then(() => setDraftId(id)).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1433,6 +1433,7 @@ export function WeeklyBoard() {
         flags:        data.flags.length ? data.flags : undefined,
         flag_comment: data.flag_comment || undefined,
         deadline:     data.deadline     || undefined,
+        is_draft:     false,  // promove rascunho → tarefa real
       }
       registerTask({ id: draftId, created_at: new Date().toISOString(), ...taskData })
       updateTask(draftId, taskData)

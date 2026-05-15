@@ -177,7 +177,20 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN flag_comment TEXT`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN urgency      TEXT`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN deadline     TEXT`),
+    tryAlter(db, `ALTER TABLE tasks ADD COLUMN is_draft     INTEGER NOT NULL DEFAULT 0`),
   ])
+
+  // Limpa rascunhos órfãos:
+  // 1. Novos (is_draft = 1) com mais de 2 horas
+  // 2. Legados com título '(rascunho)' que existiam antes da coluna is_draft
+  await db.execute({
+    sql:  `DELETE FROM tasks WHERE is_draft = 1 AND created_at < datetime('now', '-2 hours')`,
+    args: [],
+  })
+  await db.execute({
+    sql:  `DELETE FROM tasks WHERE title = '(rascunho)' AND (is_draft = 0 OR is_draft IS NULL)`,
+    args: [],
+  })
 
   // Generate ISO weeks for 2025–2028 only if not yet populated
   // Single COUNT check avoids 156 INSERT round-trips when weeks already exist

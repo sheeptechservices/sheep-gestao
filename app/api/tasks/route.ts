@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
       WHERE 1=1`
     const params: string[] = []
 
+    // Nunca retorna rascunhos ao front — são artefatos internos de criação
+    sql += ' AND (t.is_draft = 0 OR t.is_draft IS NULL)'
+
     if (general === '1') { sql += ' AND t.project_id IS NULL' }
     else if (projectId)  { sql += ' AND t.project_id = ?'; params.push(projectId) }
     if (weekId)          { sql += ' AND t.week_id = ?';    params.push(weekId)    }
@@ -56,9 +59,9 @@ export async function POST(req: NextRequest) {
     await db.execute({
       sql: `
         INSERT INTO tasks
-          (id, project_id, week_id, title, description, urgency, done, assigned_to, flags, flag_comment, deadline, created_at)
+          (id, project_id, week_id, title, description, urgency, done, assigned_to, flags, flag_comment, deadline, is_draft, created_at)
         VALUES
-          (:id, :project_id, :week_id, :title, :description, :urgency, :done, :assigned_to, :flags, :flag_comment, :deadline, :created_at)
+          (:id, :project_id, :week_id, :title, :description, :urgency, :done, :assigned_to, :flags, :flag_comment, :deadline, :is_draft, :created_at)
       `,
       args: {
         week_id:      body.week_id      ?? null,
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
         flags:        body.flags?.length ? JSON.stringify(body.flags) : null,
         flag_comment: body.flag_comment || null,
         deadline:     body.deadline     ?? null,
+        is_draft:     body.is_draft ? 1 : 0,
       },
     })
     const res = await db.execute({ sql: 'SELECT * FROM tasks WHERE id = ?', args: [body.id] })

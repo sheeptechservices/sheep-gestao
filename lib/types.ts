@@ -72,6 +72,7 @@ export interface Task {
   deadline?: string;          // ISO date 'YYYY-MM-DD' — previsão de entrega
   created_at: string;
   attachment_count?: number;  // preenchido pelo GET /api/tasks (subquery COUNT)
+  is_draft?: boolean;         // true → rascunho em edição; filtrado do GET normal
 }
 
 export interface TaskAttachment {

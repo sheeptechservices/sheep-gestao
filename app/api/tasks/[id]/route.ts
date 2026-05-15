@@ -28,13 +28,14 @@ export async function PUT(
     const db = await initDb()
 
     const allowed: (keyof Task)[] = [
-      'project_id', 'week_id', 'title', 'description', 'urgency', 'done', 'assigned_to', 'flags', 'flag_comment', 'deadline',
+      'project_id', 'week_id', 'title', 'description', 'urgency', 'done', 'assigned_to', 'flags', 'flag_comment', 'deadline', 'is_draft',
     ]
     const updates = allowed.filter(k => k in body)
     if (updates.length === 0) return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
 
     const payload: Record<string, unknown> = { ...body, id: params.id }
     if ('done'         in body) payload.done         = body.done ? 1 : 0
+    if ('is_draft'     in body) payload.is_draft     = body.is_draft ? 1 : 0
     if ('flags'        in body) payload.flags        = body.flags?.length ? JSON.stringify(body.flags) : null
     if ('flag_comment' in body) payload.flag_comment = body.flag_comment || null
     if ('urgency'      in body) payload.urgency      = body.urgency      || null
