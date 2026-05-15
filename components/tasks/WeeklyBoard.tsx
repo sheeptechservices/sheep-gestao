@@ -148,8 +148,8 @@ function WBDeleteModal({ task, onConfirm, onClose }: {
 
 function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, defaultDeadline }: {
   task?: Task
-  onSave: (data: FormState) => void
-  onClose: () => void
+  onSave: (data: FormState, draftId?: string) => void
+  onClose: (draftId?: string) => void
   onDelete?: () => void
   weeks: Week[]
   projects: Project[]
@@ -173,34 +173,57 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   const { isMobile } = useBreakpoint()
   const bumpAttachmentCount = useTasksStore(s => s.bumpAttachmentCount)
 
+  // ── Draft imediato (novo entregável) ──────────────────────────────────────
+  // Ao abrir o modal sem task, cria o registro no banco na hora para que
+  // anexos e outras features funcionem antes do usuário clicar em Salvar.
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const effectiveId = task?.id ?? draftId   // ID real para operações de anexo
+
+  useEffect(() => {
+    if (task) return  // edição — task já existe
+    const id  = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const now = new Date().toISOString()
+    fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id, title: '(rascunho)', done: false, created_at: now,
+        week_id:    null, project_id: null, urgency: null,
+        description: null, assigned_to: null, flags: null,
+        flag_comment: null, deadline: null,
+      }),
+    }).then(() => setDraftId(id)).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // roda só uma vez ao montar
+
   // ── Attachments state ──────────────────────────────────────────────────────
   const [attachments, setAttachments]   = useState<TaskAttachment[]>([])
   const [attLoading, setAttLoading]     = useState(false)
   const [attUploading, setAttUploading] = useState(false)
 
-  // Carrega anexos ao abrir em modo edição
+  // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
-    if (!task?.id) return
-    fetch(`/api/attachments?task_id=${task.id}`)
+    if (!effectiveId) return
+    fetch(`/api/attachments?task_id=${effectiveId}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setAttachments(data) })
       .catch(() => {})
-  }, [task?.id])
+  }, [effectiveId])
 
   async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
-    if (!files.length || !task?.id) return
+    if (!files.length || !effectiveId) return
     setAttUploading(true)
     for (const file of files) {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('task_id', task.id)
+      fd.append('task_id', effectiveId)
       try {
         const res  = await fetch('/api/attachments', { method: 'POST', body: fd })
         const data = await res.json() as TaskAttachment & { error?: string }
         if (data.error) { toast.error(data.error); continue }
         setAttachments(prev => [...prev, data])
-        bumpAttachmentCount(task.id, 1)
+        bumpAttachmentCount(effectiveId, 1)
       } catch {
         toast.error('Erro ao fazer upload do arquivo')
       }
@@ -214,7 +237,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     try {
       await fetch(`/api/attachments/${att.id}`, { method: 'DELETE' })
       setAttachments(prev => prev.filter(a => a.id !== att.id))
-      if (task?.id) bumpAttachmentCount(task.id, -1)
+      if (effectiveId) bumpAttachmentCount(effectiveId, -1)
     } catch {
       toast.error('Erro ao remover anexo')
     } finally {
@@ -224,10 +247,10 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
 
   useEffect(() => { inputRef.current?.focus() }, [])
   useEffect(() => {
-    function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose(draftId ?? undefined) }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [onClose])
+  }, [onClose, draftId])
 
   const isEdit = !!task
   const valid  = form.title.trim().length > 0
@@ -239,7 +262,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   }
 
   return createPortal(
-    <div onClick={onClose} style={{
+    <div onClick={() => onClose(draftId ?? undefined)} style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(18,19,22,0.35)', backdropFilter: 'blur(4px)',
       display: 'flex',
@@ -262,7 +285,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
             {isEdit ? 'Editar entregável' : 'Novo entregável'}
           </h2>
-          <button onClick={onClose} style={{
+          <button onClick={() => onClose(draftId ?? undefined)} style={{
             width: 28, height: 28, borderRadius: '50%', border: 'none',
             background: 'var(--bg)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -277,7 +300,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
             placeholder="Descreva o entregável..."
             style={inputStyle}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && valid) onSave(form) }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && valid) onSave(form, draftId ?? undefined) }}
           />
         </div>
 
@@ -398,18 +421,17 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               </label>
               <button
                 type="button"
-                onClick={() => isEdit ? fileRef.current?.click() : undefined}
-                disabled={!isEdit || attUploading}
-                title={!isEdit ? 'Salve o entregável primeiro para anexar arquivos' : undefined}
+                onClick={() => effectiveId ? fileRef.current?.click() : undefined}
+                disabled={!effectiveId || attUploading}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                  cursor: !isEdit || attUploading ? 'not-allowed' : 'pointer',
+                  cursor: !effectiveId || attUploading ? 'not-allowed' : 'pointer',
                   border: '1px solid var(--gray3)', background: 'var(--bg)',
-                  color: !isEdit || attUploading ? 'var(--gray2)' : 'var(--black)',
-                  transition: 'all 0.15s', opacity: !isEdit || attUploading ? 0.45 : 1,
+                  color: !effectiveId || attUploading ? 'var(--gray2)' : 'var(--black)',
+                  transition: 'all 0.15s', opacity: !effectiveId || attUploading ? 0.45 : 1,
                 }}
-                onMouseEnter={e => { if (isEdit && !attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
+                onMouseEnter={e => { if (effectiveId && !attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
               >
                 <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
@@ -488,7 +510,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
 
             {attachments.length === 0 && !attUploading && (
               <div style={{ fontSize: 11, color: 'var(--gray2)', fontStyle: 'italic' }}>
-                {isEdit ? 'Nenhum arquivo anexado ainda.' : 'Salve o entregável para adicionar anexos.'}
+                {effectiveId ? 'Nenhum arquivo anexado ainda.' : 'Aguardando…'}
               </div>
             )}
           </div>
@@ -553,12 +575,12 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             </span>
             {form.done ? 'Concluído' : 'Marcar como concluído'}
           </button>
-          <button onClick={onClose} style={{
+          <button onClick={() => onClose(draftId ?? undefined)} style={{
             padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
             border: '1px solid var(--gray3)', background: 'transparent',
             color: 'var(--gray2)', cursor: 'pointer',
           }}>Cancelar</button>
-          <button onClick={() => valid && onSave(form)} disabled={!valid} style={{
+          <button onClick={() => valid && onSave(form, draftId ?? undefined)} disabled={!valid} style={{
             padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none',
             background: valid ? 'var(--primary)' : 'var(--gray3)',
             color: valid ? 'var(--primary-text)' : 'var(--gray2)',
@@ -1165,7 +1187,7 @@ function FilterPill({ label, value, options, onChange }: {
 }
 
 export function WeeklyBoard() {
-  const { tasks, fetchTasks, updateTask, toggleDone, addTask, deleteTask } = useTasksStore()
+  const { tasks, fetchTasks, updateTask, toggleDone, addTask, deleteTask, registerTask } = useTasksStore()
   const [weeks,    setWeeks]    = useState<Week[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [weekIdx,  setWeekIdx]  = useState(0)
@@ -1340,8 +1362,9 @@ export function WeeklyBoard() {
   }
 
   // Save handler
-  function handleSave(data: FormState) {
+  function handleSave(data: FormState, draftId?: string) {
     if (editing && editing !== 'new') {
+      // Edit existing task
       updateTask(editing.id, {
         title:        data.title,
         description:  data.description  || undefined,
@@ -1355,7 +1378,25 @@ export function WeeklyBoard() {
         deadline:     data.deadline     || undefined,
       })
       toast.success('Entregável atualizado', data.title)
+    } else if (draftId) {
+      // Draft already exists in DB — register in store then update with real data
+      const taskData = {
+        title:        data.title,
+        description:  data.description  || undefined,
+        urgency:      data.urgency      || undefined,
+        done:         data.done,
+        assigned_to:  data.assigned_to  || undefined,
+        week_id:      data.week_id      ?? currentWeek?.id,
+        project_id:   data.project_id   || undefined,
+        flags:        data.flags.length ? data.flags : undefined,
+        flag_comment: data.flag_comment || undefined,
+        deadline:     data.deadline     || undefined,
+      }
+      registerTask({ id: draftId, created_at: new Date().toISOString(), ...taskData })
+      updateTask(draftId, taskData)
+      toast.success('Entregável criado', data.title)
     } else {
+      // Fallback: no draft (shouldn't happen normally)
       const newTask: Task = {
         id:           crypto.randomUUID(),
         title:        data.title,
@@ -1826,7 +1867,11 @@ export function WeeklyBoard() {
         <WBTaskModal
           task={editing === 'new' ? undefined : editing}
           onSave={handleSave}
-          onClose={() => { setEditing(null); setNewTaskDate('') }}
+          onClose={(draftId?: string) => {
+            if (draftId) deleteTask(draftId)   // delete draft that was never saved
+            setEditing(null)
+            setNewTaskDate('')
+          }}
           onDelete={editing !== 'new' ? () => setDeleting(editing) : undefined}
           weeks={weeks}
           projects={projects}

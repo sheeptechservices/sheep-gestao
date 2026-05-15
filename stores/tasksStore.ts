@@ -7,6 +7,7 @@ interface TasksState {
   loading: boolean
   fetchTasks:           (projectId?: string) => Promise<void>
   addTask:              (task: Task) => Promise<void>
+  registerTask:         (task: Task) => void          // adiciona ao store sem chamar a API (draft já está no banco)
   updateTask:           (id: string, data: Partial<Task>) => Promise<void>
   deleteTask:           (id: string) => Promise<void>
   toggleDone:           (id: string, done: boolean) => Promise<void>
@@ -69,6 +70,10 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     } catch {
       set({ tasks: prev })
     }
+  },
+
+  registerTask: (task: Task) => {
+    set(s => ({ tasks: [...s.tasks, task] }))
   },
 
   bumpAttachmentCount: (taskId: string, delta: 1 | -1) => {
