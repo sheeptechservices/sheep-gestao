@@ -52,15 +52,15 @@ function deadlineBadge(deadline: string) {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const URGENCY_CONFIG: Record<TaskUrgency, { label: string; color: string; bg: string }> = {
-  low:       { label: 'Baixa',   color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
-  medium:    { label: 'Média',   color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
-  high:      { label: 'Alta',    color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
-  attention: { label: 'Atenção', color: '#7C3AED', bg: 'rgba(124,58,237,0.10)' },
+  low:    { label: 'Baixa',  color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
+  medium: { label: 'Média',  color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
+  high:   { label: 'Alta',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
 }
 
 const FLAG_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  revisar:   { label: 'Revisar',   color: '#D97706', bg: 'rgba(217,119,6,0.12)'  },
-  bloqueado: { label: 'Bloqueado', color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  revisar:   { label: 'Revisar',   color: '#D97706', bg: 'rgba(217,119,6,0.12)'   },
+  bloqueado: { label: 'Bloqueado', color: '#DC2626', bg: 'rgba(220,38,38,0.10)'   },
+  atencao:   { label: 'Atenção',   color: '#7C3AED', bg: 'rgba(124,58,237,0.10)'  },
 }
 const ALL_FLAGS = Object.keys(FLAG_CONFIG)
 
@@ -399,7 +399,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   const tag        = project?.client?.name ?? project?.name
   const bloqueado  = task.flags?.includes('bloqueado')
   const revisar    = task.flags?.includes('revisar')
-  const accentColor = bloqueado ? '#DC2626' : revisar ? '#D97706' : color
+  const atencao    = task.flags?.includes('atencao')
+  const accentColor = bloqueado ? '#DC2626' : atencao ? '#7C3AED' : revisar ? '#D97706' : color
 
   return (
     <div
@@ -410,10 +411,10 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.04)' : revisar ? 'rgba(217,119,6,0.04)' : hov ? 'var(--white)' : 'var(--bg)',
+        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.04)' : atencao ? 'rgba(124,58,237,0.04)' : revisar ? 'rgba(217,119,6,0.04)' : hov ? 'var(--white)' : 'var(--bg)',
         borderRadius: 10,
-        border: `1px solid ${isDragging ? accentColor + '55' : bloqueado ? 'rgba(220,38,38,0.30)' : revisar ? 'rgba(217,119,6,0.30)' : hov ? color + '44' : 'var(--gray3)'}`,
-        borderLeft: `3px solid ${isDragging ? accentColor : bloqueado ? '#DC2626' : revisar ? '#D97706' : hov ? color : 'var(--gray3)'}`,
+        border: `1px solid ${isDragging ? accentColor + '55' : bloqueado ? 'rgba(220,38,38,0.30)' : atencao ? 'rgba(124,58,237,0.30)' : revisar ? 'rgba(217,119,6,0.30)' : hov ? color + '44' : 'var(--gray3)'}`,
+        borderLeft: `3px solid ${isDragging ? accentColor : bloqueado ? '#DC2626' : atencao ? '#7C3AED' : revisar ? '#D97706' : hov ? color : 'var(--gray3)'}`,
         padding: '9px 10px 9px 9px',
         cursor: isDragging ? 'grabbing' : 'pointer',
         opacity: isDragging ? 0.5 : task.done ? 0.65 : 1,
@@ -481,7 +482,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       )}
 
       {/* Urgency + assigned + flags */}
-      {(task.urgency || task.assigned_to || bloqueado || revisar) && (
+      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingLeft: 22, flexWrap: 'wrap' }}>
           {bloqueado && (
             <span style={{
@@ -494,6 +495,19 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
                 <path d="M3 3l4 4M7 3L3 7" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
               Bloqueado
+            </span>
+          )}
+          {atencao && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+              color: '#7C3AED', background: 'rgba(124,58,237,0.10)',
+              display: 'flex', alignItems: 'center', gap: 3,
+            }}>
+              <svg width={7} height={7} viewBox="0 0 10 10" fill="none">
+                <path d="M5 1l4 8H1L5 1z" stroke="#7C3AED" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="M5 4v2.5M5 7.5v.5" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Atenção
             </span>
           )}
           {revisar && (
@@ -861,7 +875,7 @@ function NewEntregavelBtn({ onClick }: { onClick: () => void }) {
   )
 }
 
-const URGENCY_ORDER: Record<string, number> = { high: 0, attention: 1, medium: 2, low: 3 }
+const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 function byUrgency(a: Task, b: Task) {
   // Concluídos sempre vão para o fundo
   if (a.done !== b.done) return a.done ? 1 : -1

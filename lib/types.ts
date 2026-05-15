@@ -55,7 +55,7 @@ export interface Week {
   project_id?: string;  // opcional — mantido para compatibilidade com dados antigos
 }
 
-export type TaskUrgency = 'low' | 'medium' | 'high' | 'attention'
+export type TaskUrgency = 'low' | 'medium' | 'high'
 
 export interface Task {
   id: string;
