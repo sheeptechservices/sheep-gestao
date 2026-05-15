@@ -39,7 +39,7 @@ export function AppSelect({
   const [mounted, setMounted] = useState(false)
   const [open,    setOpen]    = useState(false)
   const [hov,     setHov]     = useState(false)
-  const [rect,    setRect]    = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null)
+  const [rect,    setRect]    = useState<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number } | null>(null)
   const triggerRef            = useRef<HTMLDivElement>(null)
 
   // SSR safety — portal só monta no client
@@ -71,13 +71,14 @@ export function AppSelect({
     if (disabled) return
     if (open) { setOpen(false); return }
     if (triggerRef.current) {
-      const r = triggerRef.current.getBoundingClientRect()
-      const estHeight = Math.min(options.length * 36 + 16, 280)
-      const spaceBelow = window.innerHeight - r.bottom
-      if (spaceBelow < estHeight + 16) {
-        setRect({ bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width })
+      const r          = triggerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - r.bottom - 8
+      const spaceAbove = r.top - 8
+      const estHeight  = Math.min(options.length * 36 + 16, 280)
+      if (spaceBelow >= estHeight || spaceBelow >= spaceAbove) {
+        setRect({ top: r.bottom + 4, left: r.left, width: r.width, maxHeight: Math.min(spaceBelow, 320) })
       } else {
-        setRect({ top: r.bottom + 4, left: r.left, width: r.width })
+        setRect({ bottom: window.innerHeight - r.top + 4, left: r.left, width: r.width, maxHeight: Math.min(spaceAbove, 320) })
       }
     }
     setOpen(true)
@@ -190,6 +191,8 @@ export function AppSelect({
         bottom:   rect.bottom,
         left:     rect.left,
         minWidth: Math.max(rect.width, mode === 'badge' ? 150 : 180),
+        maxHeight: rect.maxHeight,
+        overflowY: 'auto',
         zIndex:   4000,
         background:   'var(--white)',
         border:       '1px solid var(--gray3)',
