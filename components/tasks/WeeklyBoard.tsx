@@ -212,6 +212,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   const [attachments, setAttachments]   = useState<TaskAttachment[]>([])
   const [attLoading, setAttLoading]     = useState(false)
   const [attUploading, setAttUploading] = useState(false)
+  const [dragOver, setDragOver]         = useState(false)
 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
@@ -432,108 +433,128 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
         </div>
 
         {/* Attachments */}
-        {(
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Anexos {attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', marginLeft: 4, color: 'var(--gray2)' }}>({attachments.length})</span>}
-              </label>
-              <button
-                type="button"
-                onClick={() => effectiveId ? fileRef.current?.click() : undefined}
-                disabled={!effectiveId || attUploading}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                  cursor: !effectiveId || attUploading ? 'not-allowed' : 'pointer',
-                  border: '1px solid var(--gray3)', background: 'var(--bg)',
-                  color: !effectiveId || attUploading ? 'var(--gray2)' : 'var(--black)',
-                  transition: 'all 0.15s', opacity: !effectiveId || attUploading ? 0.45 : 1,
-                }}
-                onMouseEnter={e => { if (effectiveId && !attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
-              >
-                <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
-                  <path d="M6 1v7M3 4l3-3 3 3M1.5 9.5h9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                {attUploading ? 'Enviando…' : 'Anexar arquivo'}
-              </button>
-              <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleAttachFile} />
-            </div>
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
+            Anexos {attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', color: 'var(--gray2)' }}>({attachments.length})</span>}
+          </label>
 
-            {/* Lista de anexos */}
-            {attachments.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {attachments.map(att => {
-                  const isImg  = att.mime_type.startsWith('image/')
-                  const isPdf  = att.mime_type === 'application/pdf'
-                  const isDoc  = att.mime_type.includes('word') || att.filename.endsWith('.docx') || att.filename.endsWith('.doc')
-                  const isXls  = att.mime_type.includes('spreadsheet') || att.filename.endsWith('.xlsx') || att.filename.endsWith('.xls')
-                  const icon   = isImg ? '🖼' : isPdf ? '📄' : isDoc ? '📝' : isXls ? '📊' : '📎'
-                  const kb     = att.size < 1024 * 1024
-                    ? `${(att.size / 1024).toFixed(0)} KB`
-                    : `${(att.size / 1024 / 1024).toFixed(1)} MB`
-                  return (
-                    <div key={att.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '7px 10px', borderRadius: 8,
-                      border: '1px solid var(--gray3)', background: 'var(--bg)',
-                    }}>
-                      <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {att.filename}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{kb}</div>
-                      </div>
-                      {/* Download */}
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={att.filename}
-                        onClick={e => e.stopPropagation()}
-                        style={{ display: 'flex', alignItems: 'center', color: 'var(--gray2)', transition: 'color 0.12s', flexShrink: 0 }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gray2)')}
-                        title="Baixar arquivo"
-                      >
-                        <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-                          <path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </a>
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        disabled={attLoading}
-                        onClick={e => { e.stopPropagation(); handleDeleteAttachment(att) }}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          width: 22, height: 22, borderRadius: 6, border: 'none',
-                          background: 'transparent', cursor: attLoading ? 'not-allowed' : 'pointer',
-                          color: 'var(--gray2)', transition: 'all 0.12s', flexShrink: 0,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.10)'; e.currentTarget.style.color = '#D93025' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
-                        title="Remover anexo"
-                      >
-                        <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
-                          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+          {/* Drop zone */}
+          <div
+            onClick={() => effectiveId && !attUploading && fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); if (effectiveId) setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => {
+              e.preventDefault()
+              setDragOver(false)
+              if (!effectiveId || attUploading) return
+              const synth = { target: { files: e.dataTransfer.files } } as unknown as React.ChangeEvent<HTMLInputElement>
+              handleAttachFile(synth)
+            }}
+            style={{
+              border: `1.5px dashed ${dragOver ? 'var(--primary)' : effectiveId ? 'var(--gray3)' : 'var(--gray3)'}`,
+              borderRadius: 10,
+              background: dragOver ? 'var(--primary-dim)' : 'var(--bg)',
+              padding: '20px 16px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              cursor: effectiveId && !attUploading ? 'pointer' : 'default',
+              transition: 'border-color 0.15s, background 0.15s',
+              opacity: !effectiveId ? 0.5 : 1,
+              userSelect: 'none',
+            }}
+          >
+            {/* Upload icon */}
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none"
+              stroke={dragOver ? 'var(--primary)' : 'var(--gray2)'}
+              strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+              style={{ transition: 'stroke 0.15s' }}
+            >
+              <path d="M12 3v13M7 8l5-5 5 5M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+            </svg>
 
-            {attachments.length === 0 && !attUploading && (
-              <div style={{ fontSize: 11, color: 'var(--gray2)', fontStyle: 'italic' }}>
-                {effectiveId ? 'Nenhum arquivo anexado ainda.' : 'Aguardando…'}
-              </div>
+            {attUploading ? (
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray2)' }}>Enviando…</span>
+            ) : (
+              <>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gray)' }}>
+                  Arraste arquivos ou{' '}
+                  <span style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
+                    clique para selecionar
+                  </span>
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                  PDF · DOCX · XLSX · PNG · JPG — até 3 MB
+                </span>
+              </>
             )}
           </div>
-        )}
+          <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleAttachFile} />
+
+          {/* Lista de anexos */}
+          {attachments.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
+              {attachments.map(att => {
+                const isImg  = att.mime_type.startsWith('image/')
+                const isPdf  = att.mime_type === 'application/pdf'
+                const isDoc  = att.mime_type.includes('word') || att.filename.endsWith('.docx') || att.filename.endsWith('.doc')
+                const isXls  = att.mime_type.includes('spreadsheet') || att.filename.endsWith('.xlsx') || att.filename.endsWith('.xls')
+                const icon   = isImg ? '🖼' : isPdf ? '📄' : isDoc ? '📝' : isXls ? '📊' : '📎'
+                const kb     = att.size < 1024 * 1024
+                  ? `${(att.size / 1024).toFixed(0)} KB`
+                  : `${(att.size / 1024 / 1024).toFixed(1)} MB`
+                return (
+                  <div key={att.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '7px 10px', borderRadius: 8,
+                    border: '1px solid var(--gray3)', background: 'var(--white)',
+                  }}>
+                    <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {att.filename}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{kb}</div>
+                    </div>
+                    {/* Download */}
+                    <a
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={att.filename}
+                      onClick={e => e.stopPropagation()}
+                      style={{ display: 'flex', alignItems: 'center', color: 'var(--gray2)', transition: 'color 0.12s', flexShrink: 0 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--gray2)')}
+                      title="Baixar arquivo"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                        <path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </a>
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      disabled={attLoading}
+                      onClick={e => { e.stopPropagation(); handleDeleteAttachment(att) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 22, height: 22, borderRadius: 6, border: 'none',
+                        background: 'transparent', cursor: attLoading ? 'not-allowed' : 'pointer',
+                        color: 'var(--gray2)', transition: 'all 0.12s', flexShrink: 0,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.10)'; e.currentTarget.style.color = '#D93025' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+                      title="Remover anexo"
+                    >
+                      <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
