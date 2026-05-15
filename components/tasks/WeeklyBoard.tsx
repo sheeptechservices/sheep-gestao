@@ -52,9 +52,10 @@ function deadlineBadge(deadline: string) {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const URGENCY_CONFIG: Record<TaskUrgency, { label: string; color: string; bg: string }> = {
-  low:    { label: 'Baixa',  color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
-  medium: { label: 'Média',  color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
-  high:   { label: 'Alta',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  low:       { label: 'Baixa',   color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
+  medium:    { label: 'Média',   color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
+  high:      { label: 'Alta',    color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  attention: { label: 'Atenção', color: '#7C3AED', bg: 'rgba(124,58,237,0.10)' },
 }
 
 const FLAG_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -860,7 +861,7 @@ function NewEntregavelBtn({ onClick }: { onClick: () => void }) {
   )
 }
 
-const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
+const URGENCY_ORDER: Record<string, number> = { high: 0, attention: 1, medium: 2, low: 3 }
 function byUrgency(a: Task, b: Task) {
   // Concluídos sempre vão para o fundo
   if (a.done !== b.done) return a.done ? 1 : -1
