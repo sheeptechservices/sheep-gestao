@@ -336,45 +336,39 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           />
         </div>
 
-        {/* Urgency */}
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>Urgência</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(Object.keys(URGENCY_CONFIG) as TaskUrgency[]).map(level => {
-              const cfg = URGENCY_CONFIG[level]; const active = form.urgency === level
-              return (
-                <button key={level} type="button"
-                  onClick={() => setForm(f => ({ ...f, urgency: f.urgency === level ? '' : level }))}
-                  style={{
-                    padding: '5px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                    border: `1.5px solid ${active ? cfg.color : 'var(--gray3)'}`,
-                    background: active ? cfg.bg : 'transparent',
-                    color: active ? cfg.color : 'var(--gray2)', transition: 'all 0.15s',
-                  }}
-                >{cfg.label}</button>
-              )
-            })}
+        {/* Project + Urgency — lado a lado */}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 2, minWidth: 0 }}>
+            <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
+              Projeto <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
+            </label>
+            <AppSelect
+              value={form.project_id}
+              onChange={v => setForm(f => ({ ...f, project_id: v }))}
+              options={[
+                { value: '', label: '— Nenhum —' },
+                ...projects.map(p => ({
+                  value:         p.id,
+                  label:         p.name,
+                  sublabel:      p.client?.name ?? undefined,
+                  sublabelColor: p.client?.color_hex ?? undefined,
+                })),
+              ]}
+            />
           </div>
-        </div>
-
-        {/* Project */}
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
-            Projeto <span style={{ fontWeight: 500, textTransform: 'none' }}>(opcional)</span>
-          </label>
-          <AppSelect
-            value={form.project_id}
-            onChange={v => setForm(f => ({ ...f, project_id: v }))}
-            options={[
-              { value: '', label: '— Nenhum (geral) —' },
-              ...projects.map(p => ({
-                value:         p.id,
-                label:         p.name,
-                sublabel:      p.client?.name ?? undefined,
-                sublabelColor: p.client?.color_hex ?? undefined,
-              })),
-            ]}
-          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Urgência</label>
+            <AppSelect
+              value={form.urgency}
+              onChange={v => setForm(f => ({ ...f, urgency: v as TaskUrgency | '' }))}
+              options={[
+                { value: '',       label: '— Nenhuma —' },
+                { value: 'low',    label: '🟢 Baixa'    },
+                { value: 'medium', label: '🟡 Média'    },
+                { value: 'high',   label: '🔴 Alta'     },
+              ]}
+            />
+          </div>
         </div>
 
         {/* Responsável + Deadline — lado a lado */}
