@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import type { Task, Week, Project, TaskUrgency } from '@/lib/types'
+import type { Task, Week, Project, TaskUrgency, TaskAttachment } from '@/lib/types'
 import { useTasksStore } from '@/stores/tasksStore'
 import { toast } from '@/stores/toastStore'
 import { AppSelect } from '@/components/ui/AppSelect'
@@ -168,8 +168,60 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     flag_comment: task?.flag_comment ?? '',
     deadline:     task?.deadline     ?? defaultDeadline ?? '',
   })
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const fileRef     = useRef<HTMLInputElement>(null)
   const { isMobile } = useBreakpoint()
+  const bumpAttachmentCount = useTasksStore(s => s.bumpAttachmentCount)
+
+  // ── Attachments state ──────────────────────────────────────────────────────
+  const [attachments, setAttachments]   = useState<TaskAttachment[]>([])
+  const [attLoading, setAttLoading]     = useState(false)
+  const [attUploading, setAttUploading] = useState(false)
+
+  // Carrega anexos ao abrir em modo edição
+  useEffect(() => {
+    if (!task?.id) return
+    fetch(`/api/attachments?task_id=${task.id}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAttachments(data) })
+      .catch(() => {})
+  }, [task?.id])
+
+  async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length || !task?.id) return
+    setAttUploading(true)
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('task_id', task.id)
+      try {
+        const res  = await fetch('/api/attachments', { method: 'POST', body: fd })
+        const data = await res.json() as TaskAttachment & { error?: string }
+        if (data.error) { toast.error(data.error); continue }
+        setAttachments(prev => [...prev, data])
+        bumpAttachmentCount(task.id, 1)
+      } catch {
+        toast.error('Erro ao fazer upload do arquivo')
+      }
+    }
+    setAttUploading(false)
+    e.target.value = ''
+  }
+
+  async function handleDeleteAttachment(att: TaskAttachment) {
+    setAttLoading(true)
+    try {
+      await fetch(`/api/attachments/${att.id}`, { method: 'DELETE' })
+      setAttachments(prev => prev.filter(a => a.id !== att.id))
+      if (task?.id) bumpAttachmentCount(task.id, -1)
+    } catch {
+      toast.error('Erro ao remover anexo')
+    } finally {
+      setAttLoading(false)
+    }
+  }
+
   useEffect(() => { inputRef.current?.focus() }, [])
   useEffect(() => {
     function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -336,6 +388,109 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           )}
         </div>
 
+        {/* Attachments — só em modo edição (task já existe no banco) */}
+        {isEdit && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Anexos {attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', marginLeft: 4, color: 'var(--gray2)' }}>({attachments.length})</span>}
+              </label>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={attUploading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: attUploading ? 'not-allowed' : 'pointer',
+                  border: '1px solid var(--gray3)', background: 'var(--bg)',
+                  color: attUploading ? 'var(--gray2)' : 'var(--black)', transition: 'all 0.15s',
+                  opacity: attUploading ? 0.6 : 1,
+                }}
+                onMouseEnter={e => { if (!attUploading) e.currentTarget.style.borderColor = 'var(--primary)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
+              >
+                <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1v7M3 4l3-3 3 3M1.5 9.5h9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {attUploading ? 'Enviando…' : 'Anexar arquivo'}
+              </button>
+              <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleAttachFile} />
+            </div>
+
+            {/* Lista de anexos */}
+            {attachments.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {attachments.map(att => {
+                  const isImg  = att.mime_type.startsWith('image/')
+                  const isPdf  = att.mime_type === 'application/pdf'
+                  const isDoc  = att.mime_type.includes('word') || att.filename.endsWith('.docx') || att.filename.endsWith('.doc')
+                  const isXls  = att.mime_type.includes('spreadsheet') || att.filename.endsWith('.xlsx') || att.filename.endsWith('.xls')
+                  const icon   = isImg ? '🖼' : isPdf ? '📄' : isDoc ? '📝' : isXls ? '📊' : '📎'
+                  const kb     = att.size < 1024 * 1024
+                    ? `${(att.size / 1024).toFixed(0)} KB`
+                    : `${(att.size / 1024 / 1024).toFixed(1)} MB`
+                  return (
+                    <div key={att.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 10px', borderRadius: 8,
+                      border: '1px solid var(--gray3)', background: 'var(--bg)',
+                    }}>
+                      <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {att.filename}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{kb}</div>
+                      </div>
+                      {/* Download */}
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={att.filename}
+                        onClick={e => e.stopPropagation()}
+                        style={{ display: 'flex', alignItems: 'center', color: 'var(--gray2)', transition: 'color 0.12s', flexShrink: 0 }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gray2)')}
+                        title="Baixar arquivo"
+                      >
+                        <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                          <path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </a>
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        disabled={attLoading}
+                        onClick={e => { e.stopPropagation(); handleDeleteAttachment(att) }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: 22, height: 22, borderRadius: 6, border: 'none',
+                          background: 'transparent', cursor: attLoading ? 'not-allowed' : 'pointer',
+                          color: 'var(--gray2)', transition: 'all 0.12s', flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.10)'; e.currentTarget.style.color = '#D93025' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+                        title="Remover anexo"
+                      >
+                        <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {attachments.length === 0 && !attUploading && (
+              <div style={{ fontSize: 11, color: 'var(--gray2)', fontStyle: 'italic' }}>
+                Nenhum arquivo anexado ainda.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
           {/* Delete — only in edit mode */}
@@ -481,8 +636,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
         </div>
       )}
 
-      {/* Urgency + assigned + flags */}
-      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao) && (
+      {/* Urgency + assigned + flags + attachments */}
+      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao || (task.attachment_count ?? 0) > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingLeft: 22, flexWrap: 'wrap' }}>
           {bloqueado && (
             <span style={{
@@ -526,6 +681,18 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
           {task.assigned_to && (
             <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
               {task.assigned_to.split(' ')[0]}
+            </span>
+          )}
+          {(task.attachment_count ?? 0) > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+              color: 'var(--gray2)', background: 'var(--gray3)',
+            }}>
+              <svg width={8} height={8} viewBox="0 0 12 12" fill="none">
+                <path d="M10.5 6.5L5.5 11a3 3 0 01-4.24-4.24l5-5a2 2 0 012.83 2.83L4.09 9.59a1 1 0 01-1.42-1.42l5-5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {task.attachment_count}
             </span>
           )}
         </div>

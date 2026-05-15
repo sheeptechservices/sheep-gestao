@@ -111,11 +111,22 @@ async function createTables(db: Client) {
       created_at   TEXT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_tasks_week_id    ON tasks(week_id);
-    CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
-    CREATE INDEX IF NOT EXISTS idx_projects_client_id ON projects(client_id);
-    CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
-    CREATE INDEX IF NOT EXISTS idx_weeks_start_date ON weeks(start_date);
+    CREATE TABLE IF NOT EXISTS task_attachments (
+      id         TEXT PRIMARY KEY,
+      task_id    TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      filename   TEXT NOT NULL,
+      url        TEXT NOT NULL,
+      size       INTEGER NOT NULL DEFAULT 0,
+      mime_type  TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_week_id       ON tasks(week_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_id    ON tasks(project_id);
+    CREATE INDEX IF NOT EXISTS idx_projects_client_id  ON projects(client_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_created_at    ON tasks(created_at);
+    CREATE INDEX IF NOT EXISTS idx_weeks_start_date    ON weeks(start_date);
+    CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON task_attachments(task_id);
   `)
 }
 

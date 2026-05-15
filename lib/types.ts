@@ -69,8 +69,19 @@ export interface Task {
   assigned_to?: string;
   flags?: string[];
   flag_comment?: string;
-  deadline?: string;    // ISO date 'YYYY-MM-DD' — previsão de entrega
+  deadline?: string;          // ISO date 'YYYY-MM-DD' — previsão de entrega
   created_at: string;
+  attachment_count?: number;  // preenchido pelo GET /api/tasks (subquery COUNT)
+}
+
+export interface TaskAttachment {
+  id: string
+  task_id: string
+  filename: string
+  url: string
+  size: number
+  mime_type: string
+  created_at: string
 }
 
 export interface Artifact {

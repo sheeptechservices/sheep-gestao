@@ -5,11 +5,12 @@ import { toast } from '@/stores/toastStore'
 interface TasksState {
   tasks: Task[]
   loading: boolean
-  fetchTasks:  (projectId?: string) => Promise<void>
-  addTask:     (task: Task) => Promise<void>
-  updateTask:  (id: string, data: Partial<Task>) => Promise<void>
-  deleteTask:  (id: string) => Promise<void>
-  toggleDone:  (id: string, done: boolean) => Promise<void>
+  fetchTasks:           (projectId?: string) => Promise<void>
+  addTask:              (task: Task) => Promise<void>
+  updateTask:           (id: string, data: Partial<Task>) => Promise<void>
+  deleteTask:           (id: string) => Promise<void>
+  toggleDone:           (id: string, done: boolean) => Promise<void>
+  bumpAttachmentCount:  (taskId: string, delta: 1 | -1) => void
 }
 
 export const useTasksStore = create<TasksState>((set, get) => ({
@@ -68,6 +69,16 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     } catch {
       set({ tasks: prev })
     }
+  },
+
+  bumpAttachmentCount: (taskId: string, delta: 1 | -1) => {
+    set(s => ({
+      tasks: s.tasks.map(t =>
+        t.id === taskId
+          ? { ...t, attachment_count: Math.max(0, (t.attachment_count ?? 0) + delta) }
+          : t
+      ),
+    }))
   },
 
   toggleDone: async (id: string, done: boolean) => {

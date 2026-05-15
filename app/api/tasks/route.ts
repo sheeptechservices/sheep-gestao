@@ -4,18 +4,19 @@ import type { Task, TaskUrgency } from '@/lib/types'
 
 function rowToTask(row: Record<string, unknown>): Task {
   return {
-    id:           row.id           as string,
-    project_id:   row.project_id   as string,
-    week_id:      row.week_id      as string | undefined,
-    title:        row.title        as string,
-    description:  row.description  as string | undefined,
-    urgency:      row.urgency      as TaskUrgency | undefined,
-    done:         (row.done as number) === 1,
-    assigned_to:  row.assigned_to  as string | undefined,
-    flags:        row.flags        ? JSON.parse(row.flags as string) : undefined,
-    flag_comment: row.flag_comment as string | undefined,
-    deadline:     row.deadline     as string | undefined,
-    created_at:   row.created_at   as string,
+    id:               row.id           as string,
+    project_id:       row.project_id   as string,
+    week_id:          row.week_id      as string | undefined,
+    title:            row.title        as string,
+    description:      row.description  as string | undefined,
+    urgency:          row.urgency      as TaskUrgency | undefined,
+    done:             (row.done as number) === 1,
+    assigned_to:      row.assigned_to  as string | undefined,
+    flags:            row.flags        ? JSON.parse(row.flags as string) : undefined,
+    flag_comment:     row.flag_comment as string | undefined,
+    deadline:         row.deadline     as string | undefined,
+    created_at:       row.created_at   as string,
+    attachment_count: (row.attachment_count as number | undefined) ?? 0,
   }
 }
 
@@ -26,13 +27,17 @@ export async function GET(req: NextRequest) {
     const general   = req.nextUrl.searchParams.get('general') // '1' → só sem projeto
     const db = await initDb()
 
-    let sql = 'SELECT * FROM tasks WHERE 1=1'
+    let sql = `
+      SELECT t.*,
+        (SELECT COUNT(*) FROM task_attachments WHERE task_id = t.id) AS attachment_count
+      FROM tasks t
+      WHERE 1=1`
     const params: string[] = []
 
-    if (general === '1') { sql += ' AND project_id IS NULL' }
-    else if (projectId)  { sql += ' AND project_id = ?'; params.push(projectId) }
-    if (weekId)          { sql += ' AND week_id = ?';    params.push(weekId)    }
-    sql += ' ORDER BY created_at'
+    if (general === '1') { sql += ' AND t.project_id IS NULL' }
+    else if (projectId)  { sql += ' AND t.project_id = ?'; params.push(projectId) }
+    if (weekId)          { sql += ' AND t.week_id = ?';    params.push(weekId)    }
+    sql += ' ORDER BY t.created_at'
 
     const res = await db.execute({ sql, args: params })
     return NextResponse.json(res.rows.map(r => rowToTask(r as unknown as Record<string, unknown>)))
