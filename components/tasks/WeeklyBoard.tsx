@@ -85,8 +85,13 @@ function WBDeleteModal({ task, onConfirm, onClose }: {
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
+  const backdropCanClose = useRef(false)
+
   return createPortal(
-    <div onClick={onClose} style={{
+    <div
+      onMouseDown={e => { backdropCanClose.current = e.target === e.currentTarget }}
+      onClick={() => { if (backdropCanClose.current) onClose() }}
+      style={{
       position: 'fixed', inset: 0, zIndex: 2100,
       background: 'rgba(18,19,22,0.4)', backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -261,8 +266,15 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     outline: 'none', cursor: 'text', boxSizing: 'border-box',
   }
 
+  // Fecha o backdrop APENAS se o mousedown também começou no backdrop
+  // (evita fechar ao arrastar texto de dentro do modal para fora)
+  const backdropCanClose = useRef(false)
+
   return createPortal(
-    <div onClick={() => onClose(draftId ?? undefined)} style={{
+    <div
+      onMouseDown={e => { backdropCanClose.current = e.target === e.currentTarget }}
+      onClick={() => { if (backdropCanClose.current) onClose(draftId ?? undefined) }}
+      style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(18,19,22,0.35)', backdropFilter: 'blur(4px)',
       display: 'flex',
