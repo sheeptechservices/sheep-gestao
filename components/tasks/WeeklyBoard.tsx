@@ -596,7 +596,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             }}
           >
             <svg width={15} height={15} viewBox="0 0 16 16" fill="none">
-              <path d="M3 8l3.5 3.5L13 4.5" stroke={form.done ? 'var(--primary-text, #fff)' : 'var(--gray2)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}/>
+              <path d="M3 8l3.5 3.5L13 4.5" stroke={form.done ? 'var(--primary-text, #fff)' : 'var(--primary)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}/>
             </svg>
           </button>
           <div style={{ flex: 1 }} />
