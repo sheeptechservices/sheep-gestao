@@ -87,10 +87,42 @@ export function RichTextEditor({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ctrl+B / Ctrl+I / Ctrl+U handled by browser execCommand natively
+    // ── Tab: indent/outdent dentro de listas; espaços fora delas ──────────────
     if (e.key === 'Tab') {
       e.preventDefault()
-      cmd('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')
+      if (isActive('insertUnorderedList') || isActive('insertOrderedList')) {
+        cmd(e.shiftKey ? 'outdent' : 'indent')
+      } else {
+        cmd('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')
+      }
+      rerender(n => n + 1)
+      setTimeout(handleInput, 0)
+      return
+    }
+
+    // ── "- " no início de linha → ativa lista com marcadores ─────────────────
+    if (e.key === ' ') {
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        if (range.collapsed) {
+          const node = range.startContainer
+          const textBefore = node.nodeType === Node.TEXT_NODE
+            ? (node.textContent ?? '').slice(0, range.startOffset)
+            : ''
+          if (textBefore === '-') {
+            e.preventDefault()
+            // Remove o traço e ativa o bullet
+            const del = range.cloneRange()
+            del.setStart(node, range.startOffset - 1)
+            del.deleteContents()
+            cmd('insertUnorderedList')
+            rerender(n => n + 1)
+            setTimeout(handleInput, 0)
+            return
+          }
+        }
+      }
     }
   }
 
@@ -222,6 +254,10 @@ export function RichTextEditor({
         [contenteditable] ul { padding-left: 20px; margin: 4px 0; list-style-type: disc; }
         [contenteditable] ol { padding-left: 20px; margin: 4px 0; list-style-type: decimal; }
         [contenteditable] li { margin: 2px 0; display: list-item; }
+        [contenteditable] ul ul { list-style-type: circle; }
+        [contenteditable] ul ul ul { list-style-type: square; }
+        [contenteditable] ol ol { list-style-type: lower-alpha; }
+        [contenteditable] ol ol ol { list-style-type: lower-roman; }
         [contenteditable] blockquote {
           border-left: 3px solid var(--primary);
           padding-left: 10px; margin: 6px 0;
