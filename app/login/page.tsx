@@ -367,6 +367,11 @@ function LeftPanel() {
             transform: wordVis ? 'translateY(0)' : 'translateY(-8px)',
             transition: 'opacity .3s ease, transform .3s ease',
             minWidth: 160,
+            background: 'rgba(132,204,22,0.12)',
+            border: '1px solid rgba(132,204,22,0.25)',
+            borderRadius: 10,
+            padding: '2px 12px 4px 6px',
+            animation: 'wordGlow 2.8s ease-in-out infinite',
           }}>
             {WORDS[wordIdx]}
           </span>
@@ -392,6 +397,16 @@ export default function LoginPage() {
         @keyframes loginLogoPulse {
           0%, 100% { box-shadow: 0 0 0 0   rgba(132,204,22,0.5); }
           50%       { box-shadow: 0 0 0 10px rgba(132,204,22,0);   }
+        }
+        @keyframes wordGlow {
+          0%, 100% {
+            text-shadow: 0 0 12px rgba(132,204,22,0.7), 0 0 28px rgba(132,204,22,0.35);
+            box-shadow:  0 0 12px rgba(132,204,22,0.15), inset 0 0 12px rgba(132,204,22,0.06);
+          }
+          50% {
+            text-shadow: 0 0 20px rgba(132,204,22,1.0), 0 0 50px rgba(132,204,22,0.55), 0 0 80px rgba(132,204,22,0.25);
+            box-shadow:  0 0 22px rgba(132,204,22,0.30), inset 0 0 18px rgba(132,204,22,0.10);
+          }
         }
         @keyframes loginShake {
           0%, 100% { transform: translateX(0); }
