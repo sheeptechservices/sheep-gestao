@@ -63,6 +63,7 @@ function rowToProject(row: Record<string, unknown>): Project {
     links: row.links as string | undefined,
     team_members: row.team_members ? JSON.parse(row.team_members as string) : undefined,
     display_order: row.display_order as number | undefined,
+    github_repo: row.github_repo as string | undefined,
   }
 }
 
@@ -89,13 +90,13 @@ export async function POST(req: NextRequest) {
       sql: `
         INSERT INTO projects
           (id, client_id, name, description, status, type, color_hex,
-           start_date, end_date, progress, created_at, gestor, observacoes, links, team_members)
+           start_date, end_date, progress, created_at, gestor, observacoes, links, team_members, github_repo)
         VALUES
           (:id, :client_id, :name, :description, :status, :type, :color_hex,
-           :start_date, :end_date, :progress, :created_at, :gestor, :observacoes, :links, :team_members)
+           :start_date, :end_date, :progress, :created_at, :gestor, :observacoes, :links, :team_members, :github_repo)
       `,
       args: {
-        description: null, end_date: null, gestor: null, observacoes: null, links: null,
+        description: null, end_date: null, gestor: null, observacoes: null, links: null, github_repo: null,
         ...body,
         progress: body.progress ?? 0,
         team_members: body.team_members?.length ? JSON.stringify(body.team_members) : null,

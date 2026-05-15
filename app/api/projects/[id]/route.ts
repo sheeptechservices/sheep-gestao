@@ -48,6 +48,7 @@ function rowToProject(row: Record<string, unknown>): Project {
     links: row.links as string | undefined,
     team_members: row.team_members ? JSON.parse(row.team_members as string) : undefined,
     display_order: row.display_order as number | undefined,
+    github_repo: row.github_repo as string | undefined,
   }
 }
 
@@ -65,11 +66,12 @@ export async function PUT(
           status = :status, type = :type, color_hex = :color_hex,
           start_date = :start_date, end_date = :end_date, progress = :progress,
           gestor = :gestor, observacoes = :observacoes, links = :links,
-          team_members = :team_members, display_order = :display_order
+          team_members = :team_members, display_order = :display_order,
+          github_repo = :github_repo
         WHERE id = :id
       `,
       args: {
-        description: null, end_date: null, gestor: null, observacoes: null, links: null, display_order: 0,
+        description: null, end_date: null, gestor: null, observacoes: null, links: null, display_order: 0, github_repo: null,
         ...body,
         id: params.id,
         team_members: (body.team_members as string[] | undefined)?.length

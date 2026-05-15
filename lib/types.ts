@@ -42,6 +42,7 @@ export interface Project {
   links?: string;
   team_members?: string[];
   display_order?: number;
+  github_repo?: string;   // formato "owner/repo" — ex: "sheeptechservices/sheep-gestao"
 }
 
 export interface Week {

@@ -146,6 +146,7 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE projects ADD COLUMN links         TEXT`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN team_members  TEXT`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN display_order INTEGER DEFAULT 0`),
+    tryAlter(db, `ALTER TABLE projects ADD COLUMN github_repo  TEXT`),
     // tasks
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN done         INTEGER NOT NULL DEFAULT 0`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN flag_comment TEXT`),

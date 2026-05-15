@@ -843,6 +843,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [artifactTitles, setArtifactTitles] = useState<Record<string, string>>({})
   const [voiceMode, setVoiceMode]           = useState(false)
   const [voiceState, setVoiceState]         = useState<'idle' | 'listening' | 'speaking'>('idle')
+  const [githubContext, setGithubContext]   = useState<string | null>(null)
+  const [githubLoading, setGithubLoading]   = useState(false)
   const recognitionRef   = useRef<unknown>(null)
   const prevStreamingRef = useRef(false)
   const resizingRef                         = useRef(false)
@@ -871,6 +873,67 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     setPendingInput(agentType, '')
     setTimeout(() => textareaRef.current?.focus(), 80)
   }, [pendingInput, agentType, setPendingInput])
+
+  // Busca contexto do GitHub quando o agente é Dev e o projeto tem github_repo configurado
+  useEffect(() => {
+    const project = projects.find(p => p.id === selectedProjectId) ?? null
+    const repo = project?.github_repo
+    if (agentType !== 'dev' || !repo) {
+      setGithubContext(null)
+      return
+    }
+    const [owner, repoName] = repo.split('/')
+    if (!owner || !repoName) { setGithubContext(null); return }
+
+    setGithubLoading(true)
+    fetch(`/api/github/${owner}/${repoName}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { setGithubContext(null); return }
+        // Importamos o formatador no runtime para evitar bundle server-code no client
+        // Montamos o texto aqui mesmo (lógica idêntica à de lib/github.ts formatRepoContextForPrompt)
+        const ctx = data as {
+          repo: { full_name: string; visibility: string; default_branch: string; language: string|null; description: string|null; topics: string[]; open_issues_count: number; pushed_at: string } | null
+          openIssues: { number: number; title: string; labels: { name: string }[] }[]
+          recentPRs: { number: number; title: string; state: string; merged_at: string|null; draft: boolean; head: { ref: string }; base: { ref: string } }[]
+          recentCommits: { sha: string; commit: { message: string; author: { name: string; date: string } } }[]
+        }
+        const lines: string[] = []
+        lines.push(`\n\n--- REPOSITÓRIO GITHUB: ${repo} ---`)
+        if (ctx.repo) {
+          const r = ctx.repo
+          lines.push(`Visibilidade: ${r.visibility} | Branch padrão: ${r.default_branch} | Linguagem: ${r.language ?? 'N/A'}`)
+          if (r.description) lines.push(`Descrição: ${r.description}`)
+          if (r.topics?.length) lines.push(`Tópicos: ${r.topics.join(', ')}`)
+          lines.push(`Issues abertas: ${r.open_issues_count} | Último push: ${r.pushed_at?.slice(0, 10) ?? 'N/A'}`)
+        }
+        if (ctx.openIssues.length > 0) {
+          lines.push(`\nISSUES ABERTAS (${ctx.openIssues.length}):`)
+          ctx.openIssues.slice(0, 10).forEach(i => {
+            const lbls = i.labels.length ? ` [${i.labels.map(l => l.name).join(', ')}]` : ''
+            lines.push(`  #${i.number} ${i.title}${lbls}`)
+          })
+        } else {
+          lines.push('\nNenhuma issue aberta.')
+        }
+        const open   = ctx.recentPRs.filter(p => p.state === 'open' && !p.draft)
+        const drafts = ctx.recentPRs.filter(p => p.draft)
+        const merged = ctx.recentPRs.filter(p => p.merged_at)
+        if (open.length) { lines.push(`\nPULL REQUESTS ABERTOS (${open.length}):`); open.forEach(p => lines.push(`  #${p.number} ${p.title} (${p.head.ref} → ${p.base.ref})`)) }
+        if (drafts.length) { lines.push(`\nPULL REQUESTS DRAFT (${drafts.length}):`); drafts.forEach(p => lines.push(`  #${p.number} ${p.title}`)) }
+        if (merged.length) { lines.push(`\nÚLTIMOS PRs MERGED:`); merged.slice(0, 5).forEach(p => lines.push(`  #${p.number} ${p.title} (${p.merged_at?.slice(0, 10)})`)) }
+        if (ctx.recentCommits.length > 0) {
+          lines.push(`\nCOMMITS RECENTES:`)
+          ctx.recentCommits.slice(0, 10).forEach(c => {
+            const msg = c.commit.message.split('\n')[0].slice(0, 90)
+            lines.push(`  ${c.sha.slice(0, 7)} ${msg} — ${c.commit.author.name} (${c.commit.author.date.slice(0, 10)})`)
+          })
+        }
+        setGithubContext(lines.join('\n'))
+      })
+      .catch(() => setGithubContext(null))
+      .finally(() => setGithubLoading(false))
+  }, [agentType, selectedProjectId, projects])
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -981,9 +1044,13 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
         prompt += `\n\nENTREGÁVEL EM FOCO: ${selectedTask.title} [${selectedTask.done ? 'Concluído' : 'Pendente'}]`
         if (selectedTask.description) prompt += `\nDescrição: ${selectedTask.description}`
       }
+      // Contexto do repositório GitHub (apenas para o agente Dev)
+      if (agentDef.type === 'dev' && githubContext) {
+        prompt += githubContext
+      }
     }
     return prompt
-  }, [selectedProject, projectTasks, selectedTask])
+  }, [selectedProject, projectTasks, selectedTask, githubContext])
 
   const runStream = useCallback(async (
     systemPrompt: string, history: { role: string; content: string }[],
@@ -1396,6 +1463,25 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
           <span style={{ fontSize: 10, fontWeight: 700, color: agent.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 2, opacity: 0.8 }}>Contexto</span>
           <ContextDropdown label="Conversa geral" value={selectedProjectId} options={projectOptions} onChange={id => setProject(agentType, id)} color={agent.color} />
           {selectedProjectId && <ContextDropdown label="Todos os entregáveis" value={selectedTaskId} options={taskOptions} onChange={id => setTask(agentType, id)} color={agent.color} disabled={taskOptions.length === 0} />}
+          {/* GitHub badge — só aparece para o agente Dev quando há repo configurado */}
+          {agentType === 'dev' && selectedProject?.github_repo && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap',
+              border: `1px solid ${githubContext ? '#1E8A3E50' : githubLoading ? agent.color + '40' : 'var(--gray3)'}`,
+              background: githubContext ? 'rgba(30,138,62,0.08)' : 'transparent',
+              fontSize: 11, fontWeight: 600,
+              color: githubContext ? '#1E8A3E' : githubLoading ? agent.color : 'var(--gray2)',
+              transition: 'all 0.2s',
+            }}
+              title={githubContext ? `Contexto do repositório ${selectedProject.github_repo} carregado` : githubLoading ? 'Carregando repositório…' : 'Repositório não encontrado ou inacessível'}
+            >
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              {githubLoading ? 'Carregando…' : githubContext ? selectedProject.github_repo : 'Sem acesso'}
+            </div>
+          )}
         </div>
         {/* Model + effort controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px', flexWrap: 'wrap' }}>
