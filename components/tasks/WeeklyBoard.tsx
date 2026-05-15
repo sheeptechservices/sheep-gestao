@@ -518,6 +518,40 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             />
           )}
           <div style={{ flex: 1 }} />
+          {/* Toggle concluído */}
+          <button
+            type="button"
+            onClick={() => setForm(f => ({ ...f, done: !f.done }))}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+              border: `1.5px solid ${form.done ? '#059669' : 'var(--gray3)'}`,
+              background: form.done ? 'rgba(5,150,105,0.10)' : 'transparent',
+              color: form.done ? '#059669' : 'var(--gray2)',
+              cursor: 'pointer', transition: 'all 0.18s',
+            }}
+            onMouseEnter={e => {
+              if (!form.done) { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.color = '#059669' }
+            }}
+            onMouseLeave={e => {
+              if (!form.done) { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }
+            }}
+          >
+            <span style={{
+              width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+              border: `1.5px solid ${form.done ? '#059669' : 'var(--gray3)'}`,
+              background: form.done ? '#059669' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.18s',
+            }}>
+              {form.done && (
+                <svg width={9} height={9} viewBox="0 0 10 10" fill="none">
+                  <path d="M2 5l2 2.5L8 3" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </span>
+            {form.done ? 'Concluído' : 'Marcar como concluído'}
+          </button>
           <button onClick={onClose} style={{
             padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
             border: '1px solid var(--gray3)', background: 'transparent',
