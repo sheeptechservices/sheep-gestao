@@ -37,7 +37,7 @@ export function ClientMapCard({ clients }: { clients: Client[] }) {
             fontSize: 10, fontWeight: 800, color: 'var(--gray2)',
             letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4,
           }}>
-            Dispersão de clientes
+            Localização dos clientes
           </div>
           {withLocation.length > 0 && (
             <div style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 500 }}>
