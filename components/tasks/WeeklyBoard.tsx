@@ -324,9 +324,10 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             options={[
               { value: '', label: '— Nenhum (geral) —' },
               ...projects.map(p => ({
-                value:    p.id,
-                label:    p.name,
-                sublabel: p.client?.name ?? undefined,
+                value:         p.id,
+                label:         p.name,
+                sublabel:      p.client?.name ?? undefined,
+                sublabelColor: p.client?.color_hex ?? undefined,
               })),
             ]}
           />

@@ -10,7 +10,8 @@ export interface AppSelectOption {
   color?:    string  // cor do dot e texto do badge
   bg?:       string  // fundo do badge no item e no trigger
   border?:   string  // borda do badge
-  sublabel?: string  // etiqueta secundária (ex: nome do cliente)
+  sublabel?:      string  // etiqueta secundária (ex: nome do cliente)
+  sublabelColor?: string  // cor da tag do sublabel (ex: color_hex do cliente)
 }
 
 export interface AppSelectProps {
@@ -137,7 +138,10 @@ export function AppSelect({
         {selected?.sublabel && (
           <span style={{
             fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 100, flexShrink: 0,
-            color: 'var(--gray2)', background: 'var(--gray3)', whiteSpace: 'nowrap',
+            color:       selected.sublabelColor ?? 'var(--gray2)',
+            background:  selected.sublabelColor ? selected.sublabelColor + '18' : 'var(--gray3)',
+            border:      `1px solid ${selected.sublabelColor ? selected.sublabelColor + '40' : 'transparent'}`,
+            whiteSpace: 'nowrap',
           }}>{selected.sublabel}</span>
         )}
       </span>
@@ -246,8 +250,10 @@ export function AppSelect({
               )}
               {opt.sublabel && (
                 <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 100, flexShrink: 0,
-                  color: 'var(--gray2)', background: 'var(--gray3)',
+                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100, flexShrink: 0,
+                  color:      opt.sublabelColor ?? 'var(--gray2)',
+                  background: opt.sublabelColor ? opt.sublabelColor + '18' : 'var(--gray3)',
+                  border:     `1px solid ${opt.sublabelColor ? opt.sublabelColor + '40' : 'transparent'}`,
                 }}>{opt.sublabel}</span>
               )}
             </span>

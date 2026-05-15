@@ -1244,7 +1244,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
 
   const projectOptions = projects
     .filter(p => p.status === 'active' || p.status === 'paused' || p.status === 'negotiation')
-    .map(p => ({ id: p.id, label: p.name, sublabel: p.client?.name }))
+    .map(p => ({ id: p.id, label: p.name, sublabel: p.client?.name, sublabelColor: p.client?.color_hex }))
 
   const storeTasks      = useTasksStore(s => s.tasks)
   const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId) ?? null, [selectedProjectId, projects])
