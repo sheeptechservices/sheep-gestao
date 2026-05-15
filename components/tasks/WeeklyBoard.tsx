@@ -601,17 +601,19 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             </svg>
           </button>
           <div style={{ flex: 1 }} />
-          <button onClick={() => onClose(draftIdRef.current ?? undefined)} style={{
-            padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-            border: '1px solid var(--gray3)', background: 'transparent',
-            color: 'var(--gray2)', cursor: 'pointer',
-          }}>Cancelar</button>
-          <button onClick={() => valid && onSave(form, draftIdRef.current ?? undefined)} disabled={!valid} style={{
-            padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none',
-            background: valid ? 'var(--primary)' : 'var(--gray3)',
-            color: valid ? 'var(--primary-text)' : 'var(--gray2)',
-            cursor: valid ? 'pointer' : 'default', transition: 'all 0.15s',
-          }}>{isEdit ? 'Salvar' : 'Criar entregável'}</button>
+          <button
+            onClick={() => onClose(draftIdRef.current ?? undefined)}
+            style={{ padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: '1px solid var(--gray3)', background: 'transparent', color: 'var(--gray2)', cursor: 'pointer', transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gray2)'; e.currentTarget.style.color = 'var(--text)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+          >Cancelar</button>
+          <button
+            onClick={() => valid && onSave(form, draftIdRef.current ?? undefined)}
+            disabled={!valid}
+            style={{ padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', background: valid ? 'var(--primary)' : 'var(--gray3)', color: valid ? '#fff' : 'var(--gray2)', cursor: valid ? 'pointer' : 'default', transition: 'all 0.15s' }}
+            onMouseEnter={e => { if (valid) e.currentTarget.style.filter = 'brightness(1.08)' }}
+            onMouseLeave={e => { if (valid) e.currentTarget.style.filter = 'none' }}
+          >{isEdit ? 'Salvar' : 'Criar entregável'}</button>
         </div>
       </div>
     </div>,
