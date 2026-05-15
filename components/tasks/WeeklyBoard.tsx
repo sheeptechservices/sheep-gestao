@@ -181,12 +181,19 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   // ── Draft imediato (novo entregável) ──────────────────────────────────────
   // Ao abrir o modal sem task, cria o registro no banco na hora para que
   // anexos e outras features funcionem antes do usuário clicar em Salvar.
+  //
+  // draftIdRef é definido SINCRONAMENTE (antes do fetch) para garantir que,
+  // mesmo que o usuário feche o modal antes da resposta do POST chegar,
+  // o ID já está disponível para o cleanup (DELETE no banco).
+  // draftId (estado) continua sendo usado para reatividade da UI.
+  const draftIdRef           = useRef<string | null>(null)
   const [draftId, setDraftId] = useState<string | null>(null)
   const effectiveId = task?.id ?? draftId   // ID real para operações de anexo
 
   useEffect(() => {
     if (task) return  // edição — task já existe
     const id  = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    draftIdRef.current = id   // disponível imediatamente, antes do fetch
     const now = new Date().toISOString()
     fetch('/api/tasks', {
       method: 'POST',
@@ -252,7 +259,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
 
   useEffect(() => { inputRef.current?.focus() }, [])
   useEffect(() => {
-    function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose(draftId ?? undefined) }
+    function h(e: KeyboardEvent) { if (e.key === 'Escape') onClose(draftIdRef.current ?? undefined) }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [onClose, draftId])
@@ -273,7 +280,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   return createPortal(
     <div
       onMouseDown={e => { backdropCanClose.current = e.target === e.currentTarget }}
-      onClick={() => { if (backdropCanClose.current) onClose(draftId ?? undefined) }}
+      onClick={() => { if (backdropCanClose.current) onClose(draftIdRef.current ?? undefined) }}
       style={{
       position: 'fixed', inset: 0, zIndex: 2000,
       background: 'rgba(18,19,22,0.35)', backdropFilter: 'blur(4px)',
@@ -297,7 +304,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
             {isEdit ? 'Editar entregável' : 'Novo entregável'}
           </h2>
-          <button onClick={() => onClose(draftId ?? undefined)} style={{
+          <button onClick={() => onClose(draftIdRef.current ?? undefined)} style={{
             width: 28, height: 28, borderRadius: '50%', border: 'none',
             background: 'var(--bg)', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -312,7 +319,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
             placeholder="Descreva o entregável..."
             style={inputStyle}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && valid) onSave(form, draftId ?? undefined) }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && valid) onSave(form, draftIdRef.current ?? undefined) }}
           />
         </div>
 
@@ -587,12 +594,12 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
             </span>
             {form.done ? 'Concluído' : 'Marcar como concluído'}
           </button>
-          <button onClick={() => onClose(draftId ?? undefined)} style={{
+          <button onClick={() => onClose(draftIdRef.current ?? undefined)} style={{
             padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
             border: '1px solid var(--gray3)', background: 'transparent',
             color: 'var(--gray2)', cursor: 'pointer',
           }}>Cancelar</button>
-          <button onClick={() => valid && onSave(form, draftId ?? undefined)} disabled={!valid} style={{
+          <button onClick={() => valid && onSave(form, draftIdRef.current ?? undefined)} disabled={!valid} style={{
             padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none',
             background: valid ? 'var(--primary)' : 'var(--gray3)',
             color: valid ? 'var(--primary-text)' : 'var(--gray2)',
