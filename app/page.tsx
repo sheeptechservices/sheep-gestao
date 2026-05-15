@@ -9,6 +9,7 @@ import { ProjectsTable } from '@/components/dashboard/ProjectsTable'
 import { HorizontalBarsCard } from '@/components/dashboard/HorizontalBarsCard'
 import { NpsSection } from '@/components/dashboard/NpsSection'
 import { ClientMapCard } from '@/components/dashboard/ClientMapCard'
+import { SegmentDonut } from '@/components/dashboard/SegmentDonut'
 import type { Project, Task, Client } from '@/lib/types'
 
 // ── Mock NPS surveys (always visible) ────────────────────────────────────────
@@ -242,9 +243,18 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Client map */}
-          <div className="animate-slide-up delay-5" style={{ marginBottom: 28 }}>
+          {/* Client map + Segment donut */}
+          <div
+            className="animate-slide-up delay-5"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr' : '2fr 1fr',
+              gap: isMobile ? 10 : 14,
+              marginBottom: 28,
+            }}
+          >
             <ClientMapCard clients={clients} />
+            <SegmentDonut clients={clients} />
           </div>
 
           {/* NPS — always visible with mock data */}
