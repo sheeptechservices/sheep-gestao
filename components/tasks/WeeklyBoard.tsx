@@ -213,6 +213,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   const [attLoading, setAttLoading]     = useState(false)
   const [attUploading, setAttUploading] = useState(false)
   const [dragOver, setDragOver]         = useState(false)
+  const [attHover, setAttHover]         = useState(false)
 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
@@ -441,6 +442,8 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           {/* Drop zone */}
           <div
             onClick={() => effectiveId && !attUploading && fileRef.current?.click()}
+            onMouseEnter={() => { if (effectiveId && !attUploading) setAttHover(true) }}
+            onMouseLeave={() => setAttHover(false)}
             onDragOver={e => { e.preventDefault(); if (effectiveId) setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={e => {
@@ -451,9 +454,9 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               handleAttachFile(synth)
             }}
             style={{
-              border: `1.5px dashed ${dragOver ? 'var(--primary)' : effectiveId ? 'var(--gray3)' : 'var(--gray3)'}`,
+              border: `1.5px dashed ${dragOver ? 'var(--primary)' : attHover ? 'var(--gray2)' : 'var(--gray3)'}`,
               borderRadius: 10,
-              background: dragOver ? 'var(--primary-dim)' : 'var(--bg)',
+              background: dragOver ? 'var(--primary-dim)' : attHover ? 'var(--white)' : 'var(--bg)',
               padding: '20px 16px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
               cursor: effectiveId && !attUploading ? 'pointer' : 'default',
@@ -464,7 +467,7 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
           >
             {/* Upload icon */}
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none"
-              stroke={dragOver ? 'var(--primary)' : 'var(--gray2)'}
+              stroke={dragOver || attHover ? 'var(--primary)' : 'var(--gray2)'}>
               strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
               style={{ transition: 'stroke 0.15s' }}
             >
