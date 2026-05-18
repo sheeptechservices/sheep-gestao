@@ -52,6 +52,12 @@ function blockTag() {
   try { return (document.queryCommandValue('formatBlock') as string).toLowerCase() } catch { return '' }
 }
 
+function getClosestLi(node: Node | null): HTMLElement | null {
+  if (!node) return null
+  const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element
+  return el?.closest('li') as HTMLElement | null
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 interface RichTextEditorProps {
   value: string
@@ -67,10 +73,9 @@ export function RichTextEditor({
   minHeight = 120,
 }: RichTextEditorProps) {
   const editorRef    = useRef<HTMLDivElement>(null)
-  const internalRef  = useRef(false)   // true while onChange is being dispatched
-  const [, rerender] = useState(0)     // force toolbar to re-check active states
+  const internalRef  = useRef(false)
+  const [, rerender] = useState(0)
 
-  // Sync external value → editor (e.g. when modal opens with existing task)
   useEffect(() => {
     const el = editorRef.current
     if (!el || internalRef.current) return
@@ -86,8 +91,65 @@ export function RichTextEditor({
     rerender(n => n + 1)
   }
 
+  // ── Checklist: insert or toggle off ────────────────────────────────────────
+  const insertChecklist = () => {
+    const el = editorRef.current
+    if (!el) return
+    el.focus()
+
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+
+    const li = getClosestLi(sel.getRangeAt(0).startContainer)
+    if (li?.closest('ul.rte-checklist')) {
+      // Already in checklist → convert back to plain list
+      const ul = li.closest('ul.rte-checklist') as HTMLElement
+      ul.classList.remove('rte-checklist')
+      ul.querySelectorAll('.rte-chk').forEach(s => s.remove())
+      ul.querySelectorAll('li[data-checked]').forEach(l => l.removeAttribute('data-checked'))
+    } else {
+      // Insert new checklist
+      cmd('insertHTML',
+        '<ul class="rte-checklist"><li data-checked="false">' +
+        '<span class="rte-chk" contenteditable="false"></span>​</li></ul>'
+      )
+      // Place cursor after the rte-chk span
+      setTimeout(() => {
+        const newLi = el.querySelector('ul.rte-checklist li:last-child')
+        if (!newLi) return
+        const textNode = Array.from(newLi.childNodes).find(n => n.nodeType === Node.TEXT_NODE)
+        if (textNode) {
+          const r = document.createRange()
+          r.setStart(textNode, (textNode.textContent ?? '').length)
+          r.collapse(true)
+          sel.removeAllRanges()
+          sel.addRange(r)
+        }
+      }, 0)
+    }
+    rerender(n => n + 1)
+    setTimeout(handleInput, 0)
+  }
+
+  // ── Click: toggle checkbox ──────────────────────────────────────────────────
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as Element
+    if (target.classList.contains('rte-chk')) {
+      const li = target.closest('li')
+      if (li) {
+        const checked = li.getAttribute('data-checked') === 'true'
+        li.setAttribute('data-checked', String(!checked))
+        handleInput()
+        e.preventDefault()
+      }
+    }
+  }
+
+  // ── Key handler ─────────────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // ── Tab: indent/outdent dentro de listas; espaços fora delas ──────────────
+    const sel = window.getSelection()
+
+    // ── Tab: indent/outdent ────────────────────────────────────────────────────
     if (e.key === 'Tab') {
       e.preventDefault()
       if (isActive('insertUnorderedList') || isActive('insertOrderedList')) {
@@ -100,27 +162,82 @@ export function RichTextEditor({
       return
     }
 
-    // ── "- " no início de linha → ativa lista com marcadores ─────────────────
-    if (e.key === ' ') {
-      const sel = window.getSelection()
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0)
-        if (range.collapsed) {
-          const node = range.startContainer
-          const textBefore = node.nodeType === Node.TEXT_NODE
-            ? (node.textContent ?? '').slice(0, range.startOffset)
-            : ''
-          if (textBefore === '-') {
-            e.preventDefault()
-            // Remove o traço e ativa o bullet
-            const del = range.cloneRange()
-            del.setStart(node, range.startOffset - 1)
-            del.deleteContents()
-            cmd('insertUnorderedList')
-            rerender(n => n + 1)
-            setTimeout(handleInput, 0)
-            return
+    // ── Enter in checklist ─────────────────────────────────────────────────────
+    if (e.key === 'Enter' && sel && sel.rangeCount > 0) {
+      const li = getClosestLi(sel.getRangeAt(0).startContainer)
+      if (li?.closest('ul.rte-checklist')) {
+        const textContent = (li.textContent ?? '').replace(/​/g, '').trim()
+
+        if (!textContent) {
+          // Empty item → exit checklist, insert paragraph
+          e.preventDefault()
+          const ul = li.closest('ul')!
+          li.remove()
+          const p = document.createElement('p')
+          p.innerHTML = '<br>'
+          if (ul.children.length === 0) {
+            ul.replaceWith(p)
+          } else {
+            ul.after(p)
           }
+          const r = document.createRange()
+          r.setStart(p, 0)
+          r.collapse(true)
+          sel.removeAllRanges()
+          sel.addRange(r)
+          rerender(n => n + 1)
+          setTimeout(handleInput, 0)
+          return
+        }
+
+        // Non-empty → let browser create new <li>, then inject rte-chk span
+        setTimeout(() => {
+          const sel2 = window.getSelection()
+          if (!sel2 || sel2.rangeCount === 0) return
+          const newLi = getClosestLi(sel2.getRangeAt(0).startContainer)
+          if (newLi && newLi.closest('ul.rte-checklist') && !newLi.querySelector('.rte-chk')) {
+            const chk = document.createElement('span')
+            chk.className = 'rte-chk'
+            chk.contentEditable = 'false'
+            newLi.setAttribute('data-checked', 'false')
+            newLi.prepend(chk)
+          }
+          rerender(n => n + 1)
+          setTimeout(handleInput, 0)
+        }, 0)
+        return
+      }
+    }
+
+    // ── Space triggers ──────────────────────────────────────────────────────────
+    if (e.key === ' ' && sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0)
+      if (range.collapsed) {
+        const node = range.startContainer
+        const textBefore = node.nodeType === Node.TEXT_NODE
+          ? (node.textContent ?? '').slice(0, range.startOffset)
+          : ''
+
+        // "- " → bullet list
+        if (textBefore === '-') {
+          e.preventDefault()
+          const del = range.cloneRange()
+          del.setStart(node, range.startOffset - 1)
+          del.deleteContents()
+          cmd('insertUnorderedList')
+          rerender(n => n + 1)
+          setTimeout(handleInput, 0)
+          return
+        }
+
+        // "[ " → checklist
+        if (textBefore === '[') {
+          e.preventDefault()
+          const del = range.cloneRange()
+          del.setStart(node, range.startOffset - 1)
+          del.deleteContents()
+          insertChecklist()
+          return
         }
       }
     }
@@ -149,6 +266,12 @@ export function RichTextEditor({
   const quote     = blockTag() === 'blockquote'
   const h1        = blockTag() === 'h1'
   const h2        = blockTag() === 'h2'
+
+  // Checklist active state: cursor inside a rte-checklist
+  const selNode = (() => {
+    try { return window.getSelection()?.getRangeAt(0).startContainer ?? null } catch { return null }
+  })()
+  const checklist = !!(selNode && getClosestLi(selNode)?.closest('ul.rte-checklist'))
 
   return (
     <div style={{ border: '1.5px solid var(--gray3)', borderRadius: 10, background: 'var(--white)', overflow: 'hidden' }}>
@@ -191,6 +314,15 @@ export function RichTextEditor({
             <path d="M1 9.5c0-.8 2-1 2-.5 0 .8-2 1.5-2 2h2" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </ToolBtn>
+        {/* Checklist */}
+        <ToolBtn title="Checklist (ou digite '[ ')" active={checklist} onCmd={insertChecklist}>
+          <svg width={13} height={12} viewBox="0 0 13 12" fill="none">
+            <rect x="1" y="1.5" width="4" height="4" rx="1" stroke="currentColor" strokeWidth={1.3}/>
+            <path d="M2 3.5l1 1 1.5-1.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="1" y="6.5" width="4" height="4" rx="1" stroke="currentColor" strokeWidth={1.3}/>
+            <path d="M7 4h5M7 9h5" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+          </svg>
+        </ToolBtn>
         <ToolBtn title="Citação" active={quote} onCmd={() => toggleBlock('blockquote')}>
           <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
             <path d="M1 4c0-1 .7-1.5 1.5-1.5S4 3 4 4s-.7 1.5-1.5 1.5L2 6.5V8M7 4c0-1 .7-1.5 1.5-1.5S10 3 10 4s-.7 1.5-1.5 1.5L8 6.5V8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
@@ -228,6 +360,7 @@ export function RichTextEditor({
         onKeyDown={handleKeyDown}
         onKeyUp={() => rerender(n => n + 1)}
         onMouseUp={() => rerender(n => n + 1)}
+        onClick={handleClick}
         data-placeholder={placeholder}
         style={{
           minHeight,
@@ -269,6 +402,59 @@ export function RichTextEditor({
         [contenteditable] strong, [contenteditable] b { font-weight: 700; }
         [contenteditable] em, [contenteditable] i { font-style: italic; }
         [contenteditable] s, [contenteditable] strike { text-decoration: line-through; color: var(--gray2); }
+
+        /* ── Checklist ── */
+        [contenteditable] ul.rte-checklist {
+          list-style: none;
+          padding-left: 2px;
+          margin: 4px 0;
+        }
+        [contenteditable] ul.rte-checklist > li {
+          position: relative;
+          padding-left: 22px;
+          margin: 4px 0;
+          min-height: 18px;
+          display: block;
+        }
+        .rte-chk {
+          position: absolute;
+          left: 0;
+          top: 3px;
+          width: 14px;
+          height: 14px;
+          border: 1.5px solid var(--gray2);
+          border-radius: 3px;
+          background: var(--bg);
+          cursor: pointer;
+          display: inline-block;
+          flex-shrink: 0;
+          transition: background 0.15s, border-color 0.15s;
+          user-select: none;
+        }
+        .rte-chk:hover {
+          border-color: var(--primary);
+          background: var(--primary-dim);
+        }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk {
+          background: var(--primary);
+          border-color: var(--primary);
+        }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk::after {
+          content: '';
+          position: absolute;
+          left: 2px;
+          top: 1px;
+          width: 7px;
+          height: 4px;
+          border-left: 1.5px solid #fff;
+          border-bottom: 1.5px solid #fff;
+          transform: rotate(-45deg);
+          display: block;
+        }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] {
+          color: var(--gray2);
+          text-decoration: line-through;
+        }
       `}</style>
     </div>
   )
