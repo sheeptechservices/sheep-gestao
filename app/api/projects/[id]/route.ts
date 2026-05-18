@@ -71,12 +71,22 @@ export async function PUT(
         WHERE id = :id
       `,
       args: {
-        description: null, end_date: null, gestor: null, observacoes: null, links: null, display_order: 0, github_repo: null,
-        ...body,
-        id: params.id,
-        team_members: (body.team_members as string[] | undefined)?.length
-          ? JSON.stringify(body.team_members)
-          : null,
+        id:            params.id,
+        client_id:     body.client_id     ?? null,
+        name:          body.name          ?? '',
+        description:   body.description   ?? null,
+        status:        body.status        ?? 'active',
+        type:          body.type          ?? 'Other',
+        color_hex:     body.color_hex     ?? '#84CC16',
+        start_date:    body.start_date    ?? new Date().toISOString().slice(0, 10),
+        end_date:      body.end_date      ?? null,
+        progress:      body.progress      ?? 0,
+        gestor:        body.gestor        ?? null,
+        observacoes:   body.observacoes   ?? null,
+        links:         body.links         ?? null,
+        team_members:  body.team_members?.length ? JSON.stringify(body.team_members) : null,
+        display_order: body.display_order ?? 0,
+        github_repo:   body.github_repo   ?? null,
       },
     })
     const res = await db.execute({ sql: SQL_WITH_CLIENT, args: [params.id] })
