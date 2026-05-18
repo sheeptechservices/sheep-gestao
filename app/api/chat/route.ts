@@ -40,8 +40,11 @@ export async function POST(req: NextRequest) {
                 type: 'image',
                 source: { type: 'base64', media_type: img.mediaType, data: img.data },
               }))
-              const textBlock: TextBlock = { type: 'text', text: m.content }
-              return { role: m.role as 'user' | 'assistant', content: [...imageBlocks, textBlock] }
+              const blocks: (ImageBlock | TextBlock)[] = [...imageBlocks]
+              if (m.content && m.content.trim()) {
+                blocks.push({ type: 'text', text: m.content })
+              }
+              return { role: m.role as 'user' | 'assistant', content: blocks }
             }
             return { role: m.role as 'user' | 'assistant', content: m.content }
           }),

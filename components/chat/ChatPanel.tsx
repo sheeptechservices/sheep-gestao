@@ -1277,7 +1277,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   }, [selectedProject, projectTasks, selectedTask, githubContext])
 
   const runStream = useCallback(async (
-    systemPrompt: string, history: { role: string; content: string }[],
+    systemPrompt: string, history: { role: string; content: string; images?: { data: string; mediaType: string; name: string }[] }[],
     model: string, temperature: number, onChunk: (c: string) => void, signal?: AbortSignal,
   ): Promise<string> => {
     let full = ''
@@ -1581,16 +1581,35 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     if (!files.length) return
     setUploading(true)
     for (const file of files) {
-      const fd = new FormData()
-      fd.append('file', file)
-      try {
-        const res = await fetch('/api/extract-text', { method: 'POST', body: fd })
-        const data = await res.json()
-        if (data.text) {
-          setAttachments(prev => [...prev, { name: file.name, text: data.text, size: file.size }])
+      if (file.type.startsWith('image/')) {
+        // Images → convert to base64 and add to pastedImages (same flow as paste)
+        await new Promise<void>(resolve => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const dataUrl  = reader.result as string
+            const base64   = dataUrl.split(',')[1]
+            const mediaType: 'image/png'|'image/jpeg'|'image/gif'|'image/webp' =
+              (['image/jpeg','image/gif','image/webp'].includes(file.type))
+                ? file.type as 'image/jpeg'|'image/gif'|'image/webp'
+                : 'image/png'
+            setPastedImages(prev => [...prev, { data: base64, mediaType, name: file.name, preview: dataUrl }])
+            resolve()
+          }
+          reader.readAsDataURL(file)
+        })
+      } else {
+        // Documents → extract text
+        const fd = new FormData()
+        fd.append('file', file)
+        try {
+          const res = await fetch('/api/extract-text', { method: 'POST', body: fd })
+          const data = await res.json()
+          if (data.text) {
+            setAttachments(prev => [...prev, { name: file.name, text: data.text, size: file.size }])
+          }
+        } catch {
+          // silently ignore extraction errors
         }
-      } catch {
-        // silently ignore extraction errors
       }
     }
     setUploading(false)
@@ -1814,7 +1833,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       <div style={{ padding: '10px 14px 12px', borderTop: `1px solid ${inputFocused ? agent.color + '30' : 'var(--gray3)'}`, background: inputFocused ? agent.color + '04' : 'var(--white)', flexShrink: 0, transition: 'border-color 0.2s ease, background 0.2s ease' }}>
 
         {/* Hidden file input */}
-        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.csv,.json,.xml,.html,.htm,.yaml,.yml" multiple onChange={handleFileChange} style={{ display: 'none' }} />
+        <input ref={fileInputRef} type="file" accept="image/*,.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.csv,.json,.xml,.html,.htm,.yaml,.yml" multiple onChange={handleFileChange} style={{ display: 'none' }} />
 
         {/* Attachment chips */}
         {attachments.length > 0 && (

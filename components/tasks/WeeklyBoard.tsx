@@ -447,9 +447,9 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
               handleAttachFile(synth)
             }}
             style={{
-              border: `1.5px dashed ${dragOver ? 'var(--primary)' : attHover ? 'var(--gray2)' : 'var(--gray3)'}`,
+              border: `1.5px dashed ${dragOver ? 'var(--primary)' : attHover ? 'var(--primary-mid)' : 'var(--gray3)'}`,
               borderRadius: 10,
-              background: dragOver ? 'var(--primary-dim)' : attHover ? 'var(--white)' : 'var(--bg)',
+              background: dragOver ? 'var(--primary-dim)' : attHover ? 'var(--primary-dim)' : 'var(--bg)',
               padding: '20px 16px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
               cursor: effectiveId && !attUploading ? 'pointer' : 'default',
