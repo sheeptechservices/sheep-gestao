@@ -1430,7 +1430,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     } finally {
       setStreaming(agentType, false)
     }
-  }, [input, attachments, streaming, messages, agentType, addMessage, appendToLast, updateMessage, setStreaming, buildSystemPrompt, agent, runStream, selectedProjectId])
+  }, [input, attachments, pastedImages, streaming, messages, agentType, addMessage, appendToLast, updateMessage, setStreaming, buildSystemPrompt, agent, runStream, selectedProjectId])
 
   const handleAbort = useCallback(() => {
     abortRef.current?.abort()
