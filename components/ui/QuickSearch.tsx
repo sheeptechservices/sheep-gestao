@@ -282,6 +282,7 @@ export function QuickSearch() {
 
   // Global index offsets
   const createOffset  = 0
+  const pageOffset    = filteredCreate.length
   const projectOffset = filteredCreate.length + filteredPages.length
   const taskOffset    = filteredCreate.length + filteredPages.length + filteredProjects.length
   const clientOffset  = filteredCreate.length + filteredPages.length + filteredProjects.length + filteredTasks.length
@@ -434,7 +435,7 @@ export function QuickSearch() {
                           <SectionLabel label={query ? 'Páginas' : 'Ir para'} count={filteredPages.length} />
 
                           {filteredPages.map((page, i) => {
-                            const globalIdx     = i
+                            const globalIdx     = pageOffset + i
                             const isHighlighted = globalIdx === selectedIdx
                             return (
                               <div
