@@ -15,7 +15,6 @@ function ToolBtn({
     <button
       type="button"
       title={title}
-      // onMouseDown prevents stealing focus from the editor
       onMouseDown={e => { e.preventDefault(); onCmd() }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
@@ -58,6 +57,42 @@ function getClosestLi(node: Node | null): HTMLElement | null {
   return el?.closest('li') as HTMLElement | null
 }
 
+/** Extract plain-text lines from a DocumentFragment, respecting block boundaries. */
+function extractLines(fragment: DocumentFragment): string[] {
+  const lines: string[] = []
+  let current = ''
+
+  const BLOCK_TAGS = new Set(['p','li','h1','h2','h3','h4','div','blockquote','br','tr'])
+
+  function flush() {
+    const t = current.trim()
+    if (t) lines.push(t)
+    current = ''
+  }
+
+  function walk(n: Node) {
+    if (n.nodeType === Node.TEXT_NODE) {
+      current += n.textContent ?? ''
+      return
+    }
+    if (n.nodeType !== Node.ELEMENT_NODE) return
+    const tag = (n as Element).tagName.toLowerCase()
+    if (BLOCK_TAGS.has(tag)) flush()
+    for (const child of Array.from(n.childNodes)) walk(child)
+    if (BLOCK_TAGS.has(tag)) flush()
+  }
+
+  for (const child of Array.from(fragment.childNodes)) walk(child)
+  flush()
+
+  // Fallback: plain text with no block elements
+  if (lines.length === 0) {
+    return (fragment.textContent ?? '').split(/\n/).map(l => l.trim()).filter(Boolean)
+  }
+
+  return lines
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 interface RichTextEditorProps {
   value: string
@@ -72,16 +107,14 @@ export function RichTextEditor({
   placeholder = 'Detalhes adicionais...',
   minHeight = 120,
 }: RichTextEditorProps) {
-  const editorRef    = useRef<HTMLDivElement>(null)
-  const internalRef  = useRef(false)
+  const editorRef   = useRef<HTMLDivElement>(null)
+  const internalRef = useRef(false)
   const [, rerender] = useState(0)
 
   useEffect(() => {
     const el = editorRef.current
     if (!el || internalRef.current) return
-    if (el.innerHTML !== (value ?? '')) {
-      el.innerHTML = value ?? ''
-    }
+    if (el.innerHTML !== (value ?? '')) el.innerHTML = value ?? ''
   }, [value])
 
   const handleInput = () => {
@@ -91,7 +124,24 @@ export function RichTextEditor({
     rerender(n => n + 1)
   }
 
-  // ── Checklist: insert or toggle off ────────────────────────────────────────
+  // ── Build checklist <ul> from an array of text lines ────────────────────────
+  const buildChecklistUl = (lines: string[]): HTMLUListElement => {
+    const ul = document.createElement('ul')
+    ul.className = 'rte-checklist'
+    lines.forEach(line => {
+      const li = document.createElement('li')
+      li.setAttribute('data-checked', 'false')
+      const chk = document.createElement('span')
+      chk.className = 'rte-chk'
+      chk.contentEditable = 'false'
+      li.appendChild(chk)
+      li.appendChild(document.createTextNode(line))
+      ul.appendChild(li)
+    })
+    return ul
+  }
+
+  // ── Insert / convert to checklist ──────────────────────────────────────────
   const insertChecklist = () => {
     const el = editorRef.current
     if (!el) return
@@ -99,34 +149,58 @@ export function RichTextEditor({
 
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return
+    const range = sel.getRangeAt(0)
 
-    const li = getClosestLi(sel.getRangeAt(0).startContainer)
-    if (li?.closest('ul.rte-checklist')) {
-      // Already in checklist → convert back to plain list
-      const ul = li.closest('ul.rte-checklist') as HTMLElement
-      ul.classList.remove('rte-checklist')
-      ul.querySelectorAll('.rte-chk').forEach(s => s.remove())
-      ul.querySelectorAll('li[data-checked]').forEach(l => l.removeAttribute('data-checked'))
-    } else {
-      // Insert new checklist
-      cmd('insertHTML',
-        '<ul class="rte-checklist"><li data-checked="false">' +
-        '<span class="rte-chk" contenteditable="false"></span>​</li></ul>'
-      )
-      // Place cursor after the rte-chk span
-      setTimeout(() => {
-        const newLi = el.querySelector('ul.rte-checklist li:last-child')
-        if (!newLi) return
-        const textNode = Array.from(newLi.childNodes).find(n => n.nodeType === Node.TEXT_NODE)
-        if (textNode) {
-          const r = document.createRange()
-          r.setStart(textNode, (textNode.textContent ?? '').length)
-          r.collapse(true)
-          sel.removeAllRanges()
-          sel.addRange(r)
-        }
-      }, 0)
+    // ── Toggle OFF: cursor inside existing checklist (no selection) ──────────
+    if (range.collapsed) {
+      const li = getClosestLi(range.startContainer)
+      if (li?.closest('ul.rte-checklist')) {
+        const ul = li.closest('ul.rte-checklist') as HTMLElement
+        ul.classList.remove('rte-checklist')
+        ul.querySelectorAll('.rte-chk').forEach(s => s.remove())
+        ul.querySelectorAll('li[data-checked]').forEach(l => l.removeAttribute('data-checked'))
+        rerender(n => n + 1)
+        setTimeout(handleInput, 0)
+        return
+      }
+
+      // ── Insert single empty checklist item ───────────────────────────────
+      const ul = buildChecklistUl([''])
+      range.insertNode(ul)
+      // Place cursor inside the li (after chk span)
+      const newLi = ul.firstElementChild!
+      const textNode = Array.from(newLi.childNodes).find(n => n.nodeType === Node.TEXT_NODE) ?? newLi
+      const r = document.createRange()
+      r.setStart(textNode, 0)
+      r.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(r)
+      rerender(n => n + 1)
+      setTimeout(handleInput, 0)
+      return
     }
+
+    // ── Convert selection → checklist ────────────────────────────────────────
+    const fragment = range.cloneContents()
+    const lines = extractLines(fragment)
+
+    if (lines.length === 0) {
+      rerender(n => n + 1)
+      return
+    }
+
+    range.deleteContents()
+
+    const ul = buildChecklistUl(lines)
+    range.insertNode(ul)
+
+    // Place cursor after the inserted checklist
+    const after = document.createRange()
+    after.setStartAfter(ul)
+    after.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(after)
+
     rerender(n => n + 1)
     setTimeout(handleInput, 0)
   }
@@ -149,7 +223,7 @@ export function RichTextEditor({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const sel = window.getSelection()
 
-    // ── Tab: indent/outdent ────────────────────────────────────────────────────
+    // ── Tab: indent/outdent ─────────────────────────────────────────────────
     if (e.key === 'Tab') {
       e.preventDefault()
       if (isActive('insertUnorderedList') || isActive('insertOrderedList')) {
@@ -162,24 +236,21 @@ export function RichTextEditor({
       return
     }
 
-    // ── Enter in checklist ─────────────────────────────────────────────────────
+    // ── Enter in checklist ──────────────────────────────────────────────────
     if (e.key === 'Enter' && sel && sel.rangeCount > 0) {
       const li = getClosestLi(sel.getRangeAt(0).startContainer)
       if (li?.closest('ul.rte-checklist')) {
         const textContent = (li.textContent ?? '').replace(/​/g, '').trim()
 
         if (!textContent) {
-          // Empty item → exit checklist, insert paragraph
+          // Empty item → exit checklist
           e.preventDefault()
           const ul = li.closest('ul')!
           li.remove()
           const p = document.createElement('p')
           p.innerHTML = '<br>'
-          if (ul.children.length === 0) {
-            ul.replaceWith(p)
-          } else {
-            ul.after(p)
-          }
+          if (ul.children.length === 0) ul.replaceWith(p)
+          else ul.after(p)
           const r = document.createRange()
           r.setStart(p, 0)
           r.collapse(true)
@@ -209,8 +280,8 @@ export function RichTextEditor({
       }
     }
 
-    // ── Space triggers ──────────────────────────────────────────────────────────
-    if (e.key === ' ' && sel && sel.rangeCount > 0) {
+    // ── Inline triggers ─────────────────────────────────────────────────────
+    if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0)
       if (range.collapsed) {
         const node = range.startContainer
@@ -219,7 +290,7 @@ export function RichTextEditor({
           : ''
 
         // "- " → bullet list
-        if (textBefore === '-') {
+        if (e.key === ' ' && textBefore === '-') {
           e.preventDefault()
           const del = range.cloneRange()
           del.setStart(node, range.startOffset - 1)
@@ -230,8 +301,8 @@ export function RichTextEditor({
           return
         }
 
-        // "[ " → checklist
-        if (textBefore === '[') {
+        // "[]" → checklist  (type [ then ])
+        if (e.key === ']' && textBefore === '[') {
           e.preventDefault()
           const del = range.cloneRange()
           del.setStart(node, range.startOffset - 1)
@@ -258,16 +329,15 @@ export function RichTextEditor({
     setTimeout(handleInput, 0)
   }
 
-  const bold      = isActive('bold')
-  const italic    = isActive('italic')
-  const strike    = isActive('strikeThrough')
-  const ul        = isActive('insertUnorderedList')
-  const ol        = isActive('insertOrderedList')
-  const quote     = blockTag() === 'blockquote'
-  const h1        = blockTag() === 'h1'
-  const h2        = blockTag() === 'h2'
+  const bold    = isActive('bold')
+  const italic  = isActive('italic')
+  const strike  = isActive('strikeThrough')
+  const ul      = isActive('insertUnorderedList')
+  const ol      = isActive('insertOrderedList')
+  const quote   = blockTag() === 'blockquote'
+  const h1      = blockTag() === 'h1'
+  const h2      = blockTag() === 'h2'
 
-  // Checklist active state: cursor inside a rte-checklist
   const selNode = (() => {
     try { return window.getSelection()?.getRangeAt(0).startContainer ?? null } catch { return null }
   })()
@@ -314,8 +384,7 @@ export function RichTextEditor({
             <path d="M1 9.5c0-.8 2-1 2-.5 0 .8-2 1.5-2 2h2" stroke="currentColor" strokeWidth={1.1} strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </ToolBtn>
-        {/* Checklist */}
-        <ToolBtn title="Checklist (ou digite '[ ')" active={checklist} onCmd={insertChecklist}>
+        <ToolBtn title="Checklist — selecione linhas e clique, ou digite '[]'" active={checklist} onCmd={insertChecklist}>
           <svg width={13} height={12} viewBox="0 0 13 12" fill="none">
             <rect x="1" y="1.5" width="4" height="4" rx="1" stroke="currentColor" strokeWidth={1.3}/>
             <path d="M2 3.5l1 1 1.5-1.5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"/>
