@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Project, ProjectStatus, ProjectType, Client } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
 import { AppSelect } from '@/components/ui/AppSelect'
@@ -39,6 +39,174 @@ export function Field({ label, children }: { label: string; children: React.Reac
         {label}
       </label>
       {children}
+    </div>
+  )
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function fileIcon(mime: string, name: string) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (mime.startsWith('image/')) return '🖼'
+  if (ext === 'pdf' || mime === 'application/pdf') return '📄'
+  if (['doc','docx'].includes(ext)) return '📝'
+  if (['xls','xlsx'].includes(ext)) return '📊'
+  if (['ppt','pptx'].includes(ext)) return '📑'
+  return '📎'
+}
+
+interface ProjectFile { id: string; filename: string; mime_type: string; size: number; created_at: string }
+
+function ProjectFilesSection({ projectId, color }: { projectId: string; color: string }) {
+  const [files, setFiles]       = useState<ProjectFile[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver]  = useState(false)
+  const [hovZone, setHovZone]    = useState(false)
+  const fileRef                  = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/files`)
+      .then(r => r.json())
+      .then(data => Array.isArray(data) && setFiles(data))
+      .catch(() => {})
+  }, [projectId])
+
+  const uploadFile = async (file: File) => {
+    setUploading(true)
+    try {
+      // 1. Extract text
+      const fd = new FormData()
+      fd.append('file', file)
+      const extRes  = await fetch('/api/extract-text', { method: 'POST', body: fd })
+      const extData = await extRes.json()
+      if (!extRes.ok || !extData.text) { setUploading(false); return }
+
+      // 2. Save to DB
+      const saveRes = await fetch(`/api/projects/${projectId}/files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename:     file.name,
+          mime_type:    file.type || 'application/octet-stream',
+          size:         file.size,
+          text_content: extData.text,
+        }),
+      })
+      const saved = await saveRes.json()
+      if (saveRes.ok && saved.id) {
+        setFiles(prev => [saved, ...prev])
+      }
+    } catch { /* silently ignore */ }
+    setUploading(false)
+  }
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return
+    Array.from(fileList).forEach(uploadFile)
+  }
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/projects/${projectId}/files/${id}`, { method: 'DELETE' })
+    setFiles(prev => prev.filter(f => f.id !== id))
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        Base de conhecimento do agente
+      </label>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+        onMouseEnter={() => setHovZone(true)}
+        onMouseLeave={() => setHovZone(false)}
+        onClick={() => !uploading && fileRef.current?.click()}
+        style={{
+          border: `1.5px dashed ${dragOver ? color : hovZone ? color + '80' : 'var(--gray3)'}`,
+          borderRadius: 10,
+          background: dragOver ? color + '10' : hovZone ? color + '08' : 'var(--bg)',
+          padding: '16px 14px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+          cursor: uploading ? 'wait' : 'pointer',
+          transition: 'all 0.15s',
+        }}
+      >
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
+          stroke={dragOver || hovZone ? color : 'var(--gray2)'}
+          strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+          style={{ transition: 'stroke 0.15s' }}
+        >
+          <path d="M12 3v13M7 8l5-5 5 5M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+        </svg>
+        {uploading ? (
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>Processando…</span>
+        ) : (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--gray)' }}>
+              Arraste ou{' '}
+              <span style={{ color, fontWeight: 700, textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                clique para selecionar
+              </span>
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--gray2)' }}>PDF · DOCX · XLSX · PPTX · TXT · MD</span>
+          </>
+        )}
+      </div>
+      <input
+        ref={fileRef} type="file" multiple style={{ display: 'none' }}
+        accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.csv,.json,.xml,.yaml,.yml"
+        onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
+      />
+
+      {/* File list */}
+      {files.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {files.map(f => (
+            <div key={f.id} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+              borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--gray3)',
+            }}>
+              <span style={{ fontSize: 15, flexShrink: 0 }}>{fileIcon(f.mime_type, f.filename)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {f.filename}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--gray2)' }}>{fmtSize(f.size)}</div>
+              </div>
+              <button
+                onClick={() => handleDelete(f.id)}
+                title="Remover arquivo"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
+                  background: 'transparent', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+                  flexShrink: 0, transition: 'all 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.08)'; e.currentTarget.style.borderColor = '#D93025'; e.currentTarget.style.color = '#D93025' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={10} height={10} viewBox="0 0 10 10" fill="none">
+                  <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p style={{ fontSize: 10, color: 'var(--gray2)', lineHeight: 1.5, margin: 0 }}>
+        Esses arquivos serão incluídos automaticamente no contexto do agente ao analisar este projeto.
+        Ideal para transcrições de reuniões, briefings e documentos de referência.
+      </p>
     </div>
   )
 }
@@ -415,6 +583,16 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
               </div>
             )
           })()}
+
+          {/* Base de conhecimento */}
+          {!isNew ? (
+            <ProjectFilesSection projectId={project.id} color={form.color_hex} />
+          ) : (
+            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px dashed var(--gray3)', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)' }}>Base de conhecimento</div>
+              <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 3 }}>Salve o projeto primeiro para adicionar arquivos de referência para o agente.</div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

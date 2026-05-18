@@ -1069,6 +1069,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [voiceState, setVoiceState]         = useState<'idle' | 'listening' | 'speaking'>('idle')
   const [githubContext, setGithubContext]   = useState<string | null>(null)
   const [githubLoading, setGithubLoading]   = useState(false)
+  const [projectFiles, setProjectFiles]     = useState<{ filename: string; text_content: string }[]>([])
   const recognitionRef   = useRef<unknown>(null)
   const prevStreamingRef = useRef(false)
   const resizingRef                         = useRef(false)
@@ -1082,6 +1083,15 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       fetch('/api/clients').then(r => r.json()),
     ]).then(([p, w, c]) => { setProjects(p); setWeeks(w); setClients(c) })
   }, [])
+
+  // Fetch project knowledge-base files whenever the selected project changes
+  useEffect(() => {
+    if (!selectedProjectId) { setProjectFiles([]); return }
+    fetch(`/api/projects/${selectedProjectId}/files`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setProjectFiles(Array.isArray(data) ? data : []))
+      .catch(() => setProjectFiles([]))
+  }, [selectedProjectId])
 
   const messagesEndRef  = useRef<HTMLDivElement>(null)
   const scrollAreaRef   = useRef<HTMLDivElement>(null)
@@ -1272,9 +1282,19 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       if (agentDef.type === 'dev' && githubContext) {
         prompt += githubContext
       }
+      // Arquivos da base de conhecimento do projeto
+      if (projectFiles.length > 0) {
+        prompt += '\n\n--- ARQUIVOS DO PROJETO (BASE DE CONHECIMENTO) ---'
+        projectFiles.forEach(f => {
+          if (f.text_content?.trim()) {
+            prompt += `\n\n[Arquivo: "${f.filename}"]\n${f.text_content.trim()}`
+          }
+        })
+        prompt += '\n--- FIM DOS ARQUIVOS ---'
+      }
     }
     return prompt
-  }, [selectedProject, projectTasks, selectedTask, githubContext])
+  }, [selectedProject, projectTasks, selectedTask, githubContext, projectFiles])
 
   const runStream = useCallback(async (
     systemPrompt: string, history: { role: string; content: string; images?: { data: string; mediaType: string; name: string }[] }[],
