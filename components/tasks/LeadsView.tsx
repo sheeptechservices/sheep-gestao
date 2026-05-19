@@ -77,90 +77,94 @@ function daysAgo(dateStr: string) {
 // ── Lead card ─────────────────────────────────────────────────────────────────
 
 function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: () => void }) {
-  const [hov, setHov] = useState(false)
-
   return (
     <div
       onClick={onOpen}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLDivElement
+        el.style.transform = 'translateY(-2px)'
+        el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.09)'
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLDivElement
+        el.style.transform = 'translateY(0)'
+        el.style.boxShadow = 'var(--shadow)'
+      }}
       style={{
-        background: hov ? 'var(--white)' : 'var(--bg)',
-        border: `1px solid ${hov ? color + '44' : 'var(--gray3)'}`,
-        borderLeft: `3px solid ${hov ? color : color + '66'}`,
-        borderRadius: 8,
-        padding: '10px 12px',
+        background: 'var(--white)',
+        border: '1px solid var(--gray3)',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+        boxShadow: 'var(--shadow)',
         cursor: 'pointer',
-        transition: 'all 0.15s ease',
-        boxShadow: hov ? `0 4px 14px rgba(0,0,0,0.08)` : 'none',
-        transform: hov ? 'translateY(-1px)' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 7,
+        transition: 'transform .2s, box-shadow .2s',
+        position: 'relative',
       }}
     >
-      {/* Company row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-          background: color + '14', border: `1.5px solid ${color}33`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 800, color,
-        }}>
-          {initials(lead.company)}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Top color bar — identical to ProjectCard */}
+      <div style={{ height: 3, background: color }} />
+
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Header: company + value */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div style={{
-            fontSize: 12, fontWeight: 700, color: 'var(--black)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: color + '14', border: `1px solid ${color}30`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 800, color,
           }}>
-            {lead.company}
+            {initials(lead.company)}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {lead.contact}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)', marginBottom: 2 }}>
+              {lead.contact}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {lead.company}
+            </div>
           </div>
+          {lead.value != null && (
+            <div style={{ fontSize: 13, fontWeight: 800, color, flexShrink: 0, lineHeight: 1 }}>
+              {fmtK(lead.value)}
+            </div>
+          )}
         </div>
-        {lead.value != null && (
-          <span style={{ fontSize: 11, fontWeight: 800, color, flexShrink: 0 }}>
-            {fmtK(lead.value)}
-          </span>
+
+        {/* Note preview */}
+        {lead.note && (
+          <div style={{
+            fontSize: 11, color: 'var(--gray)', lineHeight: 1.5,
+            display: '-webkit-box', WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {lead.note}
+          </div>
         )}
-      </div>
 
-      {/* Note preview */}
-      {lead.note && (
-        <div style={{
-          fontSize: 10, color: 'var(--gray)', lineHeight: 1.5,
-          display: '-webkit-box', WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>
-          {lead.note}
-        </div>
-      )}
-
-      {/* Footer row: tags + meta */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-          {lead.tags.map(tag => {
-            const tc = TAG_COLORS[tag] ?? { color: 'var(--gray2)', bg: 'var(--gray3)' }
-            return (
-              <span key={tag} style={{
-                fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20,
-                background: tc.bg, color: tc.color,
-              }}>
-                {tag}
-              </span>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          <span style={{
-            fontSize: 9, fontWeight: 600, color: SOURCE_COLORS[lead.source] ?? 'var(--gray2)',
-          }}>
-            {lead.source}
-          </span>
-          <span style={{ fontSize: 9, color: 'var(--gray3)', fontWeight: 500 }}>·</span>
-          <span style={{ fontSize: 9, color: 'var(--gray2)', fontWeight: 500 }}>
+        {/* Badges */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {lead.tags.map(tag => {
+              const tc = TAG_COLORS[tag] ?? { color: 'var(--gray2)', bg: 'var(--gray3)' }
+              return (
+                <span key={tag} style={{
+                  fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100,
+                  background: tc.bg, color: tc.color,
+                  border: `1px solid ${tc.color}33`,
+                }}>
+                  {tag}
+                </span>
+              )
+            })}
+            <span style={{
+              fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100,
+              background: 'var(--bg)', color: SOURCE_COLORS[lead.source] ?? 'var(--gray2)',
+              border: '1px solid var(--gray3)',
+            }}>
+              {lead.source}
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--gray2)', fontWeight: 500, flexShrink: 0 }}>
             {daysAgo(lead.createdAt)}
           </span>
         </div>
@@ -343,19 +347,37 @@ export function LeadsView() {
         </div>
       </div>
 
-      {/* ── KPIs ── */}
+      {/* ── KPIs — StatCard style ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {KPIS.map(kpi => (
-          <div key={kpi.label} style={{
-            background: 'var(--white)', border: '1px solid var(--gray3)',
-            borderRadius: 10, padding: '14px 16px',
-            borderTop: `3px solid ${kpi.color}`,
-            display: 'flex', flexDirection: 'column', gap: 4,
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div
+            key={kpi.label}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLDivElement
+              el.style.transform = 'translateY(-4px) scale(1.01)'
+              el.style.boxShadow = `0 10px 28px rgba(0,0,0,0.10), inset 0 0 0 1px ${kpi.color}30`
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLDivElement
+              el.style.transform = 'translateY(0) scale(1)'
+              el.style.boxShadow = 'var(--shadow)'
+            }}
+            style={{
+              background: 'var(--white)',
+              border: '1px solid var(--gray3)',
+              borderLeft: `4px solid ${kpi.color}`,
+              borderRadius: 12,
+              padding: '18px 20px',
+              display: 'flex', flexDirection: 'column', gap: 6,
+              boxShadow: 'var(--shadow)',
+              transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+              cursor: 'default',
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               {kpi.label}
             </div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: kpi.color, letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: kpi.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
               {kpi.value}
             </div>
           </div>
@@ -381,28 +403,26 @@ export function LeadsView() {
                 {/* Column header */}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '9px 12px',
-                  background: stage.bg,
-                  borderRadius: 8,
-                  borderBottom: `2px solid ${stage.color}`,
+                  padding: '8px 4px', marginBottom: 2,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: stage.color, whiteSpace: 'nowrap' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
                       {stage.label}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {stageValue > 0 && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: stage.color, opacity: 0.75 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: stage.color }}>
                         {fmtK(stageValue)}
                       </span>
                     )}
                     <span style={{
                       minWidth: 18, height: 18, borderRadius: 6,
-                      background: stage.color, color: '#fff',
+                      background: stage.color + '18', color: stage.color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 10, fontWeight: 800, padding: '0 4px',
+                      border: `1px solid ${stage.color}33`,
                     }}>
                       {leads.length}
                     </span>
