@@ -13,6 +13,47 @@ interface Integration {
   updated_at: string | null
 }
 
+// ── Brand logos (official SVGs) ───────────────────────────────────────────────
+
+const LOGOS: Record<string, React.ReactNode> = {
+  anthropic: (
+    <svg viewBox="0 0 24 24" fill="#C96A2B" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13.535 4.179h2.928L21.75 19.82h-2.928l-5.287-15.641zM2.25 19.82l5.287-15.641h2.928L5.178 19.82H2.25z"/>
+      <path d="M7.8 13.607h8.4l-.96-2.839H8.76L7.8 13.607z"/>
+    </svg>
+  ),
+  openai: (
+    <svg viewBox="0 0 24 24" fill="#10A37F" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.032.067L9.564 19.923a4.5 4.5 0 0 1-5.964-1.619zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0L4.05 13.985A4.5 4.5 0 0 1 2.34 7.896zm16.597 3.855l-5.843-3.369 2.02-1.168a.076.076 0 0 1 .071 0l4.768 2.751a4.5 4.5 0 0 1-.696 8.115V11.97a.79.79 0 0 0-.32-.219zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.76-2.744a4.5 4.5 0 0 1 6.684 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+    </svg>
+  ),
+  replicate: (
+    <svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#6366F1"/>
+      <path d="M6 6h5.5a4.5 4.5 0 0 1 0 9H9v3H6V6zm3 6.5h2.5a1.5 1.5 0 0 0 0-3H9v3z" fill="#fff"/>
+      <path d="M11.5 15h1l3 3h-3.5l-.5-3z" fill="#fff" opacity="0.7"/>
+    </svg>
+  ),
+  google: (
+    <svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  ),
+  github_token: (
+    <svg viewBox="0 0 24 24" fill="#24292F" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+    </svg>
+  ),
+  slack: (
+    <svg viewBox="0 0 24 24" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
+    </svg>
+  ),
+}
+
 // ── Integration catalogue ─────────────────────────────────────────────────────
 
 interface IntegrationMeta {
@@ -20,14 +61,12 @@ interface IntegrationMeta {
   name: string
   description: string
   category: string
-  emoji: string
   color: string
   keyLabel: string
   keyPlaceholder: string
   keyHint: string
   docsUrl: string
   comingSoon?: boolean
-  extraFields?: { key: string; label: string; placeholder: string }[]
 }
 
 const CATALOGUE: IntegrationMeta[] = [
@@ -36,8 +75,7 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'Anthropic (Claude)',
     description: 'Chave de API usada pelos especialistas para gerar respostas. Substitui a variável de ambiente ANTHROPIC_API_KEY.',
     category: 'IA Generativa',
-    emoji: '🧠',
-    color: '#D97706',
+    color: '#C96A2B',
     keyLabel: 'API Key',
     keyPlaceholder: 'sk-ant-...',
     keyHint: 'Obtenha sua chave em console.anthropic.com → API Keys. Créditos são cobrados por uso de tokens.',
@@ -48,7 +86,6 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'OpenAI',
     description: 'Geração de imagens com DALL·E 3, modelos GPT e embeddings.',
     category: 'IA Generativa',
-    emoji: '🤖',
     color: '#10A37F',
     keyLabel: 'API Key',
     keyPlaceholder: 'sk-...',
@@ -60,7 +97,6 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'Replicate',
     description: 'Stable Diffusion, Flux e milhares de modelos de imagem e vídeo open source.',
     category: 'IA Generativa',
-    emoji: '🎨',
     color: '#6366F1',
     keyLabel: 'API Token',
     keyPlaceholder: 'r8_...',
@@ -72,7 +108,6 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'Google',
     description: 'Google Calendar e Gmail para a Secretária criar reuniões e enviar e-mails.',
     category: 'Produtividade',
-    emoji: '📅',
     color: '#4285F4',
     keyLabel: 'OAuth Client ID',
     keyPlaceholder: 'xxxx.apps.googleusercontent.com',
@@ -85,7 +120,6 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'GitHub',
     description: 'Personal Access Token para o agente Dev consultar issues, PRs e commits de repositórios privados.',
     category: 'Desenvolvimento',
-    emoji: '🐙',
     color: '#24292F',
     keyLabel: 'Personal Access Token',
     keyPlaceholder: 'ghp_...',
@@ -97,8 +131,7 @@ const CATALOGUE: IntegrationMeta[] = [
     name: 'Slack',
     description: 'Envio de notificações, resumos de reuniões e alertas de projeto para canais Slack.',
     category: 'Comunicação',
-    emoji: '💬',
-    color: '#4A154B',
+    color: '#E01E5A',
     keyLabel: 'Bot Token',
     keyPlaceholder: 'xoxb-...',
     keyHint: 'Crie um Slack App e copie o Bot Token em OAuth & Permissions.',
@@ -109,7 +142,48 @@ const CATALOGUE: IntegrationMeta[] = [
 
 const CATEGORIES = ['IA Generativa', 'Desenvolvimento', 'Produtividade', 'Comunicação']
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Shimmer skeleton ──────────────────────────────────────────────────────────
+
+function ShimmerCard() {
+  return (
+    <div className="shimmer-bar" style={{
+      border: '1px solid var(--gray3)', borderRadius: 12,
+      background: 'var(--white)', overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
+        <div style={{ width: 42, height: 42, borderRadius: 11, background: 'var(--gray3)', flexShrink: 0 }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ width: 130, height: 13, borderRadius: 4, background: 'var(--gray3)' }} />
+            <div style={{ width: 80, height: 18, borderRadius: 20, background: 'var(--gray3)' }} />
+          </div>
+          <div style={{ width: '60%', height: 11, borderRadius: 4, background: 'var(--gray3)' }} />
+        </div>
+        <div style={{ width: 88, height: 28, borderRadius: 20, background: 'var(--gray3)', flexShrink: 0 }} />
+      </div>
+    </div>
+  )
+}
+
+function ShimmerSection({ count }: { count: number }) {
+  return (
+    <div className="shimmer-bar" style={{
+      background: 'var(--white)', border: '1px solid var(--gray3)',
+      borderRadius: 12, overflow: 'hidden', marginBottom: 20,
+    }}>
+      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--gray3)', background: 'var(--bg)' }}>
+        <div style={{ width: 120, height: 13, borderRadius: 4, background: 'var(--gray3)' }} />
+      </div>
+      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {Array.from({ length: count }).map((_, i) => (
+          <ShimmerCard key={i} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Section card ──────────────────────────────────────────────────────────────
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -137,22 +211,28 @@ function IntegrationCard({ meta, data, onSave }: {
   const [saving,    setSaving]    = useState(false)
   const [clearing,  setClearing]  = useState(false)
 
-  const hasKey   = data?.has_key ?? false
-  const enabled  = data?.enabled ?? false
+  const hasKey  = data?.has_key ?? false
+  const logo    = LOGOS[meta.id]
 
   const handleSave = async () => {
     if (!keyValue.trim()) return
     setSaving(true)
-    await onSave(meta.id, keyValue.trim(), true)
-    setKeyValue('')
-    setExpanded(false)
-    setSaving(false)
+    try {
+      await onSave(meta.id, keyValue.trim(), true)
+      setKeyValue('')
+      setExpanded(false)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleClear = async () => {
     setClearing(true)
-    await onSave(meta.id, '', false)
-    setClearing(false)
+    try {
+      await onSave(meta.id, '', false)
+    } finally {
+      setClearing(false)
+    }
   }
 
   return (
@@ -165,13 +245,13 @@ function IntegrationCard({ meta, data, onSave }: {
     }}>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
-        {/* Icon */}
+        {/* Logo */}
         <div style={{
           width: 42, height: 42, borderRadius: 11, flexShrink: 0,
-          background: meta.color + '14', border: `1.5px solid ${meta.color}30`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+          background: meta.color + '12', border: `1.5px solid ${meta.color}25`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {meta.emoji}
+          {logo}
         </div>
 
         {/* Info */}
@@ -226,7 +306,8 @@ function IntegrationCard({ meta, data, onSave }: {
               </button>
             )
           )}
-          <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer" title="Documentação" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', transition: 'all 0.15s', textDecoration: 'none' }}
+          <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer" title="Documentação"
+            style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', transition: 'all 0.15s', textDecoration: 'none' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}>
             <svg width={12} height={12} viewBox="0 0 13 13" fill="none"><path d="M5.5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8.5M8 1h4m0 0v4m0-4L5.5 7.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -266,8 +347,8 @@ function IntegrationCard({ meta, data, onSave }: {
               </div>
               <button
                 onClick={handleSave}
-                disabled={saving || (!keyValue.trim() && !hasKey)}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: (saving || (!keyValue.trim() && !hasKey)) ? 'var(--gray3)' : meta.color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: (saving || (!keyValue.trim() && !hasKey)) ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
+                disabled={saving || !keyValue.trim()}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: (saving || !keyValue.trim()) ? 'var(--gray3)' : meta.color, color: (saving || !keyValue.trim()) ? 'var(--gray2)' : '#fff', fontSize: 12, fontWeight: 700, cursor: (saving || !keyValue.trim()) ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
                 onMouseEnter={e => { if (!saving && keyValue.trim()) e.currentTarget.style.opacity = '0.85' }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
               >
@@ -316,7 +397,6 @@ export function IntegrationsView() {
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      // Refresh list
       const updated = await fetch('/api/integrations').then(r => r.json())
       setIntegrations(Array.isArray(updated) ? updated : [])
       toast.success(key ? `${CATALOGUE.find(c => c.id === id)?.name} conectado com sucesso!` : 'Integração removida.')
@@ -329,7 +409,6 @@ export function IntegrationsView() {
 
   return (
     <div>
-
       {/* Page header */}
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--black)', marginBottom: 6 }}>Integrações</h1>
@@ -345,9 +424,12 @@ export function IntegrationsView() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0', color: 'var(--gray2)', fontSize: 13 }}>
-          Carregando…
-        </div>
+        <>
+          <ShimmerSection count={3} />
+          <ShimmerSection count={1} />
+          <ShimmerSection count={1} />
+          <ShimmerSection count={1} />
+        </>
       ) : (
         CATEGORIES.map(cat => {
           const items = CATALOGUE.filter(c => c.category === cat)
