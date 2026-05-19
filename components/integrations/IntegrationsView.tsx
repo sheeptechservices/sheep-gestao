@@ -17,9 +17,9 @@ interface Integration {
 
 const LOGOS: Record<string, React.ReactNode> = {
   anthropic: (
-    <svg viewBox="0 0 24 24" fill="#C96A2B" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13.535 4.179h2.928L21.75 19.82h-2.928l-5.287-15.641zM2.25 19.82l5.287-15.641h2.928L5.178 19.82H2.25z"/>
-      <path d="M7.8 13.607h8.4l-.96-2.839H8.76L7.8 13.607z"/>
+    <svg viewBox="0 0 100 100" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="22" fill="#CC785C"/>
+      <path d="M64 36.5a28.5 28.5 0 1 0 0 27" stroke="white" strokeWidth="9" strokeLinecap="round" fill="none"/>
     </svg>
   ),
   openai: (
