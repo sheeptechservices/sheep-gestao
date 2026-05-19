@@ -1712,9 +1712,33 @@ export function WeeklyBoard() {
                   </div>
                   <div style={{ padding: '8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {dayTasks.length === 0 && !isOver ? (
-                      <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 11, color: 'var(--gray3)' }}>—</span>
-                      </div>
+                      <button
+                        onClick={() => { setNewTaskDate(date); setEditing('new') }}
+                        title={`Novo entregável em ${DAY_NAMES_FULL[i]}`}
+                        style={{
+                          width: '100%', minHeight: 60,
+                          border: '1.5px dashed var(--gray3)',
+                          borderRadius: 8, background: 'transparent',
+                          cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', gap: 4,
+                          color: 'var(--gray3)', transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = 'var(--primary)'
+                          e.currentTarget.style.background = 'var(--primary-dim)'
+                          e.currentTarget.style.color = 'var(--primary)'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'var(--gray3)'
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--gray3)'
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                        </svg>
+                        <span style={{ fontSize: 10, fontWeight: 600 }}>Adicionar</span>
+                      </button>
                     ) : (
                       <>
                         {dayTasks.map(task => (
@@ -1737,6 +1761,36 @@ export function WeeklyBoard() {
                             border: '1.5px dashed var(--primary)',
                             animation: 'fadeIn 0.15s ease both',
                           }} />
+                        )}
+                        {!isOver && (
+                          <button
+                            onClick={() => { setNewTaskDate(date); setEditing('new') }}
+                            title={`Novo entregável em ${DAY_NAMES_FULL[i]}`}
+                            style={{
+                              width: '100%', padding: '6px 0',
+                              border: '1px dashed transparent',
+                              borderRadius: 6, background: 'transparent',
+                              cursor: 'pointer', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', gap: 4,
+                              color: 'var(--gray3)', fontSize: 11, fontWeight: 600,
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.borderColor = 'var(--primary)'
+                              e.currentTarget.style.background = 'var(--primary-dim)'
+                              e.currentTarget.style.color = 'var(--primary)'
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.borderColor = 'transparent'
+                              e.currentTarget.style.background = 'transparent'
+                              e.currentTarget.style.color = 'var(--gray3)'
+                            }}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                              <path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                            </svg>
+                            Adicionar
+                          </button>
                         )}
                       </>
                     )}
