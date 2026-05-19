@@ -13,7 +13,8 @@ export function Step06_Desafio() {
   const set = (v: Partial<PropostaData>) => s.setActiveData(v as Partial<Record<string, unknown>>)
   const pontos: PontoDeDor[] = d.pontosDeDor || []
 
-  const addPonto = () => set({ pontosDeDor: [...pontos, { id: crypto.randomUUID(), texto: '' }] })
+  const MAX = 5
+  const addPonto = () => { if (pontos.length < MAX) set({ pontosDeDor: [...pontos, { id: crypto.randomUUID(), texto: '' }] }) }
   const removePonto = (id: string) => set({ pontosDeDor: pontos.filter(p => p.id !== id) })
   const updatePonto = (id: string, val: string) =>
     set({ pontosDeDor: pontos.map(p => p.id === id ? { ...p, texto: val } : p) })
@@ -42,7 +43,14 @@ export function Step06_Desafio() {
             <RemoveButton onClick={() => removePonto(p.id)} />
           </div>
         ))}
-        <AddButton onClick={addPonto}>Adicionar ponto de dor</AddButton>
+        {pontos.length < MAX && (
+          <AddButton onClick={addPonto}>Adicionar ponto de dor</AddButton>
+        )}
+        {pontos.length >= MAX && (
+          <div style={{ fontSize: 11, color: 'var(--gray2)', textAlign: 'center', padding: '6px 0' }}>
+            Máximo de {MAX} pontos atingido
+          </div>
+        )}
       </FormSection>
     </div>
   )
