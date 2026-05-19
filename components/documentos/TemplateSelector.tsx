@@ -1,18 +1,20 @@
 'use client'
 import React from 'react'
 import { useDocsStore } from '@/stores/docsStore'
-import { propostaTemplate } from './templates/proposta'
+import { propostaTemplate }   from './templates/proposta'
+import { contratoTemplate }   from './templates/contrato'
 import { apresentacaoTemplate } from './templates/apresentacao'
-import { kickoffTemplate } from './templates/kickoff'
+import { kickoffTemplate }    from './templates/kickoff'
 import { sprintReviewTemplate } from './templates/sprintreview'
 import type { TemplateConfig } from './templates/types'
 
 type TemplateEntry = { template: TemplateConfig; locked: boolean }
 
 const TEMPLATE_ENTRIES: TemplateEntry[] = [
-  { template: propostaTemplate,    locked: false },
+  { template: propostaTemplate,     locked: false },
+  { template: contratoTemplate,     locked: false },
   { template: apresentacaoTemplate, locked: true  },
-  { template: kickoffTemplate,     locked: true  },
+  { template: kickoffTemplate,      locked: true  },
   { template: sprintReviewTemplate, locked: true  },
 ]
 
