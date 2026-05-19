@@ -43,6 +43,87 @@ export function Field({ label, children }: { label: string; children: React.Reac
   )
 }
 
+// ── Markdown → HTML (GFM subset: headings, tables, lists, code, blockquote) ──
+
+function mdEsc(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+function mdInline(text: string): string {
+  return mdEsc(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/`([^`]+)`/g,     '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+}
+function mdTable(tableLines: string[]): string {
+  if (tableLines.length < 2) return tableLines.map(l => `<p>${mdInline(l)}</p>`).join('')
+  const parseRow = (l: string) => l.split('|').slice(1, -1).map(c => c.trim())
+  const th   = parseRow(tableLines[0]).map(h => `<th>${mdInline(h)}</th>`).join('')
+  const rows = tableLines.slice(2).map(row =>
+    `<tr>${parseRow(row).map(c => `<td>${mdInline(c)}</td>`).join('')}</tr>`).join('')
+  return `<table><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table>`
+}
+function markdownToHtml(md: string): string {
+  const lines  = md.split('\n')
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    // fenced code block
+    if (/^```/.test(line)) {
+      const code: string[] = []; i++
+      while (i < lines.length && !/^```/.test(lines[i])) { code.push(mdEsc(lines[i])); i++ }
+      out.push(`<pre><code>${code.join('\n')}</code></pre>`); i++; continue
+    }
+    // heading
+    const hm = line.match(/^(#{1,3}) (.+)/)
+    if (hm) { const t = hm[1].length; out.push(`<h${t}>${mdInline(hm[2])}</h${t}>`); i++; continue }
+    // horizontal rule
+    if (/^---+$/.test(line.trim())) { out.push('<hr>'); i++; continue }
+    // GFM table (header | separator | rows)
+    if (line.includes('|') && lines[i + 1] && /^\|[-:| ]+\|/.test(lines[i + 1])) {
+      const tbl: string[] = []
+      while (i < lines.length && lines[i].includes('|')) { tbl.push(lines[i]); i++ }
+      out.push(mdTable(tbl)); continue
+    }
+    // unordered list
+    if (/^[*-] /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^[*-] /.test(lines[i])) {
+        items.push(`<li>${mdInline(lines[i].replace(/^[*-] /, ''))}</li>`); i++
+      }
+      out.push(`<ul>${items.join('')}</ul>`); continue
+    }
+    // ordered list
+    if (/^\d+\. /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(`<li>${mdInline(lines[i].replace(/^\d+\. /, ''))}</li>`); i++
+      }
+      out.push(`<ol>${items.join('')}</ol>`); continue
+    }
+    // blockquote
+    if (/^> /.test(line)) { out.push(`<blockquote>${mdInline(line.slice(2))}</blockquote>`); i++; continue }
+    // empty line
+    if (line.trim() === '') { i++; continue }
+    // paragraph (collect contiguous non-special lines)
+    const para: string[] = []
+    while (
+      i < lines.length &&
+      lines[i].trim() !== '' &&
+      !/^#{1,6} /.test(lines[i]) &&
+      !/^```/.test(lines[i]) &&
+      !/^[*-] /.test(lines[i]) &&
+      !/^\d+\. /.test(lines[i]) &&
+      !/^> /.test(lines[i]) &&
+      !/^---+$/.test(lines[i].trim()) &&
+      !(lines[i].includes('|') && lines[i + 1] && /^\|[-:| ]+\|/.test(lines[i + 1]))
+    ) { para.push(mdInline(lines[i])); i++ }
+    if (para.length) out.push(`<p>${para.join('<br>')}</p>`)
+  }
+  return out.join('\n')
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtSize(bytes: number) {
@@ -174,21 +255,10 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
     if (!win) return
     const title   = baseName(file.filename)
     const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-    // Simple markdown-to-HTML: headings, bold, italic, bullets, paragraphs
-    const bodyHtml = (file.text_content ?? '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/^# (.+)$/gm,  '<h1>$1</h1>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g,     '<em>$1</em>')
-      .replace(/^[*-] (.+)$/gm,  '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br>')
+    const bodyHtml = markdownToHtml(file.text_content ?? '')
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="utf-8"><title>${title}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
       <style>
         *{box-sizing:border-box;margin:0;padding:0}
         html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -197,19 +267,38 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
         .cover-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#84CC16;margin-bottom:6px}
         .cover-title{font-size:22px;font-weight:900;color:#0f1012;margin-bottom:8px}
         .cover-meta{font-size:11px;color:#6b7280}
-        .body p{margin-bottom:12px} .body h1{font-size:19px;font-weight:800;margin:32px 0 10px;padding-bottom:6px;border-bottom:2px solid #84CC1630}
-        .body h2{font-size:15px;font-weight:800;margin:24px 0 8px} .body h3{font-size:13.5px;font-weight:700;margin:18px 0 5px}
-        .body ul{padding-left:20px;margin-bottom:12px} .body li{margin-bottom:4px}
-        .body strong{font-weight:700} .body em{font-style:italic}
+        .body p{margin-bottom:12px;color:#1a1b1e}
+        .body h1{font-size:19px;font-weight:800;color:#0f1012;margin:32px 0 10px;padding-bottom:6px;border-bottom:2px solid #84CC1630}
+        .body h1:first-child{margin-top:0}
+        .body h2{font-size:15px;font-weight:800;color:#1a1b1e;margin:24px 0 8px}
+        .body h3{font-size:13.5px;font-weight:700;color:#374151;margin:18px 0 5px}
+        .body ul,.body ol{padding-left:20px;margin-bottom:12px}
+        .body ul{list-style:none} .body ul li{position:relative;padding-left:14px;margin-bottom:4px}
+        .body ul li::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:#84CC16}
+        .body ol li{margin-bottom:4px;padding-left:4px}
+        .body strong{font-weight:700} .body em{font-style:italic;color:#374151}
+        .body code{font-family:'Courier New',monospace;font-size:12px;background:#f3f4f6;color:#111827;padding:2px 5px;border-radius:3px;border:1px solid #e5e7eb}
+        .body pre{background:#f8f9fa;border:1px solid #e9ecef;border-left:3px solid #84CC1660;border-radius:6px;padding:12px 14px;margin:12px 0;overflow-x:auto;font-size:12px;line-height:1.6}
+        .body pre code{background:none;border:none;padding:0}
+        .body blockquote{border-left:3px solid #84CC16;background:#84CC1607;margin:12px 0;padding:8px 12px;border-radius:0 5px 5px 0;color:#374151;font-style:normal;font-weight:500}
+        .body hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}
+        .body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px}
+        .body thead{background:#84CC1612}
+        .body th{padding:8px 12px;text-align:left;font-weight:700;color:#111827;border-bottom:2px solid #84CC1630;white-space:nowrap}
+        .body td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#374151;vertical-align:top}
+        .body tr:last-child td{border-bottom:none}
+        .body a{color:#84CC16;text-decoration:underline}
         .footer{margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10.5px}
         .footer-brand{color:#84CC16;font-weight:700} .footer-date{color:#9ca3af}
         @page{margin:18mm 20mm;size:A4}
-        @media print{body{padding:0;max-width:100%}}
+        @media print{body{padding:0;max-width:100%}.body pre,.body blockquote,.body thead{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
       </style></head><body>
-      <div class="cover"><div class="cover-label">Sheep Tech · Base de Conhecimento</div>
+      <div class="cover">
+        <div class="cover-label">Sheep Tech · Base de Conhecimento</div>
         <div class="cover-title">${title}</div>
-        <div class="cover-meta">${dateStr}</div></div>
-      <div class="body"><p>${bodyHtml}</p></div>
+        <div class="cover-meta">${dateStr}</div>
+      </div>
+      <div class="body">${bodyHtml}</div>
       <div class="footer"><span class="footer-brand">sheep-gestao</span><span class="footer-date">Exportado em ${dateStr}</span></div>
       <script>document.fonts.ready.then(function(){window.print()})</script>
     </body></html>`)
