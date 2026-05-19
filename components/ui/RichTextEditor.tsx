@@ -189,6 +189,9 @@ export function RichTextEditor({
     const sel = window.getSelection(); if (!sel || sel.rangeCount === 0) return
     const range = sel.getRangeAt(0)
 
+    // Capture selected text (if any) to use as toggle title
+    const selectedText = range.collapsed ? '' : (range.cloneContents().textContent ?? '').trim()
+
     const toggle = document.createElement('div')
     toggle.className = 'rte-toggle'; toggle.setAttribute('data-open', 'true')
 
@@ -199,7 +202,7 @@ export function RichTextEditor({
     btn.className = 'rte-toggle-btn'; btn.contentEditable = 'false'
     btn.innerHTML = `<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z"/></svg>`
 
-    const titleText = document.createTextNode('​')
+    const titleText = document.createTextNode(selectedText || '​')
     titleDiv.appendChild(btn); titleDiv.appendChild(titleText)
 
     const body = document.createElement('div')
@@ -210,12 +213,13 @@ export function RichTextEditor({
 
     range.deleteContents(); range.insertNode(toggle)
 
-    // Also insert a paragraph after toggle so cursor can escape
+    // Paragraph after toggle so cursor can escape
     const after = document.createElement('p'); after.innerHTML = '<br>'
     toggle.after(after)
 
-    // Place cursor in toggle title
-    const r = document.createRange(); r.setStart(titleText, 0); r.collapse(true)
+    // Place cursor at end of title text
+    const r = document.createRange()
+    r.setStart(titleText, titleText.length); r.collapse(true)
     sel.removeAllRanges(); sel.addRange(r)
     rerender(n => n + 1); setTimeout(handleInput, 0)
   }
