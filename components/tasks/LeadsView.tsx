@@ -167,15 +167,14 @@ function LeadCard({
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? color + '10' : 'var(--white)',
+        background: isDragging ? color + '12' : hov ? 'var(--white)' : 'var(--bg)',
+        borderRadius: 10,
         border: `1px solid ${isDragging ? color + '55' : hov ? color + '44' : 'var(--gray3)'}`,
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
+        borderLeft: `3px solid ${isDragging ? color : hov ? color : 'var(--gray3)'}`,
         boxShadow: isDragging
           ? `0 12px 32px ${color}40`
-          : hov
-          ? '0 4px 14px rgba(0,0,0,0.09)'
-          : 'var(--shadow)',
+          : hov ? `0 4px 14px rgba(0,0,0,0.09), 0 0 0 0px ${color}22`
+          : 'none',
         cursor: isDragging ? 'grabbing' : 'grab',
         transition: 'all 0.18s ease',
         transform: isDragging
@@ -184,36 +183,34 @@ function LeadCard({
         opacity: isDragging ? 0.5 : 1,
         position: 'relative',
         userSelect: 'none',
+        padding: '10px 12px 10px 10px',
+        display: 'flex', flexDirection: 'column', gap: 8,
       }}
     >
-      {/* Top color bar */}
-      <div style={{ height: 3, background: color, transition: 'opacity 0.18s' }} />
-
-      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Header: avatar + company + value */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            background: color + '14', border: `1px solid ${color}30`,
+            width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+            background: color + '18', border: `1px solid ${color}33`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 800, color,
+            fontSize: 10, fontWeight: 800, color,
           }}>
             {initials(lead.company)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)', marginBottom: 2 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--gray2)', marginBottom: 1 }}>
               {lead.contact}
             </div>
             <div style={{
-              fontSize: 14, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3,
+              fontSize: 13, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              paddingRight: hov ? 28 : 0, transition: 'padding 0.15s',
+              paddingRight: hov ? 26 : 0, transition: 'padding 0.15s',
             }}>
               {lead.company}
             </div>
           </div>
           {lead.value != null && (
-            <div style={{ fontSize: 13, fontWeight: 800, color, flexShrink: 0, lineHeight: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color, flexShrink: 0, lineHeight: 1, marginTop: 1 }}>
               {fmtK(lead.value)}
             </div>
           )}
@@ -222,7 +219,7 @@ function LeadCard({
         {/* Note preview */}
         {lead.note && (
           <div style={{
-            fontSize: 11, color: 'var(--gray)', lineHeight: 1.5,
+            fontSize: 11, color: 'var(--gray2)', lineHeight: 1.45,
             display: '-webkit-box', WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>
@@ -256,7 +253,6 @@ function LeadCard({
             {daysAgo(lead.createdAt)}
           </span>
         </div>
-      </div>
 
       {/* Hover action buttons */}
       {hov && !isDragging && (
