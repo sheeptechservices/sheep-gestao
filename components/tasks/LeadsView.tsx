@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ interface Lead {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const MOCK_LEADS: Lead[] = [
+const INITIAL_LEADS: Lead[] = [
   { id: '1',  company: 'NovaPay Fintech',    contact: 'Renata Souza',    segment: 'Fintech',    value: 18000,  source: 'Indicação', tags: ['IA', 'SaaS'], stage: 'contato_inicial',       createdAt: '2026-05-14', note: 'Interesse em automação de atendimento ao cliente via IA.' },
   { id: '2',  company: 'Grupo Alvorada',     contact: 'Felipe Tavares',  segment: 'Varejo',     value: null,   source: 'Outbound',  tags: ['BI'],         stage: 'contato_inicial',       createdAt: '2026-05-16' },
   { id: '3',  company: 'MedCare Saúde',      contact: 'Dra. Carla Lima', segment: 'Saúde',      value: 32000,  source: 'LinkedIn',  tags: ['IA', 'TaaS'], stage: 'contato_inicial',       createdAt: '2026-05-18', note: 'Quer triagem automatizada de pacientes.' },
@@ -73,38 +74,123 @@ function daysAgo(dateStr: string) {
   return `${diff}d`
 }
 
-// ── Lead card ─────────────────────────────────────────────────────────────────
+// ── Delete confirmation modal ─────────────────────────────────────────────────
 
-function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: () => void }) {
-  return (
+function LeadDeleteModal({ lead, onConfirm, onClose }: {
+  lead: Lead
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  return createPortal(
     <div
-      onClick={onOpen}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.transform = 'translateY(-2px)'
-        el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.09)'
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.transform = 'translateY(0)'
-        el.style.boxShadow = 'var(--shadow)'
-      }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        background: 'var(--white)',
-        border: '1px solid var(--gray3)',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
-        boxShadow: 'var(--shadow)',
-        cursor: 'pointer',
-        transition: 'transform .2s, box-shadow .2s',
-        position: 'relative',
+        position: 'fixed', inset: 0, zIndex: 2100,
+        background: 'rgba(18,19,22,0.4)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'fadeIn 0.15s ease both',
       }}
     >
-      {/* Top color bar — identical to ProjectCard */}
-      <div style={{ height: 3, background: color }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'var(--white)', borderRadius: 16,
+        padding: '28px 32px 24px',
+        width: 'min(400px, calc(100vw - 32px))',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
+        animation: 'modalSlideUp 0.22s ease both',
+        display: 'flex', flexDirection: 'column', gap: 16,
+        margin: '0 16px',
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: 'rgba(220,38,38,0.10)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M8 5V3h4v2M6 5l1 11h6l1-11" stroke="#DC2626" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--black)', marginBottom: 6 }}>
+            Remover lead?
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--gray2)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--black)' }}>{lead.company}</strong> será removido do pipeline.
+            Esta ação não pode ser desfeita.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gray3)',
+              background: 'var(--white)', fontSize: 13, fontWeight: 600,
+              color: 'var(--gray)', cursor: 'pointer',
+            }}
+          >Cancelar</button>
+          <button
+            onClick={onConfirm}
+            style={{
+              padding: '8px 18px', borderRadius: 8, border: 'none',
+              background: '#DC2626', fontSize: 13, fontWeight: 700,
+              color: '#fff', cursor: 'pointer',
+            }}
+          >Remover</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ── Lead card ─────────────────────────────────────────────────────────────────
+
+function LeadCard({
+  lead, color, isDragging,
+  onDragStart, onDragEnd, onOpen, onDelete,
+}: {
+  lead: Lead
+  color: string
+  isDragging: boolean
+  onDragStart: () => void
+  onDragEnd: () => void
+  onOpen: () => void
+  onDelete: () => void
+}) {
+  const [hov, setHov] = useState(false)
+
+  return (
+    <div
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
+      onDragEnd={onDragEnd}
+      onClick={() => { if (!isDragging) onOpen() }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: isDragging ? color + '10' : 'var(--white)',
+        border: `1px solid ${isDragging ? color + '55' : hov ? color + '44' : 'var(--gray3)'}`,
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+        boxShadow: isDragging
+          ? `0 12px 32px ${color}40`
+          : hov
+          ? '0 4px 14px rgba(0,0,0,0.09)'
+          : 'var(--shadow)',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        transition: 'all 0.18s ease',
+        transform: isDragging
+          ? 'rotate(2deg) scale(1.04)'
+          : hov ? 'translateY(-2px)' : 'none',
+        opacity: isDragging ? 0.5 : 1,
+        position: 'relative',
+        userSelect: 'none',
+      }}
+    >
+      {/* Top color bar */}
+      <div style={{ height: 3, background: color, transition: 'opacity 0.18s' }} />
 
       <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Header: company + value */}
+        {/* Header: avatar + company + value */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -118,7 +204,11 @@ function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: 
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray2)', marginBottom: 2 }}>
               {lead.contact}
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{
+              fontSize: 14, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              paddingRight: hov ? 28 : 0, transition: 'padding 0.15s',
+            }}>
               {lead.company}
             </div>
           </div>
@@ -140,7 +230,7 @@ function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: 
           </div>
         )}
 
-        {/* Badges */}
+        {/* Badges row */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {lead.tags.map(tag => {
@@ -148,8 +238,7 @@ function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: 
               return (
                 <span key={tag} style={{
                   fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100,
-                  background: tc.bg, color: tc.color,
-                  border: `1px solid ${tc.color}33`,
+                  background: tc.bg, color: tc.color, border: `1px solid ${tc.color}33`,
                 }}>
                   {tag}
                 </span>
@@ -168,6 +257,38 @@ function LeadCard({ lead, color, onOpen }: { lead: Lead; color: string; onOpen: 
           </span>
         </div>
       </div>
+
+      {/* Hover action buttons */}
+      {hov && !isDragging && (
+        <div style={{
+          position: 'absolute', top: 10, right: 10,
+          display: 'flex', gap: 4,
+          animation: 'fadeIn 0.12s ease both',
+        }}>
+          <div
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(220,38,38,0.08)'
+              e.currentTarget.style.borderColor = '#DC2626'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--white)'
+              e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)'
+            }}
+            style={{
+              width: 20, height: 20, borderRadius: 5,
+              background: 'var(--white)', border: '1px solid rgba(220,38,38,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer',
+              transition: 'background 0.12s, border-color 0.12s',
+            }}
+          >
+            <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+              <path d="M2 3h8M4.5 3V2h3v1M3.5 3l.6 7h3.8l.6-7" stroke="#DC2626" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -197,11 +318,9 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
           overflow: 'hidden',
         }}
       >
-        {/* Color bar top */}
         <div style={{ height: 4, background: `linear-gradient(90deg, ${stage.color}, ${stage.color}88)` }} />
 
         <div style={{ padding: '24px 28px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
@@ -224,25 +343,21 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
                 background: 'var(--bg)', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'var(--gray2)', fontSize: 14, flexShrink: 0,
-                transition: 'all 0.15s',
               }}
             >×</button>
           </div>
 
-          {/* Stage pill */}
           <div>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20,
-              background: stage.bg, color: stage.color,
-              border: `1px solid ${stage.color}30`,
+              background: stage.bg, color: stage.color, border: `1px solid ${stage.color}30`,
             }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: stage.color }} />
               {stage.label}
             </span>
           </div>
 
-          {/* Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'Valor estimado', value: lead.value != null ? fmtK(lead.value) : '—', highlight: !!lead.value },
@@ -257,7 +372,6 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
             ))}
           </div>
 
-          {/* Tags */}
           {lead.tags.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {lead.tags.map(tag => {
@@ -271,7 +385,6 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
             </div>
           )}
 
-          {/* Note */}
           {lead.note && (
             <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 14px', borderLeft: `3px solid ${stage.color}66` }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Observação</div>
@@ -279,7 +392,6 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
             </div>
           )}
 
-          {/* Footer */}
           <div style={{
             fontSize: 10, color: 'var(--gray2)', borderTop: '1px solid var(--gray3)',
             paddingTop: 12, display: 'flex', alignItems: 'center', gap: 6,
@@ -299,26 +411,154 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function LeadsView() {
-  const [openLead, setOpenLead] = useState<Lead | null>(null)
+  const [leads,        setLeads]        = useState<Lead[]>(INITIAL_LEADS)
+  const [openLead,     setOpenLead]     = useState<Lead | null>(null)
+  const [deletingLead, setDeletingLead] = useState<Lead | null>(null)
+  const [dragId,       setDragId]       = useState<string | null>(null)
+  const [overZone,     setOverZone]     = useState<LeadStage | null>(null)
 
   const activeStages = STAGES.filter(s => s.id !== 'perdido')
   const lostStage    = STAGES.find(s => s.id === 'perdido')!
 
-  const totalValue = MOCK_LEADS
+  // ── Derived KPIs ──
+  const totalValue = leads
     .filter(l => !['venda_realizada', 'perdido'].includes(l.stage) && l.value)
     .reduce((s, l) => s + (l.value ?? 0), 0)
-  const wonValue = MOCK_LEADS
+  const wonValue = leads
     .filter(l => l.stage === 'venda_realizada' && l.value)
     .reduce((s, l) => s + (l.value ?? 0), 0)
-  const activeCount = MOCK_LEADS.filter(l => !['venda_realizada', 'perdido'].includes(l.stage)).length
-  const negotiatingCount = MOCK_LEADS.filter(l => ['negociacao', 'assinatura_contrato'].includes(l.stage)).length
+  const activeCount      = leads.filter(l => !['venda_realizada', 'perdido'].includes(l.stage)).length
+  const negotiatingCount = leads.filter(l => ['negociacao', 'assinatura_contrato'].includes(l.stage)).length
 
   const KPIS = [
-    { label: 'Leads ativos',    value: activeCount,                          color: '#6366F1' },
-    { label: 'Em negociação',   value: negotiatingCount,                      color: '#EA580C' },
-    { label: 'Pipeline total',  value: `R$ ${(totalValue/1000).toFixed(0)}k`, color: '#0891B2' },
-    { label: 'Vendas (mês)',    value: `R$ ${(wonValue/1000).toFixed(0)}k`,   color: '#1E8A3E' },
+    { label: 'Leads ativos',   value: activeCount,                          color: '#6366F1' },
+    { label: 'Em negociação',  value: negotiatingCount,                     color: '#EA580C' },
+    { label: 'Pipeline total', value: `R$ ${(totalValue / 1000).toFixed(0)}k`, color: '#0891B2' },
+    { label: 'Vendas (mês)',   value: `R$ ${(wonValue / 1000).toFixed(0)}k`,   color: '#1E8A3E' },
   ]
+
+  // ── Drag helpers ──
+  function dropZoneProps(stageId: LeadStage) {
+    const draggedLead = leads.find(l => l.id === dragId)
+    const curStage    = draggedLead?.stage
+    const canDrop     = dragId !== null && curStage !== stageId
+
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (canDrop) setOverZone(stageId)
+      },
+      onDragLeave: (e: React.DragEvent) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverZone(null)
+      },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault()
+        if (canDrop && dragId) {
+          setLeads(prev => prev.map(l => l.id === dragId ? { ...l, stage: stageId } : l))
+        }
+        setOverZone(null)
+        setDragId(null)
+      },
+      isOver: overZone === stageId && canDrop,
+    }
+  }
+
+  function handleDelete(lead: Lead) {
+    setLeads(prev => prev.filter(l => l.id !== lead.id))
+    setDeletingLead(null)
+  }
+
+  // ── Column renderer (shared for active + lost) ──
+  function renderColumn(
+    stage: typeof STAGES[number],
+    columnLeads: Lead[],
+    opts?: { dimmed?: boolean; gridSpan?: number }
+  ) {
+    const { onDragOver, onDragLeave, onDrop, isOver } = dropZoneProps(stage.id)
+    const stageValue = columnLeads.filter(l => l.value).reduce((s, l) => s + (l.value ?? 0), 0)
+
+    return (
+      <div
+        key={stage.id}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 6,
+          opacity: opts?.dimmed ? 0.7 : 1,
+          gridColumn: opts?.gridSpan ? `span ${opts.gridSpan}` : undefined,
+        }}
+      >
+        {/* Column header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 4px', marginBottom: 2,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+              {stage.label}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {stageValue > 0 && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: stage.color }}>
+                {fmtK(stageValue)}
+              </span>
+            )}
+            <span style={{
+              minWidth: 18, height: 18, borderRadius: 6,
+              background: stage.color + '18', color: stage.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 800, padding: '0 4px',
+              border: `1px solid ${stage.color}33`,
+            }}>
+              {columnLeads.length}
+            </span>
+          </div>
+        </div>
+
+        {/* Drop zone area */}
+        <div
+          style={{
+            display: 'flex', flexDirection: 'column', gap: 6,
+            minHeight: 80,
+            borderRadius: 8,
+            border: isOver ? `2px dashed ${stage.color}` : '2px dashed transparent',
+            background: isOver ? stage.color + '08' : 'transparent',
+            padding: isOver ? '4px' : '0',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {columnLeads.map(lead => (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              color={stage.color}
+              isDragging={dragId === lead.id}
+              onDragStart={() => setDragId(lead.id)}
+              onDragEnd={() => { setDragId(null); setOverZone(null) }}
+              onOpen={() => setOpenLead(lead)}
+              onDelete={() => setDeletingLead(lead)}
+            />
+          ))}
+          {columnLeads.length === 0 && (
+            <div style={{
+              padding: '18px 0', textAlign: 'center',
+              color: isOver ? stage.color : 'var(--gray3)',
+              fontSize: 11, fontWeight: isOver ? 600 : 400,
+              border: `1.5px dashed ${isOver ? stage.color : 'var(--gray3)'}`,
+              borderRadius: 7,
+              transition: 'all 0.15s',
+            }}>
+              {isOver ? 'Soltar aqui' : 'Sem leads'}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -386,67 +626,16 @@ export function LeadsView() {
       {/* ── Board ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-        {/* Active stages — full-width grid */}
-        {/* ── 5 etapas ativas em grid full-width ── */}
+        {/* Active stages */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`,
           gap: 8,
           alignItems: 'start',
         }}>
-          {activeStages.map(stage => {
-            const leads = MOCK_LEADS.filter(l => l.stage === stage.id)
-            const stageValue = leads.filter(l => l.value).reduce((s, l) => s + (l.value ?? 0), 0)
-
-            return (
-              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {/* Column header */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 4px', marginBottom: 2,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-                      {stage.label}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {stageValue > 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: stage.color }}>
-                        {fmtK(stageValue)}
-                      </span>
-                    )}
-                    <span style={{
-                      minWidth: 18, height: 18, borderRadius: 6,
-                      background: stage.color + '18', color: stage.color,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 800, padding: '0 4px',
-                      border: `1px solid ${stage.color}33`,
-                    }}>
-                      {leads.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 80 }}>
-                  {leads.map(lead => (
-                    <LeadCard key={lead.id} lead={lead} color={stage.color} onOpen={() => setOpenLead(lead)} />
-                  ))}
-                  {leads.length === 0 && (
-                    <div style={{
-                      padding: '18px 0', textAlign: 'center',
-                      color: 'var(--gray3)', fontSize: 11,
-                      border: '1.5px dashed var(--gray3)', borderRadius: 7,
-                    }}>
-                      Sem leads
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          {activeStages.map(stage =>
+            renderColumn(stage, leads.filter(l => l.stage === stage.id))
+          )}
         </div>
 
         {/* Divider — Perdidos */}
@@ -458,49 +647,29 @@ export function LeadsView() {
           <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
         </div>
 
-        {/* ── Perdido — linha única com cards na horizontal ── */}
-        {(() => {
-          const leads = MOCK_LEADS.filter(l => l.stage === 'perdido')
-          const stage = lostStage
-          return (
-            <div style={{ opacity: 0.7 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 4px', marginBottom: 8,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    {stage.label}
-                  </span>
-                </div>
-                <span style={{
-                  minWidth: 18, height: 18, borderRadius: 6,
-                  background: stage.color + '18', color: stage.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 800, padding: '0 4px',
-                  border: `1px solid ${stage.color}33`,
-                }}>
-                  {leads.length}
-                </span>
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`,
-                gap: 8,
-              }}>
-                {leads.map(lead => (
-                  <LeadCard key={lead.id} lead={lead} color={stage.color} onOpen={() => setOpenLead(lead)} />
-                ))}
-              </div>
-            </div>
-          )
-        })()}
+        {/* Perdido row — same grid width */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`,
+          gap: 8,
+          alignItems: 'start',
+        }}>
+          {renderColumn(lostStage, leads.filter(l => l.stage === 'perdido'), { dimmed: true })}
+        </div>
 
       </div>
 
       {/* Detail modal */}
       {openLead && <LeadModal lead={openLead} onClose={() => setOpenLead(null)} />}
+
+      {/* Delete confirmation */}
+      {deletingLead && (
+        <LeadDeleteModal
+          lead={deletingLead}
+          onConfirm={() => handleDelete(deletingLead)}
+          onClose={() => setDeletingLead(null)}
+        />
+      )}
     </div>
   )
 }
