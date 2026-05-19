@@ -61,14 +61,15 @@ function fileIcon(mime: string, name: string) {
   return '📎'
 }
 
-interface ProjectFile { id: string; filename: string; mime_type: string; size: number; created_at: string }
+interface ProjectFile { id: string; filename: string; mime_type: string; size: number; text_content: string; created_at: string }
 
 function ProjectFilesSection({ projectId, color }: { projectId: string; color: string }) {
-  const [files, setFiles]       = useState<ProjectFile[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [dragOver, setDragOver]  = useState(false)
-  const [hovZone, setHovZone]    = useState(false)
-  const fileRef                  = useRef<HTMLInputElement>(null)
+  const [files, setFiles]             = useState<ProjectFile[]>([])
+  const [uploading, setUploading]     = useState(false)
+  const [dragOver, setDragOver]       = useState(false)
+  const [hovZone, setHovZone]         = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const fileRef                       = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/files`)
@@ -111,13 +112,74 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
     Array.from(fileList).forEach(uploadFile)
   }
 
-  const handleDelete = async (id: string) => {
-    await fetch(`/api/projects/${projectId}/files/${id}`, { method: 'DELETE' })
-    setFiles(prev => prev.filter(f => f.id !== id))
+  const handleDeleteConfirmed = async () => {
+    if (!confirmDeleteId) return
+    await fetch(`/api/projects/${projectId}/files/${confirmDeleteId}`, { method: 'DELETE' })
+    setFiles(prev => prev.filter(f => f.id !== confirmDeleteId))
+    setConfirmDeleteId(null)
   }
+
+  const handleDownload = (file: ProjectFile) => {
+    const content  = file.text_content ?? ''
+    const mimeType = content ? 'text/plain;charset=utf-8' : (file.mime_type || 'application/octet-stream')
+    const blob     = new Blob([content], { type: mimeType })
+    const url      = URL.createObjectURL(blob)
+    const a        = document.createElement('a')
+    a.href         = url
+    // Keep original extension when possible; fall back to .txt for text-extracted content
+    const hasTextExt = /\.(txt|md|csv|json|xml|yaml|yml|html?|log)$/i.test(file.filename)
+    a.download     = hasTextExt ? file.filename : file.filename.replace(/\.[^.]+$/, '.txt') || file.filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const confirmFile = confirmDeleteId ? files.find(f => f.id === confirmDeleteId) : null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+      {/* ── Confirm delete modal ── */}
+      {confirmFile && (
+        <>
+          <div
+            onClick={() => setConfirmDeleteId(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 9100, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(2px)', animation: 'fadeIn 0.15s ease both' }}
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 9101, background: 'var(--white)', borderRadius: 16,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.22)', padding: '28px 28px 22px',
+            width: 340, animation: 'fadeIn 0.18s ease both',
+          }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(217,48,37,0.1)', border: '2px solid rgba(217,48,37,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width={18} height={18} viewBox="0 0 14 14" fill="none">
+                <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="#D93025" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--black)', marginBottom: 6 }}>Remover arquivo?</div>
+              <div style={{ fontSize: 12, color: 'var(--gray)', lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 700, color: 'var(--black)' }}>{confirmFile.filename}</span> será removido da base de conhecimento do projeto. Esta ação não pode ser desfeita.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', fontSize: 13, fontWeight: 600, color: 'var(--gray)', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray)' }}
+              >Cancelar</button>
+              <button
+                onClick={handleDeleteConfirmed}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#D93025', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#B71C1C' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#D93025' }}
+              >Remover</button>
+            </div>
+          </div>
+        </>
+      )}
+
       <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         Base de conhecimento do agente
       </label>
@@ -182,8 +244,26 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--gray2)' }}>{fmtSize(f.size)}</div>
               </div>
+              {/* Download */}
               <button
-                onClick={() => handleDelete(f.id)}
+                onClick={() => handleDownload(f)}
+                title="Baixar arquivo"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
+                  background: 'transparent', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+                  flexShrink: 0, transition: 'all 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = color + '12'; e.currentTarget.style.borderColor = color + '60'; e.currentTarget.style.color = color }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1v7M3.5 5.5L6 8l2.5-2.5M1.5 10h9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              {/* Delete */}
+              <button
+                onClick={() => setConfirmDeleteId(f.id)}
                 title="Remover arquivo"
                 style={{
                   width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
