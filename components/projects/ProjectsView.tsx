@@ -1453,11 +1453,12 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
-function DayView({ tasks, weekStart, color, project, onEdit, onStatusChange }: {
+function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChange }: {
   tasks: Task[]
   weekStart: string   // 'YYYY-MM-DD' of Monday
   color: string
   project?: Project
+  onAdd?: (date: string) => void
   onEdit: (t: Task) => void
   onStatusChange: (id: string, done: boolean) => void
 }) {
@@ -1540,21 +1541,83 @@ function DayView({ tasks, weekStart, color, project, onEdit, onStatusChange }: {
                 borderBottom: `1px solid ${isOver ? color + '44' : isToday ? color + '33' : 'var(--gray3)'}`,
                 background: isOver ? color + '14' : isToday ? color + '12' : 'transparent',
                 transition: 'background 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: isOver ? color : isToday ? color : 'var(--black)' }}>
-                  {DAY_NAMES[i]}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: isOver ? color : isToday ? color : 'var(--black)' }}>
+                    {DAY_NAMES[i]}
+                    {isToday && (
+                      <span style={{
+                        marginLeft: 5, fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 8,
+                        background: color, color: '#fff',
+                      }}>Hoje</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                    {(() => { const [, m, d] = date.split('-'); return `${d}/${m}` })()}
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
-                  {(() => { const [, m, d] = date.split('-'); return `${d}/${m}` })()}
-                </div>
+                {onAdd && (
+                  <button
+                    onClick={() => onAdd(date)}
+                    title={`Novo entregável em ${DAY_NAMES[i]}`}
+                    style={{
+                      width: 20, height: 20, borderRadius: 6,
+                      border: '1px solid var(--gray3)', background: 'transparent',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--gray2)', fontSize: 14, lineHeight: 1, fontWeight: 400,
+                      transition: 'all 0.15s', flexShrink: 0, padding: 0,
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = color + '18'
+                      e.currentTarget.style.borderColor = color
+                      e.currentTarget.style.color = color
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.borderColor = 'var(--gray3)'
+                      e.currentTarget.style.color = 'var(--gray2)'
+                    }}
+                  >+</button>
+                )}
               </div>
 
               {/* Tasks + drop placeholder */}
               <div style={{ padding: '6px 6px', display: 'flex', flexDirection: 'column', gap: 5, minHeight: 60 }}>
                 {dayTasks.length === 0 && !isOver ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}>
-                    <span style={{ fontSize: 10, color: 'var(--gray3)' }}>—</span>
-                  </div>
+                  onAdd ? (
+                    <button
+                      onClick={() => onAdd(date)}
+                      title={`Novo entregável em ${DAY_NAMES[i]}`}
+                      style={{
+                        width: '100%', minHeight: 56,
+                        border: `1.5px dashed var(--gray3)`,
+                        borderRadius: 7, background: 'transparent',
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center', gap: 3,
+                        color: 'var(--gray3)', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = color
+                        e.currentTarget.style.background = color + '10'
+                        e.currentTarget.style.color = color
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'var(--gray3)'
+                        e.currentTarget.style.background = 'transparent'
+                        e.currentTarget.style.color = 'var(--gray3)'
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                      </svg>
+                      <span style={{ fontSize: 9, fontWeight: 600 }}>Adicionar</span>
+                    </button>
+                  ) : (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}>
+                      <span style={{ fontSize: 10, color: 'var(--gray3)' }}>—</span>
+                    </div>
+                  )
                 ) : (
                   <>
                     {dayTasks.map(task => (
@@ -1577,6 +1640,36 @@ function DayView({ tasks, weekStart, color, project, onEdit, onStatusChange }: {
                         border: `1.5px dashed ${color}88`,
                         animation: 'fadeIn 0.15s ease both',
                       }} />
+                    )}
+                    {!isOver && onAdd && (
+                      <button
+                        onClick={() => onAdd(date)}
+                        title={`Novo entregável em ${DAY_NAMES[i]}`}
+                        style={{
+                          width: '100%', padding: '5px 0',
+                          border: '1px dashed transparent',
+                          borderRadius: 5, background: 'transparent',
+                          cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', gap: 3,
+                          color: 'var(--gray3)', fontSize: 10, fontWeight: 600,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = color
+                          e.currentTarget.style.background = color + '10'
+                          e.currentTarget.style.color = color
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'transparent'
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--gray3)'
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                        </svg>
+                        Adicionar
+                      </button>
                     )}
                   </>
                 )}
@@ -1637,12 +1730,13 @@ function DayView({ tasks, weekStart, color, project, onEdit, onStatusChange }: {
 }
 
 // ── Project row ───────────────────────────────────────────────────────────────
-function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onEdit, onDelete, onStatusChange, onReplicate, globalWeekStart, weeks, titleMode, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop, nested = false }: {
+function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEdit, onDelete, onStatusChange, onReplicate, globalWeekStart, weeks, titleMode, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop, nested = false }: {
   project: Project
   tasks: Task[]
   isOpen: boolean
   onToggle: () => void
   onAdd: (weekId?: string) => void
+  onAddForDay?: (weekId: string | undefined, deadline: string) => void
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -1886,7 +1980,7 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onEdit, onDelete,
             ) : view === 'kanban' ? (
               <KanbanView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : view === 'day' ? (
-              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} project={project} onEdit={onEdit} onStatusChange={onStatusChange} />
+              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} project={project} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onStatusChange={onStatusChange} />
             ) : (
               <ListView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             )}
@@ -1912,13 +2006,14 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onEdit, onDelete,
 // ── General Tasks Row ─────────────────────────────────────────────────────────
 const GENERAL_COLOR = '#6366F1'
 
-function GeneralTasksRow({ tasks, weeks, globalWeekStart, isOpen, onToggle, onAdd, onEdit, onDelete, onStatusChange }: {
+function GeneralTasksRow({ tasks, weeks, globalWeekStart, isOpen, onToggle, onAdd, onAddForDay, onEdit, onDelete, onStatusChange }: {
   tasks: Task[]
   weeks: Week[]
   globalWeekStart: string | null
   isOpen: boolean
   onToggle: () => void
   onAdd: (weekId?: string) => void
+  onAddForDay?: (weekId: string | undefined, deadline: string) => void
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -2051,7 +2146,7 @@ function GeneralTasksRow({ tasks, weeks, globalWeekStart, isOpen, onToggle, onAd
             ) : view === 'kanban' ? (
               <KanbanView tasks={weekTasks} color={GENERAL_COLOR} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : view === 'day' ? (
-              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={GENERAL_COLOR} onEdit={onEdit} onStatusChange={onStatusChange} />
+              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={GENERAL_COLOR} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onStatusChange={onStatusChange} />
             ) : (
               <ListView tasks={weekTasks} color={GENERAL_COLOR} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             )}
@@ -2361,7 +2456,7 @@ function ExportWeekButton({ onExport, devs }: { onExport: (dev?: string) => void
 }
 
 // ── Dev group row ─────────────────────────────────────────────────────────────
-function DevGroupRow({ devName, devColor, projects, tasks, weeks, globalWeekStart, openIds, onToggle, onAdd, onEdit, onDelete, onStatusChange, onReplicate, isOpen, onGroupToggle, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: {
+function DevGroupRow({ devName, devColor, projects, tasks, weeks, globalWeekStart, openIds, onToggle, onAdd, onAddForDay, onEdit, onDelete, onStatusChange, onReplicate, isOpen, onGroupToggle, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: {
   devName: string
   devColor: string
   projects: Project[]
@@ -2371,6 +2466,7 @@ function DevGroupRow({ devName, devColor, projects, tasks, weeks, globalWeekStar
   openIds: Set<string>
   onToggle: (id: string) => void
   onAdd: (projectId: string, weekId?: string) => void
+  onAddForDay?: (projectId: string, weekId: string | undefined, deadline: string) => void
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -2478,6 +2574,7 @@ function DevGroupRow({ devName, devColor, projects, tasks, weeks, globalWeekStar
           isOpen={openIds.has(project.id)}
           onToggle={() => onToggle(project.id)}
           onAdd={(weekId) => onAdd(project.id, weekId)}
+          onAddForDay={onAddForDay ? (weekId, deadline) => onAddForDay(project.id, weekId, deadline) : undefined}
           onEdit={onEdit}
           onDelete={onDelete}
           onStatusChange={onStatusChange}
@@ -2499,7 +2596,7 @@ function DevGroupRow({ devName, devColor, projects, tasks, weeks, globalWeekStar
 }
 
 // ── Client group row ──────────────────────────────────────────────────────────
-function ClientGroupRow({ clientId, clientName, clientColor, projects, tasks, weeks, globalWeekStart, openIds, onToggle, onAdd, onEdit, onDelete, onStatusChange, onReplicate, isOpen, onGroupToggle, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: {
+function ClientGroupRow({ clientId, clientName, clientColor, projects, tasks, weeks, globalWeekStart, openIds, onToggle, onAdd, onAddForDay, onEdit, onDelete, onStatusChange, onReplicate, isOpen, onGroupToggle, isDragging, isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }: {
   clientId: string
   clientName: string
   clientColor: string
@@ -2510,6 +2607,7 @@ function ClientGroupRow({ clientId, clientName, clientColor, projects, tasks, we
   openIds: Set<string>
   onToggle: (id: string) => void
   onAdd: (projectId: string, weekId?: string) => void
+  onAddForDay?: (projectId: string, weekId: string | undefined, deadline: string) => void
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -2619,6 +2717,7 @@ function ClientGroupRow({ clientId, clientName, clientColor, projects, tasks, we
           isOpen={openIds.has(project.id)}
           onToggle={() => onToggle(project.id)}
           onAdd={(weekId) => onAdd(project.id, weekId)}
+          onAddForDay={onAddForDay ? (weekId, deadline) => onAddForDay(project.id, weekId, deadline) : undefined}
           onEdit={onEdit}
           onDelete={onDelete}
           onStatusChange={onStatusChange}
@@ -2698,8 +2797,9 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
   const [editing,         setEditing]         = useState<Task | null>(null)
   const [deletingFromModal, setDeletingFromModal] = useState<Task | null>(null)
   // addingFor: null = modal closed, '' = general task, '<id>' = project task
-  const [addingFor,       setAddingFor]       = useState<string | null>(null)
-  const [addingForWeekId, setAddingForWeekId] = useState<string | null>(null)
+  const [addingFor,          setAddingFor]          = useState<string | null>(null)
+  const [addingForWeekId,    setAddingForWeekId]    = useState<string | null>(null)
+  const [addingForDeadline,  setAddingForDeadline]  = useState<string | undefined>(undefined)
   const [generalOpen,     setGeneralOpen]     = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterType,   setFilterType]   = useState<string>('')
@@ -2998,6 +3098,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
     setEditing(null)
     setAddingFor(null)
     setAddingForWeekId(null)
+    setAddingForDeadline(undefined)
   }
 
   function handleDelete(id: string) {
@@ -3564,6 +3665,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
               setAddingFor('')
               setAddingForWeekId(weekId ?? null)
             }}
+            onAddForDay={(weekId, deadline) => { setEditing(null); setAddingFor(''); setAddingForWeekId(weekId ?? null); setAddingForDeadline(deadline) }}
             onEdit={t => { setAddingFor(null); setEditing(t) }}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}
@@ -3634,6 +3736,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
               openIds={openIds}
               onToggle={toggle}
               onAdd={(projectId, weekId) => { setEditing(null); setAddingFor(projectId); setAddingForWeekId(weekId ?? null) }}
+              onAddForDay={(projectId, weekId, deadline) => { setEditing(null); setAddingFor(projectId); setAddingForWeekId(weekId ?? null); setAddingForDeadline(deadline) }}
               onEdit={t => { setAddingFor(null); setEditing(t) }}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
@@ -3662,6 +3765,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
               openIds={openIds}
               onToggle={toggle}
               onAdd={(projectId, weekId) => { setEditing(null); setAddingFor(projectId); setAddingForWeekId(weekId ?? null) }}
+              onAddForDay={(projectId, weekId, deadline) => { setEditing(null); setAddingFor(projectId); setAddingForWeekId(weekId ?? null); setAddingForDeadline(deadline) }}
               onEdit={t => { setAddingFor(null); setEditing(t) }}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
@@ -3684,6 +3788,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
             isOpen={openIds.has(project.id)}
             onToggle={() => toggle(project.id)}
             onAdd={(weekId) => { setEditing(null); setAddingFor(project.id); setAddingForWeekId(weekId ?? null) }}
+            onAddForDay={(weekId, deadline) => { setEditing(null); setAddingFor(project.id); setAddingForWeekId(weekId ?? null); setAddingForDeadline(deadline) }}
             onEdit={t => { setAddingFor(null); setEditing(t) }}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}
@@ -3706,8 +3811,9 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
           task={editing ?? undefined}
           defaultProjectId={modalProjectId || undefined}
           defaultWeekId={editing ? null : addingForWeekId}
+          defaultDeadline={editing ? undefined : addingForDeadline}
           onSave={(data, _draftId) => { handleSave(modalProjectId, data) }}
-          onClose={() => { setEditing(null); setAddingFor(null); setAddingForWeekId(null) }}
+          onClose={() => { setEditing(null); setAddingFor(null); setAddingForWeekId(null); setAddingForDeadline(undefined) }}
           onDelete={editing ? () => setDeletingFromModal(editing) : undefined}
           weeks={weeks}
           projects={projects}
