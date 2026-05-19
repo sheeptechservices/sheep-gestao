@@ -1501,7 +1501,7 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
-function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChange }: {
+function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onDelete, onStatusChange }: {
   tasks: Task[]
   weekStart: string   // 'YYYY-MM-DD' of Monday
   color: string
