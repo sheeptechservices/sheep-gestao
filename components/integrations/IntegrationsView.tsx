@@ -32,6 +32,18 @@ interface IntegrationMeta {
 
 const CATALOGUE: IntegrationMeta[] = [
   {
+    id: 'anthropic',
+    name: 'Anthropic (Claude)',
+    description: 'Chave de API usada pelos especialistas para gerar respostas. Substitui a variável de ambiente ANTHROPIC_API_KEY.',
+    category: 'IA Generativa',
+    emoji: '🧠',
+    color: '#D97706',
+    keyLabel: 'API Key',
+    keyPlaceholder: 'sk-ant-...',
+    keyHint: 'Obtenha sua chave em console.anthropic.com → API Keys. Créditos são cobrados por uso de tokens.',
+    docsUrl: 'https://console.anthropic.com/settings/keys',
+  },
+  {
     id: 'openai',
     name: 'OpenAI',
     description: 'Geração de imagens com DALL·E 3, modelos GPT e embeddings.',

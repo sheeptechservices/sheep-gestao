@@ -1,5 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
+import { initDb } from '@/lib/db'
+
+/** Resolve Anthropic API key: DB integration row → env var → undefined */
+async function resolveApiKey(): Promise<string | undefined> {
+  try {
+    const db  = await initDb()
+    const res = await db.execute({ sql: `SELECT api_key FROM integrations WHERE id = 'anthropic'`, args: [] })
+    const row = res.rows[0] as { api_key: string } | undefined
+    if (row?.api_key) return row.api_key
+  } catch { /* DB not ready yet — fall through to env var */ }
+  return process.env.ANTHROPIC_API_KEY
+}
 
 export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,8 +29,13 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'No messages' }), { status: 400 })
   }
 
-  // Client instantiated per-request so env var is read at runtime (not module-load time)
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  // Resolve API key: DB integration takes priority over env var
+  const apiKey = await resolveApiKey()
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'Chave da API Anthropic não configurada. Acesse Sistema → Integrações para adicionar sua chave.' }), { status: 500 })
+  }
+
+  const client = new Anthropic({ apiKey })
 
   const encoder = new TextEncoder()
 
