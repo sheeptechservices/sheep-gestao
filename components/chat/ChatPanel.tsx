@@ -6,7 +6,7 @@ import { useChatStore, type ChatMessage } from '@/stores/chatStore'
 import { DEFAULT_AGENTS, getAgent, type AgentDefinition } from '@/lib/agents'
 import { calcProgress } from '@/lib/utils'
 import { useAgentsStore } from '@/stores/agentsStore'
-import type { AgentType, Project, Week, Client } from '@/lib/types'
+import type { AgentType, Project, Week, Client, Task } from '@/lib/types'
 import { useTasksStore } from '@/stores/tasksStore'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
@@ -284,10 +284,74 @@ interface TaskProposal {
 
 // ── Artifact download bar ────────────────────────────────────────────────────
 
-function ArtifactDownloadBar({ msgId, title, content, agentColor }: {
+function ArtifactDownloadBar({ msgId, title, content, agentColor, selectedProjectId, projectTasks }: {
   msgId: string; title: string; content: string; agentColor: string
+  selectedProjectId: string | null
+  projectTasks: Task[]
 }) {
   const [loadingDocx, setLoadingDocx] = useState(false)
+  const [saveStatus, setSaveStatus]   = useState<'idle' | 'saving' | 'saved-proj' | 'saved-task' | 'error'>('idle')
+  const [showTaskPicker, setShowTaskPicker] = useState(false)
+  const taskPickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showTaskPicker) return
+    const h = (e: MouseEvent) => { if (taskPickerRef.current && !taskPickerRef.current.contains(e.target as Node)) setShowTaskPicker(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [showTaskPicker])
+
+  const resetStatus = () => setTimeout(() => setSaveStatus('idle'), 2500)
+
+  const handleSaveToProject = async () => {
+    if (!selectedProjectId || saveStatus === 'saving') return
+    setSaveStatus('saving')
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: `${title}.md`, mime_type: 'text/markdown', size: content.length, text_content: content }),
+      })
+      setSaveStatus(res.ok ? 'saved-proj' : 'error')
+    } catch { setSaveStatus('error') }
+    resetStatus()
+  }
+
+  const handleSaveToTask = async (taskId: string) => {
+    setShowTaskPicker(false)
+    if (saveStatus === 'saving') return
+    setSaveStatus('saving')
+    try {
+      const blob = new Blob([content], { type: 'text/markdown' })
+      const file = new File([blob], `${title}.md`, { type: 'text/markdown' })
+      const fd   = new FormData()
+      fd.append('file', file)
+      fd.append('task_id', taskId)
+      const res = await fetch('/api/attachments', { method: 'POST', body: fd })
+      setSaveStatus(res.ok ? 'saved-task' : 'error')
+    } catch { setSaveStatus('error') }
+    resetStatus()
+  }
+
+  const isSaving  = saveStatus === 'saving'
+  const savedProj = saveStatus === 'saved-proj'
+  const savedTask = saveStatus === 'saved-task'
+  const isError   = saveStatus === 'error'
+
+  const btnBase: React.CSSProperties = {
+    padding: '3px 10px', borderRadius: 12,
+    border: `1px solid ${agentColor}40`,
+    background: agentColor + '10', color: agentColor,
+    fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+  }
+
+  const feedbackStyle = (ok: boolean): React.CSSProperties => ({
+    ...btnBase,
+    background: ok ? 'rgba(30,138,62,0.1)' : 'rgba(217,48,37,0.1)',
+    border: `1px solid ${ok ? '#1E8A3E' : '#D93025'}40`,
+    color: ok ? '#1E8A3E' : '#D93025',
+    cursor: 'default',
+  })
 
   const handlePdf = () => {
     const el = document.querySelector(`[data-msgid="${msgId}"]`) as HTMLElement | null
@@ -565,13 +629,15 @@ function ArtifactDownloadBar({ msgId, title, content, agentColor }: {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 38, marginTop: -2, marginBottom: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 38, marginTop: -2, marginBottom: 6, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 600, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         📄 {title}
       </span>
+
+      {/* ── Export buttons ── */}
       <button
         onClick={handlePdf}
-        style={{ padding: '3px 10px', borderRadius: 12, border: `1px solid ${agentColor}40`, background: agentColor + '10', color: agentColor, fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
+        style={btnBase}
         onMouseEnter={e => { e.currentTarget.style.background = agentColor + '22' }}
         onMouseLeave={e => { e.currentTarget.style.background = agentColor + '10' }}>
         ↓ PDF
@@ -579,11 +645,66 @@ function ArtifactDownloadBar({ msgId, title, content, agentColor }: {
       <button
         onClick={handleDocx}
         disabled={loadingDocx}
-        style={{ padding: '3px 10px', borderRadius: 12, border: `1px solid ${agentColor}40`, background: agentColor + '10', color: agentColor, fontSize: 11, fontWeight: 700, cursor: loadingDocx ? 'not-allowed' : 'pointer', opacity: loadingDocx ? 0.5 : 1, transition: 'all 0.15s' }}
+        style={{ ...btnBase, cursor: loadingDocx ? 'not-allowed' : 'pointer', opacity: loadingDocx ? 0.5 : 1 }}
         onMouseEnter={e => { if (!loadingDocx) e.currentTarget.style.background = agentColor + '22' }}
         onMouseLeave={e => { e.currentTarget.style.background = agentColor + '10' }}>
         {loadingDocx ? '…' : '↓ DOCX'}
       </button>
+
+      {/* ── Separator ── */}
+      <span style={{ width: 1, height: 14, background: 'var(--gray3)', flexShrink: 0 }} />
+
+      {/* ── Save to project ── */}
+      {savedProj ? (
+        <span style={feedbackStyle(true)}>✓ Salvo no projeto</span>
+      ) : isError ? (
+        <span style={feedbackStyle(false)}>✗ Erro ao salvar</span>
+      ) : (
+        <button
+          onClick={handleSaveToProject}
+          disabled={!selectedProjectId || isSaving}
+          title={!selectedProjectId ? 'Selecione um projeto no chat primeiro' : 'Salvar como arquivo do projeto'}
+          style={{ ...btnBase, cursor: (!selectedProjectId || isSaving) ? 'not-allowed' : 'pointer', opacity: (!selectedProjectId || isSaving) ? 0.45 : 1 }}
+          onMouseEnter={e => { if (selectedProjectId && !isSaving) e.currentTarget.style.background = agentColor + '22' }}
+          onMouseLeave={e => { e.currentTarget.style.background = agentColor + '10' }}>
+          {isSaving ? '…' : '📁 Projeto'}
+        </button>
+      )}
+
+      {/* ── Save to task (with picker) ── */}
+      {savedTask ? (
+        <span style={feedbackStyle(true)}>✓ Salvo no entregável</span>
+      ) : (
+        <div ref={taskPickerRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowTaskPicker(o => !o)}
+            disabled={!selectedProjectId || projectTasks.length === 0 || isSaving}
+            title={!selectedProjectId ? 'Selecione um projeto no chat primeiro' : projectTasks.length === 0 ? 'Nenhum entregável neste projeto' : 'Salvar como anexo de um entregável'}
+            style={{ ...btnBase, cursor: (!selectedProjectId || projectTasks.length === 0 || isSaving) ? 'not-allowed' : 'pointer', opacity: (!selectedProjectId || projectTasks.length === 0 || isSaving) ? 0.45 : 1, background: showTaskPicker ? agentColor + '22' : agentColor + '10' }}
+            onMouseEnter={e => { if (selectedProjectId && projectTasks.length > 0) e.currentTarget.style.background = agentColor + '22' }}
+            onMouseLeave={e => { if (!showTaskPicker) e.currentTarget.style.background = agentColor + '10' }}>
+            📎 Entregável
+          </button>
+          {showTaskPicker && (
+            <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, zIndex: 9999, background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,0.14)', minWidth: 220, maxHeight: 200, overflowY: 'auto', animation: 'fadeIn 0.12s ease both' }}>
+              <div style={{ padding: '7px 12px 5px', fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Escolher entregável
+              </div>
+              {projectTasks.map(task => (
+                <div
+                  key={task.id}
+                  onClick={() => handleSaveToTask(task.id)}
+                  style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, color: 'var(--black)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'background 0.1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = agentColor + '0C')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: task.done ? '#1E8A3E' : agentColor, flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{task.title}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -1832,6 +1953,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
                     title={artifactTitles[msg.id]}
                     content={msg.content}
                     agentColor={agent.color}
+                    selectedProjectId={selectedProjectId}
+                    projectTasks={projectTasks}
                   />
                 )}
               </div>
