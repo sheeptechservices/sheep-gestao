@@ -151,6 +151,14 @@ async function createTables(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_weeks_start_date      ON weeks(start_date);
     CREATE INDEX IF NOT EXISTS idx_attachments_task_id   ON task_attachments(task_id);
     CREATE INDEX IF NOT EXISTS idx_project_files_proj_id ON project_files(project_id);
+
+    CREATE TABLE IF NOT EXISTS integrations (
+      id         TEXT PRIMARY KEY,
+      api_key    TEXT NOT NULL DEFAULT '',
+      extra      TEXT NOT NULL DEFAULT '{}',
+      enabled    INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
   `)
 }
 
