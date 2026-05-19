@@ -57,6 +57,36 @@ function getClosestLi(node: Node | null): HTMLElement | null {
   return el?.closest('li') as HTMLElement | null
 }
 
+/** Scan text nodes inside container and wrap URLs with <a> tags. */
+function linkifyNode(container: HTMLElement) {
+  const URL_RE = /https?:\/\/[^\s<>"')\]]+/g
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+  const targets: Text[] = []
+  let n: Text | null
+  while ((n = walker.nextNode() as Text | null)) {
+    if ((n.parentElement as Element)?.closest('a')) continue   // already a link
+    if (URL_RE.test(n.textContent ?? '')) targets.push(n)
+    URL_RE.lastIndex = 0
+  }
+  for (const textNode of targets) {
+    const text = textNode.textContent ?? ''
+    const frag = document.createDocumentFragment()
+    let last = 0; let m: RegExpExecArray | null
+    URL_RE.lastIndex = 0
+    while ((m = URL_RE.exec(text)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)))
+      const a = document.createElement('a')
+      a.href = m[0]; a.textContent = m[0]
+      a.target = '_blank'; a.rel = 'noopener noreferrer'
+      frag.appendChild(a)
+      last = URL_RE.lastIndex
+    }
+    if (last === 0) continue   // no URL found — skip
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)))
+    textNode.parentNode?.replaceChild(frag, textNode)
+  }
+}
+
 /** Extract plain-text lines from a DocumentFragment, respecting block boundaries. */
 function extractLines(fragment: DocumentFragment): string[] {
   const lines: string[] = []
@@ -205,9 +235,28 @@ export function RichTextEditor({
     setTimeout(handleInput, 0)
   }
 
-  // ── Click: toggle checkbox ──────────────────────────────────────────────────
+  // ── Blur: linkify the entire editor ────────────────────────────────────────
+  const handleBlur = () => {
+    const el = editorRef.current
+    if (!el) return
+    linkifyNode(el)
+    rerender(n => n + 1)
+    setTimeout(handleInput, 0)
+  }
+
+  // ── Click: links + checklist ────────────────────────────────────────────────
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as Element
+
+    // Open links on click (Ctrl/Cmd not required — it's a content editor)
+    const anchor = target.closest('a') as HTMLAnchorElement | null
+    if (anchor?.href) {
+      e.preventDefault()
+      window.open(anchor.href, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    // Toggle checklist checkbox
     if (target.classList.contains('rte-chk')) {
       const li = target.closest('li')
       if (li) {
@@ -299,6 +348,14 @@ export function RichTextEditor({
           rerender(n => n + 1)
           setTimeout(handleInput, 0)
           return
+        }
+
+        // Linkify after space or Enter (do it after browser processes the key)
+        if (e.key === ' ' || e.key === 'Enter') {
+          setTimeout(() => {
+            const el = editorRef.current
+            if (el) { linkifyNode(el); rerender(n => n + 1); setTimeout(handleInput, 0) }
+          }, 0)
         }
 
         // "[]" → checklist  (type [ then ])
@@ -429,6 +486,7 @@ export function RichTextEditor({
         onKeyDown={handleKeyDown}
         onKeyUp={() => rerender(n => n + 1)}
         onMouseUp={() => rerender(n => n + 1)}
+        onBlur={handleBlur}
         onClick={handleClick}
         data-placeholder={placeholder}
         style={{
@@ -471,6 +529,8 @@ export function RichTextEditor({
         [contenteditable] strong, [contenteditable] b { font-weight: 700; }
         [contenteditable] em, [contenteditable] i { font-style: italic; }
         [contenteditable] s, [contenteditable] strike { text-decoration: line-through; color: var(--gray2); }
+        [contenteditable] a { color: #2563EB; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; word-break: break-all; }
+        [contenteditable] a:hover { color: #1D4ED8; }
 
         /* ── Checklist ── */
         [contenteditable] ul.rte-checklist {
