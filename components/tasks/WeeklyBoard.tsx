@@ -66,7 +66,7 @@ const ALL_FLAGS = Object.keys(FLAG_CONFIG)
 
 // ── Form types ────────────────────────────────────────────────────────────────
 
-interface FormState {
+export interface FormState {
   title: string; description: string; urgency: TaskUrgency | ''
   done: boolean; assigned_to: string; week_id: string | null
   project_id: string; flags: string[]; flag_comment: string; deadline: string
@@ -151,7 +151,7 @@ function WBDeleteModal({ task, onConfirm, onClose }: {
 
 // ── Task form modal ───────────────────────────────────────────────────────────
 
-function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, defaultDeadline }: {
+export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, defaultDeadline, defaultProjectId, defaultWeekId }: {
   task?: Task
   onSave: (data: FormState, draftId?: string) => void
   onClose: (draftId?: string) => void
@@ -159,6 +159,8 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
   weeks: Week[]
   projects: Project[]
   defaultDeadline?: string
+  defaultProjectId?: string
+  defaultWeekId?: string | null
 }) {
   const sorted = [...weeks].sort((a, b) => a.start_date.localeCompare(b.start_date))
   const [form, setForm] = useState<FormState>({
@@ -167,8 +169,8 @@ function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, default
     urgency:      task?.urgency      ?? '',
     done:         task?.done         ?? false,
     assigned_to:  task?.assigned_to  ?? '',
-    week_id:      task?.week_id      ?? null,
-    project_id:   task?.project_id   ?? '',
+    week_id:      task?.week_id      ?? defaultWeekId ?? null,
+    project_id:   task?.project_id   ?? defaultProjectId ?? '',
     flags:        task?.flags        ?? [],
     flag_comment: task?.flag_comment ?? '',
     deadline:     task?.deadline     ?? defaultDeadline ?? '',
