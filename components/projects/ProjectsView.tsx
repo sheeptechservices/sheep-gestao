@@ -314,10 +314,11 @@ function deadlineBadge(deadline: string): { label: string; color: string; bg: st
 }
 
 // ── Kanban card ───────────────────────────────────────────────────────────────
-function KanbanCard({ task, dragging, color, onEdit, onDelete, onDragStart, onDragEnd }: {
+function KanbanCard({ task, dragging, color, project, onEdit, onDelete, onDragStart, onDragEnd }: {
   task: Task
   dragging: boolean
   color: string
+  project?: Project
   onEdit: () => void
   onDelete: () => void
   onDragStart: () => void
@@ -394,7 +395,7 @@ function KanbanCard({ task, dragging, color, onEdit, onDelete, onDragStart, onDr
         )}
         {hov && !dragging && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4, animation: 'fadeIn 0.12s ease both' }}>
-            <EditBtn   onClick={e => { e.stopPropagation(); onEdit() }} />
+            <ConsultAgentButton task={task} project={project} variant="icon" direction="down" />
             <DeleteBtn onClick={e => { e.stopPropagation(); setConfirming(true) }} />
           </div>
         )}
@@ -404,9 +405,10 @@ function KanbanCard({ task, dragging, color, onEdit, onDelete, onDragStart, onDr
 }
 
 // ── Kanban view ───────────────────────────────────────────────────────────────
-function KanbanView({ tasks, color, onEdit, onDelete, onStatusChange }: {
+function KanbanView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
   tasks: Task[]
   color: string
+  project?: Project
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -472,6 +474,7 @@ function KanbanView({ tasks, color, onEdit, onDelete, onStatusChange }: {
                       key={t.id} task={t}
                       dragging={dragId === t.id}
                       color={color}
+                      project={project}
                       onEdit={() => onEdit(t)}
                       onDelete={() => onDelete(t.id)}
                       onDragStart={() => setDragId(t.id)}
@@ -492,9 +495,10 @@ function KanbanView({ tasks, color, onEdit, onDelete, onStatusChange }: {
 }
 
 // ── List view ─────────────────────────────────────────────────────────────────
-function ListView({ tasks, color, onEdit, onDelete, onStatusChange }: {
+function ListView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
   tasks: Task[]
   color: string
+  project?: Project
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
@@ -602,7 +606,7 @@ function ListView({ tasks, color, onEdit, onDelete, onStatusChange }: {
             </span>
             {/* Actions */}
             <div style={{ display: 'flex', gap: 4, opacity: isH ? 1 : 0, transition: 'opacity 0.15s', justifyContent: 'flex-end' }}>
-              <EditBtn   onClick={e => { e.stopPropagation(); onEdit(task) }} />
+              <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
               <DeleteBtn onClick={e => { e.stopPropagation(); setConfirmTask(task) }} />
             </div>
           </div>
@@ -733,8 +737,8 @@ function weekStatus(week: Week): 'past' | 'current' | 'future' {
 }
 
 // ── BacklogSection ────────────────────────────────────────────────────────────
-function BacklogSection({ tasks, color, view, onEdit, onDelete, onStatusChange }: {
-  tasks: Task[]; color: string; view: 'list' | 'kanban'
+function BacklogSection({ tasks, color, project, view, onEdit, onDelete, onStatusChange }: {
+  tasks: Task[]; color: string; project?: Project; view: 'list' | 'kanban'
   onEdit: (t: Task) => void; onDelete: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
 }) {
@@ -756,8 +760,8 @@ function BacklogSection({ tasks, color, view, onEdit, onDelete, onStatusChange }
       </div>
       {open && (
         view === 'kanban'
-          ? <KanbanView tasks={tasks} color={color} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
-          : <ListView  tasks={tasks} color={color} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
+          ? <KanbanView tasks={tasks} color={color} project={project} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
+          : <ListView  tasks={tasks} color={color} project={project} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
       )}
     </div>
   )
@@ -1349,7 +1353,7 @@ function GlobalWeekNav({ weeks, idx, onChange }: {
 }
 
 // ── Day view card (top-level to avoid remount-on-drag bug) ────────────────────
-function DayTaskCard({ task, color, project, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange }: {
+function DayTaskCard({ task, color, project, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange, onDelete }: {
   task: Task
   color: string
   project?: Project
@@ -1359,96 +1363,142 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
   onDragEnd: () => void
   onClick: () => void
   onStatusChange: () => void
+  onDelete?: () => void
 }) {
-  const [pop, setPop] = useState(false)
+  const [pop, setPop]               = useState(false)
+  const [hov, setHov]               = useState(false)
+  const [confirming, setConfirming] = useState(false)
   return (
-    <div
-      draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
-      onDragEnd={onDragEnd}
-      onClick={() => { if (!isDragging) onClick() }}
-      style={{
-        background: isDragging ? color + '18' : 'var(--white)',
-        borderRadius: compact ? 6 : 7,
-        border: `1px solid ${isDragging ? color + '66' : 'var(--gray3)'}`,
-        padding: compact ? '5px 7px' : '7px 8px',
-        cursor: isDragging ? 'grabbing' : 'grab',
-        opacity: isDragging ? 0.5 : task.done ? 0.6 : 1,
-        transform: isDragging ? 'rotate(1.5deg) scale(1.02)' : 'none',
-        transition: 'opacity 0.15s, border-color 0.15s, transform 0.15s',
-        display: 'flex', flexDirection: compact ? 'row' : 'column',
-        gap: compact ? 6 : 4, alignItems: compact ? 'center' : 'stretch',
-        userSelect: 'none',
-      }}
-    >
-      <button
-        onClick={e => {
-          e.stopPropagation()
-          if (!task.done) { setPop(true); playDoneSound() }
-          onStatusChange()
-        }}
-        onAnimationEnd={() => setPop(false)}
+    <>
+      {confirming && (
+        <DeleteConfirmModal
+          taskTitle={task.title}
+          onConfirm={() => { onDelete?.(); setConfirming(false) }}
+          onClose={() => setConfirming(false)}
+        />
+      )}
+      <div
+        draggable
+        onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
+        onDragEnd={onDragEnd}
+        onClick={() => { if (!isDragging) onClick() }}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
         style={{
-          width: compact ? 14 : 15, height: compact ? 14 : 15,
-          borderRadius: 4, flexShrink: 0, cursor: 'pointer',
-          border: `2px solid ${task.done ? color : 'var(--gray3)'}`,
-          background: task.done ? color : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 0,
-          ...(compact ? {} : { marginTop: 1 }),
-          animation: pop ? 'checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both' : undefined,
-          transition: pop ? 'none' : 'all 0.15s',
+          background: isDragging ? color + '18' : hov ? 'var(--white)' : 'var(--white)',
+          borderRadius: compact ? 6 : 7,
+          border: `1px solid ${isDragging ? color + '66' : hov ? color + '55' : 'var(--gray3)'}`,
+          padding: compact ? '5px 7px' : '7px 8px',
+          cursor: isDragging ? 'grabbing' : 'pointer',
+          opacity: isDragging ? 0.5 : task.done ? 0.6 : 1,
+          transform: isDragging ? 'rotate(1.5deg) scale(1.02)' : hov ? 'translateY(-1px)' : 'none',
+          boxShadow: hov && !isDragging ? `0 3px 10px rgba(0,0,0,0.08)` : 'none',
+          transition: 'all 0.15s ease',
+          display: 'flex', flexDirection: compact ? 'row' : 'column',
+          gap: compact ? 6 : 4, alignItems: compact ? 'center' : 'stretch',
+          userSelect: 'none', position: 'relative',
         }}
       >
-        {task.done && (
-          <svg width={compact ? 7 : 8} height={compact ? 7 : 8} viewBox="0 0 10 10" fill="none">
-            <path d="M2 5l2 2.5L8 3" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
-      </button>
+        <button
+          onClick={e => {
+            e.stopPropagation()
+            if (!task.done) { setPop(true); playDoneSound() }
+            onStatusChange()
+          }}
+          onAnimationEnd={() => setPop(false)}
+          style={{
+            width: compact ? 14 : 15, height: compact ? 14 : 15,
+            borderRadius: 4, flexShrink: 0, cursor: 'pointer',
+            border: `2px solid ${task.done ? color : 'var(--gray3)'}`,
+            background: task.done ? color : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 0,
+            ...(compact ? {} : { marginTop: 1 }),
+            animation: pop ? 'checkPop 0.45s cubic-bezier(0.34,1.56,0.64,1) both' : undefined,
+            transition: pop ? 'none' : 'all 0.15s',
+          }}
+        >
+          {task.done && (
+            <svg width={compact ? 7 : 8} height={compact ? 7 : 8} viewBox="0 0 10 10" fill="none">
+              <path d="M2 5l2 2.5L8 3" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </button>
 
-      {compact ? (
-        <>
-          <span style={{
-            fontSize: 11, fontWeight: 500, flex: 1,
-            color: task.done ? 'var(--gray2)' : 'var(--black)',
-            textDecoration: task.done ? 'line-through' : 'none',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{task.title}</span>
-          {task.urgency && URGENCY_CONFIG[task.urgency] && (
+        {compact ? (
+          <>
             <span style={{
-              fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0,
-              color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
-            }}>{URGENCY_CONFIG[task.urgency].label}</span>
-          )}
-          <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
-        </>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <span style={{
-            fontSize: 11, fontWeight: 600, lineHeight: 1.35,
-            color: task.done ? 'var(--gray2)' : 'var(--black)',
-            textDecoration: task.done ? 'line-through' : 'none',
-          }}>{task.title}</span>
-          {(task.urgency || task.assigned_to) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-              {task.urgency && URGENCY_CONFIG[task.urgency] && (
-                <span style={{
-                  fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
-                  color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
-                }}>{URGENCY_CONFIG[task.urgency].label}</span>
-              )}
-              {task.assigned_to && (
-                <span style={{ fontSize: 9, color: 'var(--gray2)', fontWeight: 500 }}>
-                  {task.assigned_to.split(' ')[0]}
-                </span>
-              )}
-              <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+              fontSize: 11, fontWeight: 500, flex: 1,
+              color: task.done ? 'var(--gray2)' : 'var(--black)',
+              textDecoration: task.done ? 'line-through' : 'none',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{task.title}</span>
+            {task.urgency && URGENCY_CONFIG[task.urgency] && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, flexShrink: 0,
+                color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
+              }}>{URGENCY_CONFIG[task.urgency].label}</span>
+            )}
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 600, lineHeight: 1.35,
+              color: task.done ? 'var(--gray2)' : 'var(--black)',
+              textDecoration: task.done ? 'line-through' : 'none',
+            }}>{task.title}</span>
+            {(task.urgency || task.assigned_to) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {task.urgency && URGENCY_CONFIG[task.urgency] && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+                    color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
+                  }}>{URGENCY_CONFIG[task.urgency].label}</span>
+                )}
+                {task.assigned_to && (
+                  <span style={{ fontSize: 9, color: 'var(--gray2)', fontWeight: 500 }}>
+                    {task.assigned_to.split(' ')[0]}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Hover action buttons */}
+        {hov && !isDragging && (
+          <div style={{
+            position: 'absolute', top: compact ? '50%' : 6, right: 6,
+            transform: compact ? 'translateY(-50%)' : 'none',
+            display: 'flex', gap: 3,
+            animation: 'fadeIn 0.12s ease both',
+          }}>
+            <ConsultAgentButton task={task} project={project} variant="icon" direction={compact ? 'up' : 'down'} />
+            {onDelete && (
+              <div
+                onClick={e => { e.stopPropagation(); setConfirming(true) }}
+                title="Excluir"
+                style={{
+                  width: 20, height: 20, borderRadius: 5,
+                  background: 'var(--white)', border: '1px solid rgba(220,38,38,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer',
+                  transition: 'background 0.12s, border-color 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.borderColor = '#DC2626' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)' }}
+              >
+                <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+                  <path d="M2 3h8M4.5 3V2h3v1M3.5 3l.6 7h3.8l.6-7" stroke="#DC2626" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
   )
 }
 
@@ -1460,6 +1510,7 @@ function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChan
   project?: Project
   onAdd?: (date: string) => void
   onEdit: (t: Task) => void
+  onDelete?: (id: string) => void
   onStatusChange: (id: string, done: boolean) => void
 }) {
   const { updateTask } = useTasksStore()
@@ -1631,6 +1682,7 @@ function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChan
                         onDragEnd={() => { setDragId(null); setOverZone(null) }}
                         onClick={() => onEdit(task)}
                         onStatusChange={() => onStatusChange(task.id, !task.done)}
+                        onDelete={onDelete ? () => onDelete(task.id) : undefined}
                       />
                     ))}
                     {isOver && (
@@ -1705,12 +1757,14 @@ function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChan
                   key={task.id}
                   task={task}
                   color={color}
+                  project={project}
                   isDragging={dragId === task.id}
                   compact
                   onDragStart={() => setDragId(task.id)}
                   onDragEnd={() => { setDragId(null); setOverZone(null) }}
                   onClick={() => onEdit(task)}
                   onStatusChange={() => onStatusChange(task.id, !task.done)}
+                  onDelete={onDelete ? () => onDelete(task.id) : undefined}
                 />
               ))}
               {isOver && (
@@ -1978,11 +2032,11 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEd
                 Sem entregáveis nesta semana.
               </div>
             ) : view === 'kanban' ? (
-              <KanbanView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
+              <KanbanView tasks={weekTasks} color={project.color_hex} project={project} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : view === 'day' ? (
-              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} project={project} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onStatusChange={onStatusChange} />
+              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={project.color_hex} project={project} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : (
-              <ListView tasks={weekTasks} color={project.color_hex} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
+              <ListView tasks={weekTasks} color={project.color_hex} project={project} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             )}
           </div>
 
@@ -1991,6 +2045,7 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEd
           <BacklogSection
             tasks={backlogTasks}
             color={project.color_hex}
+            project={project}
             view={view as 'list' | 'kanban'}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -2146,7 +2201,7 @@ function GeneralTasksRow({ tasks, weeks, globalWeekStart, isOpen, onToggle, onAd
             ) : view === 'kanban' ? (
               <KanbanView tasks={weekTasks} color={GENERAL_COLOR} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : view === 'day' ? (
-              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={GENERAL_COLOR} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onStatusChange={onStatusChange} />
+              <DayView tasks={weekTasks} weekStart={effectiveWeek.start_date} color={GENERAL_COLOR} onAdd={onAddForDay ? (date) => onAddForDay(effectiveWeek?.id, date) : undefined} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             ) : (
               <ListView tasks={weekTasks} color={GENERAL_COLOR} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} />
             )}
