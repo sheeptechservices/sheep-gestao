@@ -1,7 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+import { createAnthropicClient } from '@/lib/anthropic'
 
 export async function POST(req: NextRequest) {
   const { projectName, tasks } = await req.json()
@@ -9,6 +7,8 @@ export async function POST(req: NextRequest) {
   if (!tasks || tasks.length === 0) {
     return NextResponse.json({ summary: null })
   }
+
+  const client = await createAnthropicClient()
 
   const taskList = tasks
     .map((t: { title: string; status: string; priority: string }) =>
