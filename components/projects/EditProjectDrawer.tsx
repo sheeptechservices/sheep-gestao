@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Project, ProjectStatus, ProjectType, Client } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
 import { AppSelect } from '@/components/ui/AppSelect'
@@ -69,7 +69,18 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
   const [dragOver, setDragOver]       = useState(false)
   const [hovZone, setHovZone]         = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [dlOpenId, setDlOpenId]       = useState<string | null>(null)
+  const [loadingDocxId, setLoadingDocxId] = useState<string | null>(null)
+  const dlRef                         = useRef<HTMLDivElement>(null)
   const fileRef                       = useRef<HTMLInputElement>(null)
+
+  // Close download dropdown on outside click
+  useEffect(() => {
+    if (!dlOpenId) return
+    const h = (e: MouseEvent) => { if (dlRef.current && !dlRef.current.contains(e.target as Node)) setDlOpenId(null) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [dlOpenId])
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/files`)
@@ -119,19 +130,88 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
     setConfirmDeleteId(null)
   }
 
-  const handleDownload = (file: ProjectFile) => {
-    const content  = file.text_content ?? ''
-    const mimeType = content ? 'text/plain;charset=utf-8' : (file.mime_type || 'application/octet-stream')
-    const blob     = new Blob([content], { type: mimeType })
-    const url      = URL.createObjectURL(blob)
-    const a        = document.createElement('a')
-    a.href         = url
-    // Keep original extension when possible; fall back to .txt for text-extracted content
-    const hasTextExt = /\.(txt|md|csv|json|xml|yaml|yml|html?|log)$/i.test(file.filename)
-    a.download     = hasTextExt ? file.filename : file.filename.replace(/\.[^.]+$/, '.txt') || file.filename
+  const baseName = useCallback((filename: string) =>
+    filename.replace(/\.[^.]+$/, '') || filename, [])
+
+  const handleDownloadTxt = useCallback((file: ProjectFile) => {
+    setDlOpenId(null)
+    const blob = new Blob([file.text_content ?? ''], { type: 'text/plain;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = baseName(file.filename) + '.txt'
     a.click()
     URL.revokeObjectURL(url)
-  }
+  }, [baseName])
+
+  const handleDownloadDocx = useCallback(async (file: ProjectFile) => {
+    setDlOpenId(null)
+    setLoadingDocxId(file.id)
+    try {
+      const res  = await fetch('/api/generate-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: file.text_content ?? '', filename: baseName(file.filename) }),
+      })
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = baseName(file.filename) + '.docx'
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setLoadingDocxId(null)
+    }
+  }, [baseName])
+
+  const handleDownloadPdf = useCallback((file: ProjectFile) => {
+    setDlOpenId(null)
+    const win = window.open('', '_blank')
+    if (!win) return
+    const title   = baseName(file.filename)
+    const dateStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+    // Simple markdown-to-HTML: headings, bold, italic, bullets, paragraphs
+    const bodyHtml = (file.text_content ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^# (.+)$/gm,  '<h1>$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+      .replace(/^[*-] (.+)$/gm,  '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="utf-8"><title>${title}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:'Manrope',sans-serif;font-size:13.5px;line-height:1.75;color:#1a1b1e;max-width:760px;margin:0 auto;padding:48px 56px 64px}
+        .cover{border-left:4px solid #84CC16;padding:24px 24px 20px 24px;margin-bottom:36px;background:#84CC1609;border-radius:0 10px 10px 0}
+        .cover-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#84CC16;margin-bottom:6px}
+        .cover-title{font-size:22px;font-weight:900;color:#0f1012;margin-bottom:8px}
+        .cover-meta{font-size:11px;color:#6b7280}
+        .body p{margin-bottom:12px} .body h1{font-size:19px;font-weight:800;margin:32px 0 10px;padding-bottom:6px;border-bottom:2px solid #84CC1630}
+        .body h2{font-size:15px;font-weight:800;margin:24px 0 8px} .body h3{font-size:13.5px;font-weight:700;margin:18px 0 5px}
+        .body ul{padding-left:20px;margin-bottom:12px} .body li{margin-bottom:4px}
+        .body strong{font-weight:700} .body em{font-style:italic}
+        .footer{margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10.5px}
+        .footer-brand{color:#84CC16;font-weight:700} .footer-date{color:#9ca3af}
+        @page{margin:18mm 20mm;size:A4}
+        @media print{body{padding:0;max-width:100%}}
+      </style></head><body>
+      <div class="cover"><div class="cover-label">Sheep Tech · Base de Conhecimento</div>
+        <div class="cover-title">${title}</div>
+        <div class="cover-meta">${dateStr}</div></div>
+      <div class="body"><p>${bodyHtml}</p></div>
+      <div class="footer"><span class="footer-brand">sheep-gestao</span><span class="footer-date">Exportado em ${dateStr}</span></div>
+      <script>document.fonts.ready.then(function(){window.print()})</script>
+    </body></html>`)
+    win.document.close()
+  }, [baseName])
 
   const confirmFile = confirmDeleteId ? files.find(f => f.id === confirmDeleteId) : null
 
@@ -244,23 +324,52 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--gray2)' }}>{fmtSize(f.size)}</div>
               </div>
-              {/* Download */}
-              <button
-                onClick={() => handleDownload(f)}
-                title="Baixar arquivo"
-                style={{
-                  width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
-                  background: 'transparent', cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
-                  flexShrink: 0, transition: 'all 0.12s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = color + '12'; e.currentTarget.style.borderColor = color + '60'; e.currentTarget.style.color = color }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
-              >
-                <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
-                  <path d="M6 1v7M3.5 5.5L6 8l2.5-2.5M1.5 10h9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
+              {/* Download dropdown */}
+              <div ref={dlOpenId === f.id ? dlRef : undefined} style={{ position: 'relative', flexShrink: 0 }}>
+                <button
+                  onClick={() => setDlOpenId(dlOpenId === f.id ? null : f.id)}
+                  title="Baixar arquivo"
+                  disabled={loadingDocxId === f.id}
+                  style={{
+                    width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
+                    background: dlOpenId === f.id ? color + '12' : 'transparent',
+                    cursor: loadingDocxId === f.id ? 'wait' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: dlOpenId === f.id ? color : 'var(--gray2)',
+                    transition: 'all 0.12s',
+                    borderColor: dlOpenId === f.id ? color + '60' : 'var(--gray3)',
+                  }}
+                  onMouseEnter={e => { if (dlOpenId !== f.id) { e.currentTarget.style.background = color + '12'; e.currentTarget.style.borderColor = color + '60'; e.currentTarget.style.color = color } }}
+                  onMouseLeave={e => { if (dlOpenId !== f.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' } }}
+                >
+                  {loadingDocxId === f.id
+                    ? <div style={{ width: 9, height: 9, borderRadius: '50%', border: `1.5px solid ${color}40`, borderTopColor: color, animation: 'spin-slow 0.7s linear infinite' }} />
+                    : <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                        <path d="M6 1v7M3.5 5.5L6 8l2.5-2.5M1.5 10h9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                  }
+                </button>
+                {dlOpenId === f.id && (
+                  <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, zIndex: 9200, background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.14)', minWidth: 120, overflow: 'hidden', animation: 'fadeIn 0.12s ease both' }}>
+                    {[
+                      { label: 'TXT', icon: '📄', action: () => handleDownloadTxt(f) },
+                      { label: 'DOCX', icon: '📝', action: () => handleDownloadDocx(f) },
+                      { label: 'PDF',  icon: '📑', action: () => handleDownloadPdf(f) },
+                    ].map(opt => (
+                      <div
+                        key={opt.label}
+                        onClick={opt.action}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--black)', transition: 'background 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = color + '10')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <span style={{ fontSize: 13 }}>{opt.icon}</span>
+                        {opt.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Delete */}
               <button
                 onClick={() => setConfirmDeleteId(f.id)}
