@@ -15,10 +15,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const secret = process.env.AUTH_SECRET ?? 'sheep-gestao-secret'
+  const secret = process.env.AUTH_SECRET
   const cookie = req.cookies.get('sheep_auth')?.value
 
-  if (cookie !== secret) {
+  if (!secret || cookie !== secret) {
     const loginUrl = new URL('/login', req.url)
     loginUrl.searchParams.set('from', pathname)
     return NextResponse.redirect(loginUrl)
