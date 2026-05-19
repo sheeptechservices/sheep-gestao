@@ -18,8 +18,20 @@ interface Integration {
 const LOGOS: Record<string, React.ReactNode> = {
   anthropic: (
     <svg viewBox="0 0 100 100" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100" height="100" rx="22" fill="#CC785C"/>
-      <path d="M64 36.5a28.5 28.5 0 1 0 0 27" stroke="white" strokeWidth="9" strokeLinecap="round" fill="none"/>
+      <g transform="translate(50,50)" fill="#CC785C">
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(0)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(30)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(60)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(90)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(120)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(150)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(180)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(210)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(240)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(270)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(300)"/>
+        <rect x="-4.5" y="-46" width="9" height="31" rx="4.5" transform="rotate(330)"/>
+      </g>
     </svg>
   ),
   openai: (
