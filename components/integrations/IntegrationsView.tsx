@@ -328,7 +328,7 @@ export function IntegrationsView() {
   const connectedCount = integrations.filter(i => i.has_key).length
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ maxWidth: 860 }}>
 
       {/* Page header */}
       <div style={{ marginBottom: 28 }}>
