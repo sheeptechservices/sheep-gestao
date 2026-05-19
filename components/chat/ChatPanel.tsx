@@ -1141,6 +1141,138 @@ function AgentPicker({ currentAgentType }: { currentAgentType: AgentType }) {
   )
 }
 
+// ── Model + effort picker pill ────────────────────────────────────────────────
+
+const CHAT_MODELS = [
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  desc: 'Rápido e econômico' },
+  { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6', desc: 'Balanceado — recomendado' },
+  { id: 'claude-opus-4-7',           label: 'Opus 4.7',   desc: 'Mais poderoso' },
+]
+
+const EFFORT_LEVELS = [
+  { id: 'baixo', label: 'Baixo' },
+  { id: 'medio', label: 'Médio' },
+  { id: 'alto',  label: 'Alto'  },
+]
+
+function ModelPickerPill({ model, effort, onModel, onEffort }: {
+  model: string
+  effort: 'baixo' | 'medio' | 'alto'
+  onModel: (m: string) => void
+  onEffort: (e: 'baixo' | 'medio' | 'alto') => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  const modelLabel  = CHAT_MODELS.find(m => m.id === model)?.label ?? 'Sonnet 4.6'
+  const effortLabel = EFFORT_LEVELS.find(e => e.id === effort)?.label ?? 'Médio'
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px 4px 8px', borderRadius: 20,
+          border: '1px solid var(--gray3)', background: open ? 'var(--bg)' : 'transparent',
+          cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--gray)',
+          transition: 'all 0.15s', whiteSpace: 'nowrap',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = open ? 'var(--bg)' : 'transparent'; e.currentTarget.style.color = 'var(--gray)' }}
+      >
+        <svg width={12} height={12} viewBox="0 0 16 16" fill="none" style={{ opacity: 0.6, flexShrink: 0 }}>
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M5.5 8a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0z" fill="currentColor" opacity=".5"/>
+          <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+        </svg>
+        {modelLabel}
+        <span style={{ opacity: 0.4, fontSize: 10, margin: '0 1px' }}>·</span>
+        {effortLabel}
+        <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ opacity: 0.5, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+          <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, zIndex: 9999,
+          background: '#1C1C1E', border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+          minWidth: 210, padding: '8px 0',
+          animation: 'fadeIn 0.12s ease both',
+        }}>
+          {/* Modelos */}
+          <div style={{ padding: '4px 14px 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Modelos
+          </div>
+          {CHAT_MODELS.map(m => (
+            <div
+              key={m.id}
+              onClick={() => { onModel(m.id); setOpen(false) }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 14px', cursor: 'pointer',
+                background: 'transparent',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: model === m.id ? 700 : 500, color: model === m.id ? '#fff' : 'rgba(255,255,255,0.75)', lineHeight: 1.2 }}>
+                  {m.label}
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{m.desc}</div>
+              </div>
+              {model === m.id && (
+                <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                  <path d="M2.5 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+          ))}
+
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
+
+          {/* Esforço */}
+          <div style={{ padding: '4px 14px 6px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Esforço
+          </div>
+          {EFFORT_LEVELS.map(e => (
+            <div
+              key={e.id}
+              onClick={() => { onEffort(e.id as 'baixo' | 'medio' | 'alto'); setOpen(false) }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 14px', cursor: 'pointer', transition: 'background 0.1s',
+              }}
+              onMouseEnter={el => { el.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseLeave={el => { el.currentTarget.style.background = 'transparent' }}
+            >
+              <span style={{ fontSize: 13, fontWeight: effort === e.id ? 700 : 500, color: effort === e.id ? '#fff' : 'rgba(255,255,255,0.75)' }}>
+                {e.label}
+              </span>
+              {effort === e.id && (
+                <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                  <path d="M2.5 7l3.5 3.5 5.5-6" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Single chat panel ────────────────────────────────────────────────────────
 
 interface ChatPanelProps {
@@ -1182,8 +1314,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [pastedImages, setPastedImages]     = useState<{ data: string; mediaType: 'image/png'|'image/jpeg'|'image/gif'|'image/webp'; name: string; preview: string }[]>([])
   const [uploading, setUploading]           = useState(false)
   const [panelWidth, setPanelWidth]         = useState(PANEL_W)
-  const [modelOverride, setModelOverride]   = useState<string>('')
-  const [effortLevel, setEffortLevel]       = useState<'focado' | 'balanceado' | 'criativo'>('balanceado')
+  const [modelOverride, setModelOverride]   = useState<string>('claude-sonnet-4-6')
+  const [effortLevel, setEffortLevel]       = useState<'baixo' | 'medio' | 'alto'>('medio')
   const [confirmModal, setConfirmModal]     = useState<'clear' | 'close' | null>(null)
   const [artifactTitles, setArtifactTitles] = useState<Record<string, string>>({})
   const [voiceMode, setVoiceMode]           = useState(false)
@@ -1481,8 +1613,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
 
       const mainContent = await runStream(
         buildSystemPrompt(agent), history,
-        modelOverride || agent.model,
-        effortLevel === 'focado' ? 0.2 : effortLevel === 'criativo' ? 0.95 : agent.temperature,
+        modelOverride,
+        effortLevel === 'baixo' ? 0.2 : effortLevel === 'alto' ? 0.95 : agent.temperature,
         (chunk) => appendToLast(agentType, chunk), signal,
       )
 
@@ -1561,7 +1693,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
 
         const synthesisHistory = [...history, { role: 'assistant', content: mainContent.replace(match[0], '').trim() }, { role: 'user', content: `[Resultado da consulta com ${toAgent.name}]: ${consultAnswer || '(sem resposta)'}` }]
         addMessage(agentType, { id: `a-${Date.now()}`, role: 'assistant', content: '' })
-        await runStream(buildSystemPrompt(agent), synthesisHistory, modelOverride || agent.model, effortLevel === 'focado' ? 0.2 : effortLevel === 'criativo' ? 0.95 : agent.temperature, (chunk) => appendToLast(agentType, chunk), signal)
+        await runStream(buildSystemPrompt(agent), synthesisHistory, modelOverride, effortLevel === 'baixo' ? 0.2 : effortLevel === 'alto' ? 0.95 : agent.temperature, (chunk) => appendToLast(agentType, chunk), signal)
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
@@ -1867,32 +1999,6 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
             </div>
           )}
         </div>
-        {/* Model + effort controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: agent.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 2, opacity: 0.8 }}>Modelo</span>
-          <ContextDropdown
-            label="Padrão"
-            value={modelOverride || null}
-            options={[
-              { id: 'claude-haiku-4-5-20251001', label: 'Haiku' },
-              { id: 'claude-sonnet-4-6',          label: 'Sonnet' },
-              { id: 'claude-opus-4-7',            label: 'Opus' },
-            ]}
-            onChange={v => setModelOverride(v ?? '')}
-            color={agent.color}
-          />
-          <span style={{ fontSize: 10, fontWeight: 700, color: agent.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginLeft: 4, marginRight: 2, opacity: 0.8 }}>Esforço</span>
-          <ContextDropdown
-            label="Balanceado"
-            value={effortLevel === 'balanceado' ? null : effortLevel}
-            options={[
-              { id: 'focado',    label: 'Focado' },
-              { id: 'criativo',  label: 'Criativo' },
-            ]}
-            onChange={v => setEffortLevel((v ?? 'balanceado') as 'focado' | 'balanceado' | 'criativo')}
-            color={agent.color}
-          />
-        </div>
       </div>
 
       {/* Messages */}
@@ -2107,13 +2213,22 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
             </button>
           )}
         </div>
-        <div style={{ fontSize: 9, color: voiceMode ? agent.color : 'var(--gray2)', textAlign: 'center', marginTop: 6, opacity: voiceMode ? 1 : 0.7, fontWeight: voiceMode ? 700 : 400, transition: 'color 0.2s, opacity 0.2s' }}>
-          {voiceMode
-            ? voiceState === 'listening' ? '🎤 Ouvindo… fale agora'
-            : voiceState === 'speaking'  ? '🔊 Respondendo…'
-            : '💬 Modo conversa ativo — aguardando'
-            : 'Enter para enviar · Shift+Enter para quebrar linha · Cole imagem com Ctrl+V'
-          }
+        {/* Bottom toolbar: model picker + hint */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+          <ModelPickerPill
+            model={modelOverride}
+            effort={effortLevel}
+            onModel={setModelOverride}
+            onEffort={setEffortLevel}
+          />
+          <div style={{ fontSize: 9, color: voiceMode ? agent.color : 'var(--gray2)', opacity: voiceMode ? 1 : 0.7, fontWeight: voiceMode ? 700 : 400, transition: 'color 0.2s, opacity 0.2s', textAlign: 'right' }}>
+            {voiceMode
+              ? voiceState === 'listening' ? '🎤 Ouvindo…'
+              : voiceState === 'speaking'  ? '🔊 Respondendo…'
+              : '💬 Aguardando'
+              : 'Enter · Shift+Enter'
+            }
+          </div>
         </div>
       </div>
 
