@@ -319,9 +319,9 @@ export function IntegrationsView() {
       // Refresh list
       const updated = await fetch('/api/integrations').then(r => r.json())
       setIntegrations(Array.isArray(updated) ? updated : [])
-      toast(key ? `${CATALOGUE.find(c => c.id === id)?.name} conectado com sucesso!` : 'Integração removida.')
+      toast.success(key ? `${CATALOGUE.find(c => c.id === id)?.name} conectado com sucesso!` : 'Integração removida.')
     } else {
-      toast('Erro ao salvar integração.')
+      toast.error('Erro ao salvar integração.')
     }
   }
 
