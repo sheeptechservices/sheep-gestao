@@ -391,14 +391,21 @@ function slide07(p: PropostaData): string {
       <div class="card-body">${esc(d.descricao)}</div>
     </div>`).join('');
 
+  // Dynamic grid: auto-fit so the last row always fills with no empty slots.
+  // 4 items → 2×2; 1/2/3/5 items → auto-fit minmax(28%, 1fr) fills naturally.
+  const n = difs.length;
+  const gridStyle = n === 4
+    ? 'display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(9px,1.11vw,16px)'
+    : `display:grid;grid-template-columns:repeat(auto-fit,minmax(28%,1fr));gap:clamp(9px,1.11vw,16px)`;
+
   return `
 <!-- 07 A SOLUÇÃO -->
 <div class="slide sw">
   ${slideHeader('A Solução', '07 / 13')}
   <div class="title a">O que vamos<br><span class="acc">entregar</span></div>
   <div class="rule a"></div>
-  <div class="body-text a" style="max-width:none;margin-bottom:${difs.length ? '32px' : '0'};word-break:break-word;overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical">${esc(p.descricaoSolucao || '').replace(/\n/g, '<br>')}</div>
-  ${difs.length ? `<div class="${difs.length >= 3 ? 'g3' : difs.length === 2 ? 'g2' : ''} a">${cards}</div>` : ''}
+  <div class="body-text a" style="max-width:none;margin-bottom:${difs.length ? 'clamp(16px,2.2vh,28px)' : '0'};word-break:break-word;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">${esc(p.descricaoSolucao || '').replace(/\n/g, '<br>')}</div>
+  ${difs.length ? `<div class="a" style="${gridStyle}">${cards}</div>` : ''}
   ${slideFooter(7 / 13)}
 </div>`;
 }

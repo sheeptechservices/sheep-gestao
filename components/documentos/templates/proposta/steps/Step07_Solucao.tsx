@@ -13,7 +13,8 @@ export function Step07_Solucao() {
   const set = (v: Partial<PropostaData>) => s.setActiveData(v as Partial<Record<string, unknown>>)
   const diferenciais: Diferencial[] = d.diferenciais || []
 
-  const addDif = () => set({ diferenciais: [...diferenciais, { id: crypto.randomUUID(), label: '', descricao: '' }] })
+  const MAX = 5
+  const addDif = () => { if (diferenciais.length < MAX) set({ diferenciais: [...diferenciais, { id: crypto.randomUUID(), label: '', descricao: '' }] }) }
   const removeDif = (id: string) => set({ diferenciais: diferenciais.filter(d => d.id !== id) })
   const updateDif = (id: string, field: keyof Diferencial, val: string) =>
     set({ diferenciais: diferenciais.map(d => d.id === id ? { ...d, [field]: val } : d) })
@@ -51,7 +52,14 @@ export function Step07_Solucao() {
             />
           </div>
         ))}
-        <AddButton onClick={addDif}>Adicionar diferencial</AddButton>
+        {diferenciais.length < MAX && (
+          <AddButton onClick={addDif}>Adicionar diferencial</AddButton>
+        )}
+        {diferenciais.length >= MAX && (
+          <div style={{ fontSize: 11, color: 'var(--gray2)', textAlign: 'center', padding: '6px 0' }}>
+            Máximo de {MAX} diferenciais atingido
+          </div>
+        )}
       </FormSection>
     </div>
   )
