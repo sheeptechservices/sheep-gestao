@@ -128,7 +128,7 @@ export function ticker(text: string, dark = false): string {
 }
 
 export function buildGantt(
-  fases: Array<{ nome: string; mes: number; semanas: number }>,
+  fases: Array<{ nome: string; mes: number; semanas: number; subfases?: Array<{ nome: string }> }>,
   dark = false
 ): string {
   if (!fases.length) return '';
@@ -142,6 +142,7 @@ export function buildGantt(
   const textCol = dark ? 'rgba(255,255,255,0.45)' : 'var(--gray2)';
   const tc = dark ? 'rgba(255,255,255,0.7)' : 'var(--gray2)';
   const labelCol = dark ? 'rgba(255,255,255,0.85)' : 'var(--black)';
+  const detailBg = dark ? 'rgba(190,255,1,0.06)' : 'rgba(190,255,1,0.07)';
   const monthBg = (m: number) =>
     m % 2 === 0 ? 'rgba(190,255,1,0.06)' : 'transparent';
 
@@ -169,16 +170,61 @@ export function buildGantt(
   const nameFontSize = 'clamp(8px,0.85vw,12px)';
   const barRadius = 'clamp(4px,0.4vw,6px)';
 
+  let hasAnySubfases = false;
+
   const rows = fases.map((f, i) => {
     const inicio  = toAbsWeek(f);
     const semanas = Math.max(1, f.semanas || 1);
     const delay   = (0.25 + i * 0.09).toFixed(2);
     const tip = `${esc(f.nome)} · ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} · Mês ${f.mes}`;
+    const subs = (f.subfases || []).filter(s => s.nome.trim());
+    const hasSubs = subs.length > 0;
+    if (hasSubs) hasAnySubfases = true;
+
+    // Chevron icon (only for phases with subfases)
+    const chevron = hasSubs
+      ? `<svg id="pc-${i}" width="10" height="14" viewBox="0 0 10 14" fill="none" style="margin-left:auto;flex-shrink:0;transition:transform .28s cubic-bezier(.34,1.56,.64,1);opacity:.75">
+           <path d="M3 4.5L7 7L3 9.5" stroke="rgba(190,255,1,0.95)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>`
+      : '';
+
+    const rowStyle = [
+      `display:grid`,
+      `grid-template-columns:${col}`,
+      `grid-template-rows:${rowH}`,
+      `align-items:center`,
+      `margin-bottom:clamp(4px,0.5vh,7px)`,
+      `position:relative`,
+      `border-radius:clamp(4px,0.4vw,6px)`,
+      `transition:background .22s ease`,
+      hasSubs ? 'cursor:pointer' : '',
+    ].filter(Boolean).join(';');
+
+    const onclickAttr = hasSubs
+      ? `onclick="tP(${i});event.stopPropagation()" `
+      : '';
+
+    // Detail panel (expanded on click)
+    const detailPanel = hasSubs ? `
+    <div id="pd-${i}" data-open="0" style="max-height:0;overflow:hidden;opacity:0;transition:max-height .38s ease,opacity .28s ease;margin-bottom:0">
+      <div style="border-left:3px solid var(--yellow);background:${detailBg};border-radius:0 clamp(6px,0.7vw,10px) clamp(6px,0.7vw,10px) 0;padding:clamp(8px,1vh,14px) clamp(12px,1.4vw,18px);margin-bottom:clamp(4px,0.5vh,7px)">
+        <div style="font-size:clamp(6px,0.6vw,9px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${textCol};margin-bottom:clamp(6px,0.7vh,10px)">${esc(f.nome)} — detalhamento</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:clamp(4px,0.5vh,6px) clamp(10px,1.2vw,16px)">
+          ${subs.map((s, si) => `
+          <div style="display:flex;align-items:center;gap:clamp(6px,0.7vw,9px)">
+            <div style="width:clamp(14px,1.5vw,19px);height:clamp(14px,1.5vw,19px);border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:clamp(6px,0.6vw,8px);font-weight:800;color:#000;flex-shrink:0">${String(si + 1).padStart(2, '0')}</div>
+            <span style="font-size:clamp(8px,0.82vw,12px);font-weight:600;color:${labelCol};line-height:1.4">${esc(s.nome)}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>` : '';
+
     return `
-    <div class="gantt-row" data-tip="${tip}" style="display:grid;grid-template-columns:${col};grid-template-rows:${rowH};align-items:center;margin-bottom:clamp(4px,0.5vh,7px);position:relative">
+    <div id="pr-${i}" class="gantt-row" data-tip="${tip}" ${onclickAttr}style="${rowStyle}">
       <div style="grid-row:1;grid-column:1;font-size:${nameFontSize};font-weight:700;color:${labelCol};padding-right:10px;display:flex;align-items:center;gap:clamp(5px,0.6vw,8px);overflow:hidden">
         <div style="width:${badgeSize};height:${badgeSize};min-width:${badgeSize};border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:${badgeFontSize};font-weight:800;color:#000;flex-shrink:0">${String(i + 1).padStart(2, '0')}</div>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.nome)}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(f.nome)}</span>
+        ${chevron}
       </div>
       ${bgCells}
       <div style="grid-row:1;grid-column:${inicio + 1}/span ${semanas};position:relative;display:flex;align-items:center;z-index:2">
@@ -188,10 +234,31 @@ export function buildGantt(
           onmouseleave="this.style.filter='';this.style.transform=''"
         >${semanas >= 2 ? `<span style="font-size:clamp(7px,0.65vw,9px);font-weight:800;color:rgba(0,0,0,0.5);white-space:nowrap">${semanas}sem</span>` : ''}</div>
       </div>
-    </div>`;
+    </div>
+    ${detailPanel}`;
   }).join('');
 
   const totalLine = `DURAÇÃO TOTAL: ${maxWeek} SEMANAS · ${numMonths} MESES`;
+
+  // Toggle script — injected once, guarded against re-definition
+  const tpScript = hasAnySubfases ? `
+<script>if(!window.tP){window.tP=function(idx){
+  document.querySelectorAll('[id^="pd-"]').forEach(function(el){
+    var k=parseInt(el.id.slice(3),10);
+    var isSelf=k===idx;
+    var wasOpen=el.dataset.open==='1';
+    var open=isSelf&&!wasOpen;
+    el.dataset.open=open?'1':'0';
+    el.style.maxHeight=open?el.scrollHeight+'px':'0';
+    el.style.opacity=open?'1':'0';
+    el.style.marginBottom=open?'6px':'0';
+    var r=document.getElementById('pr-'+k);
+    var c=document.getElementById('pc-'+k);
+    if(r)r.style.background=open?'rgba(190,255,1,0.06)':'';
+    if(c)c.style.transform=open?'rotate(90deg)':'';
+  });
+};}
+<\/script>` : '';
 
   return `
   <div id="gtip" class="gtip"></div>
@@ -200,5 +267,6 @@ export function buildGantt(
   </div>
   ${showWeeks ? `<div style="display:grid;grid-template-columns:${col};border-bottom:2px solid ${bc};margin-bottom:clamp(4px,0.5vh,7px)"><div></div>${weekCells}</div>` : ''}
   ${rows}
-  <div style="margin-top:clamp(6px,0.8vh,10px);font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${tc}">${totalLine}</div>`;
+  <div style="margin-top:clamp(6px,0.8vh,10px);font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${tc}">${totalLine}</div>
+  ${tpScript}`;
 }

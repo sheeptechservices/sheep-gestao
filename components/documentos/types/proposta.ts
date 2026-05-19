@@ -14,11 +14,17 @@ export interface Entrega {
   descricao: string
 }
 
+export interface SubFase {
+  id: string
+  nome: string
+}
+
 export interface Fase {
   id: string
   nome: string
   mes: number
   semanas: number
+  subfases?: SubFase[]
 }
 
 export interface ItemInvestimento {
