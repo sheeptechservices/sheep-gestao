@@ -17,12 +17,6 @@ export function Step01_Dados() {
         onChange={e => set({ nomeCliente: e.target.value })}
         placeholder="Ex: Acme Corp"
       />
-      <Input
-        label="Título da proposta"
-        value={d.tituloproposta || ''}
-        onChange={e => set({ tituloproposta: e.target.value })}
-        placeholder="Ex: Plataforma Digital B2B"
-      />
       <DatePicker
         label="Data da proposta"
         value={d.dataProposta || ''}

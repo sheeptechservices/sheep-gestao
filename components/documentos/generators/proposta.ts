@@ -132,7 +132,7 @@ function ticker(text: string, dark = false): string {
 }
 
 function slide01(p: PropostaData): string {
-  const tickerText = `${esc(p.nomeCliente || 'Cliente')} · ${esc(p.tituloproposta || 'Proposta')} · ${esc(p.nomeEmpresa || 'Empresa')}`.toUpperCase();
+  const tickerText = `${esc(p.nomeCliente || 'Cliente')} · ${esc('Proposta')} · ${esc(p.nomeEmpresa || 'Empresa')}`.toUpperCase();
   return `
 <!-- 01 CAPA -->
 <div class="slide active" style="background:var(--black2)">
@@ -228,7 +228,7 @@ function slide01(p: PropostaData): string {
   ${slideHeader('', '01 / 13', true)}
   ${p.website ? `<a href="https://${esc(p.website)}" target="_blank" rel="noopener noreferrer" style="position:absolute;top:clamp(28px,3.3vh,36px);left:clamp(48px,6.7vw,96px);color:var(--yellow);font-size:11px;font-weight:700;text-decoration:none;letter-spacing:.08em;opacity:.7">${esc(p.website)}</a>` : ''}
   <div class="a" style="font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:28px">Proposta Comercial</div>
-  <div class="display a" style="color:#fff"><span class="acc">${esc(p.tituloproposta || 'Proposta')}</span><br>${esc(p.nomeCliente || 'Cliente')}</div>
+  <div class="display a" style="color:#fff"><span class="acc">${esc('Proposta')}</span><br>${esc(p.nomeCliente || 'Cliente')}</div>
   <div class="a" style="display:flex;align-items:center;gap:16px;margin:24px 0 40px">
     <div style="width:60px;height:1px;background:var(--yb)"></div>
     <div style="font-size:16px;color:rgba(255,255,255,0.45);font-weight:500">${formatDate(p.dataProposta)}${p.nomeVendedor ? ` · ${esc(p.nomeVendedor)}` : ''}</div>
@@ -588,7 +588,7 @@ export function generatePropostaHtml(p: PropostaData, hiddenSlides: number[] = [
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${esc(p.tituloproposta || 'Proposta Comercial')} — ${esc(p.nomeCliente || '')}</title>
+<title>Proposta — ${esc(p.nomeCliente || '')}</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>${CSS}</style>
 </head>
