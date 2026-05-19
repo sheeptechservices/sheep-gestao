@@ -69,10 +69,13 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
   const [dragOver, setDragOver]       = useState(false)
   const [hovZone, setHovZone]         = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [dlOpenId, setDlOpenId]       = useState<string | null>(null)
-  const [loadingDocxId, setLoadingDocxId] = useState<string | null>(null)
-  const dlRef                         = useRef<HTMLDivElement>(null)
-  const fileRef                       = useRef<HTMLInputElement>(null)
+  const [dlOpenId, setDlOpenId]             = useState<string | null>(null)
+  const [loadingDocxId, setLoadingDocxId]   = useState<string | null>(null)
+  const [renamingId, setRenamingId]         = useState<string | null>(null)
+  const [renameValue, setRenameValue]       = useState('')
+  const dlRef                               = useRef<HTMLDivElement>(null)
+  const renameInputRef                      = useRef<HTMLInputElement>(null)
+  const fileRef                             = useRef<HTMLInputElement>(null)
 
   // Close download dropdown on outside click
   useEffect(() => {
@@ -213,6 +216,26 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
     win.document.close()
   }, [baseName])
 
+  const handleRenameStart = useCallback((file: ProjectFile) => {
+    setRenamingId(file.id)
+    setRenameValue(file.filename)
+    setTimeout(() => { renameInputRef.current?.select() }, 30)
+  }, [])
+
+  const handleRenameCommit = useCallback(async (id: string) => {
+    const trimmed = renameValue.trim()
+    if (!trimmed) { setRenamingId(null); return }
+    const original = files.find(f => f.id === id)?.filename
+    if (trimmed === original) { setRenamingId(null); return }
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, filename: trimmed } : f))
+    setRenamingId(null)
+    await fetch(`/api/projects/${projectId}/files/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: trimmed }),
+    })
+  }, [renameValue, files, projectId])
+
   const confirmFile = confirmDeleteId ? files.find(f => f.id === confirmDeleteId) : null
 
   return (
@@ -319,10 +342,35 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
             }}>
               <span style={{ fontSize: 15, flexShrink: 0 }}>{fileIcon(f.mime_type, f.filename)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {f.filename}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--gray2)' }}>{fmtSize(f.size)}</div>
+                {renamingId === f.id ? (
+                  <input
+                    ref={renameInputRef}
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onBlur={() => handleRenameCommit(f.id)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter')  { e.preventDefault(); handleRenameCommit(f.id) }
+                      if (e.key === 'Escape') { e.preventDefault(); setRenamingId(null) }
+                    }}
+                    style={{
+                      width: '100%', fontSize: 12, fontWeight: 600, color: 'var(--black)',
+                      border: `1px solid ${color}60`, borderRadius: 5, padding: '2px 6px',
+                      background: 'var(--white)', outline: 'none', fontFamily: 'inherit',
+                      boxShadow: `0 0 0 3px ${color}15`,
+                    }}
+                  />
+                ) : (
+                  <div
+                    onClick={() => handleRenameStart(f)}
+                    title="Clique para renomear"
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text', borderRadius: 4, padding: '2px 4px', margin: '0 -4px', transition: 'background 0.12s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = color + '10')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {f.filename}
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>{fmtSize(f.size)}</div>
               </div>
               {/* Download dropdown */}
               <div ref={dlOpenId === f.id ? dlRef : undefined} style={{ position: 'relative', flexShrink: 0 }}>
