@@ -42,29 +42,30 @@ function Sep() {
 function cmd(command: string, value?: string) {
   document.execCommand(command, false, value ?? undefined)
 }
-
 function isActive(tag: string) {
   try { return document.queryCommandState(tag) } catch { return false }
 }
-
 function blockTag() {
   try { return (document.queryCommandValue('formatBlock') as string).toLowerCase() } catch { return '' }
 }
-
 function getClosestLi(node: Node | null): HTMLElement | null {
   if (!node) return null
   const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element
   return el?.closest('li') as HTMLElement | null
 }
+function closestEl(node: Node | null): Element | null {
+  if (!node) return null
+  return node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element
+}
 
-/** Scan text nodes inside container and wrap URLs with <a> tags. */
+/** Scan text nodes and wrap bare URLs with <a> tags. */
 function linkifyNode(container: HTMLElement) {
   const URL_RE = /https?:\/\/[^\s<>"')\]]+/g
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
   const targets: Text[] = []
   let n: Text | null
   while ((n = walker.nextNode() as Text | null)) {
-    if ((n.parentElement as Element)?.closest('a')) continue   // already a link
+    if ((n.parentElement as Element)?.closest('a')) continue
     if (URL_RE.test(n.textContent ?? '')) targets.push(n)
     URL_RE.lastIndex = 0
   }
@@ -76,12 +77,11 @@ function linkifyNode(container: HTMLElement) {
     while ((m = URL_RE.exec(text)) !== null) {
       if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)))
       const a = document.createElement('a')
-      a.href = m[0]; a.textContent = m[0]
-      a.target = '_blank'; a.rel = 'noopener noreferrer'
+      a.href = m[0]; a.textContent = m[0]; a.target = '_blank'; a.rel = 'noopener noreferrer'
       frag.appendChild(a)
       last = URL_RE.lastIndex
     }
-    if (last === 0) continue   // no URL found — skip
+    if (last === 0) continue
     if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)))
     textNode.parentNode?.replaceChild(frag, textNode)
   }
@@ -91,35 +91,19 @@ function linkifyNode(container: HTMLElement) {
 function extractLines(fragment: DocumentFragment): string[] {
   const lines: string[] = []
   let current = ''
-
   const BLOCK_TAGS = new Set(['p','li','h1','h2','h3','h4','div','blockquote','br','tr'])
-
-  function flush() {
-    const t = current.trim()
-    if (t) lines.push(t)
-    current = ''
-  }
-
+  function flush() { const t = current.trim(); if (t) lines.push(t); current = '' }
   function walk(n: Node) {
-    if (n.nodeType === Node.TEXT_NODE) {
-      current += n.textContent ?? ''
-      return
-    }
+    if (n.nodeType === Node.TEXT_NODE) { current += n.textContent ?? ''; return }
     if (n.nodeType !== Node.ELEMENT_NODE) return
     const tag = (n as Element).tagName.toLowerCase()
     if (BLOCK_TAGS.has(tag)) flush()
     for (const child of Array.from(n.childNodes)) walk(child)
     if (BLOCK_TAGS.has(tag)) flush()
   }
-
   for (const child of Array.from(fragment.childNodes)) walk(child)
   flush()
-
-  // Fallback: plain text with no block elements
-  if (lines.length === 0) {
-    return (fragment.textContent ?? '').split(/\n/).map(l => l.trim()).filter(Boolean)
-  }
-
+  if (lines.length === 0) return (fragment.textContent ?? '').split(/\n/).map(l => l.trim()).filter(Boolean)
   return lines
 }
 
@@ -137,8 +121,8 @@ export function RichTextEditor({
   placeholder = 'Detalhes adicionais...',
   minHeight = 120,
 }: RichTextEditorProps) {
-  const editorRef   = useRef<HTMLDivElement>(null)
-  const internalRef = useRef(false)
+  const editorRef    = useRef<HTMLDivElement>(null)
+  const internalRef  = useRef(false)
   const [, rerender] = useState(0)
 
   useEffect(() => {
@@ -154,7 +138,7 @@ export function RichTextEditor({
     rerender(n => n + 1)
   }
 
-  // ── Build checklist <ul> from an array of text lines ────────────────────────
+  // ── Checklist helpers ────────────────────────────────────────────────────────
   const buildChecklistUl = (lines: string[]): HTMLUListElement => {
     const ul = document.createElement('ul')
     ul.className = 'rte-checklist'
@@ -162,26 +146,17 @@ export function RichTextEditor({
       const li = document.createElement('li')
       li.setAttribute('data-checked', 'false')
       const chk = document.createElement('span')
-      chk.className = 'rte-chk'
-      chk.contentEditable = 'false'
-      li.appendChild(chk)
-      li.appendChild(document.createTextNode(line))
+      chk.className = 'rte-chk'; chk.contentEditable = 'false'
+      li.appendChild(chk); li.appendChild(document.createTextNode(line))
       ul.appendChild(li)
     })
     return ul
   }
 
-  // ── Insert / convert to checklist ──────────────────────────────────────────
   const insertChecklist = () => {
-    const el = editorRef.current
-    if (!el) return
-    el.focus()
-
-    const sel = window.getSelection()
-    if (!sel || sel.rangeCount === 0) return
+    const el = editorRef.current; if (!el) return; el.focus()
+    const sel = window.getSelection(); if (!sel || sel.rangeCount === 0) return
     const range = sel.getRangeAt(0)
-
-    // ── Toggle OFF: cursor inside existing checklist (no selection) ──────────
     if (range.collapsed) {
       const li = getClosestLi(range.startContainer)
       if (li?.closest('ul.rte-checklist')) {
@@ -189,216 +164,232 @@ export function RichTextEditor({
         ul.classList.remove('rte-checklist')
         ul.querySelectorAll('.rte-chk').forEach(s => s.remove())
         ul.querySelectorAll('li[data-checked]').forEach(l => l.removeAttribute('data-checked'))
-        rerender(n => n + 1)
-        setTimeout(handleInput, 0)
-        return
+        rerender(n => n + 1); setTimeout(handleInput, 0); return
       }
-
-      // ── Insert single empty checklist item ───────────────────────────────
-      const ul = buildChecklistUl([''])
-      range.insertNode(ul)
-      // Place cursor inside the li (after chk span)
+      const ul = buildChecklistUl(['']); range.insertNode(ul)
       const newLi = ul.firstElementChild!
       const textNode = Array.from(newLi.childNodes).find(n => n.nodeType === Node.TEXT_NODE) ?? newLi
-      const r = document.createRange()
-      r.setStart(textNode, 0)
-      r.collapse(true)
-      sel.removeAllRanges()
-      sel.addRange(r)
-      rerender(n => n + 1)
-      setTimeout(handleInput, 0)
-      return
+      const r = document.createRange(); r.setStart(textNode, 0); r.collapse(true)
+      sel.removeAllRanges(); sel.addRange(r)
+      rerender(n => n + 1); setTimeout(handleInput, 0); return
     }
-
-    // ── Convert selection → checklist ────────────────────────────────────────
     const fragment = range.cloneContents()
     const lines = extractLines(fragment)
-
-    if (lines.length === 0) {
-      rerender(n => n + 1)
-      return
-    }
-
+    if (lines.length === 0) { rerender(n => n + 1); return }
     range.deleteContents()
-
-    const ul = buildChecklistUl(lines)
-    range.insertNode(ul)
-
-    // Place cursor after the inserted checklist
-    const after = document.createRange()
-    after.setStartAfter(ul)
-    after.collapse(true)
-    sel.removeAllRanges()
-    sel.addRange(after)
-
-    rerender(n => n + 1)
-    setTimeout(handleInput, 0)
+    const ul = buildChecklistUl(lines); range.insertNode(ul)
+    const after = document.createRange(); after.setStartAfter(ul); after.collapse(true)
+    sel.removeAllRanges(); sel.addRange(after)
+    rerender(n => n + 1); setTimeout(handleInput, 0)
   }
 
-  // ── Blur: linkify the entire editor ────────────────────────────────────────
+  // ── Toggle helpers ───────────────────────────────────────────────────────────
+  const insertToggle = () => {
+    const el = editorRef.current; if (!el) return; el.focus()
+    const sel = window.getSelection(); if (!sel || sel.rangeCount === 0) return
+    const range = sel.getRangeAt(0)
+
+    const toggle = document.createElement('div')
+    toggle.className = 'rte-toggle'; toggle.setAttribute('data-open', 'true')
+
+    const titleDiv = document.createElement('div')
+    titleDiv.className = 'rte-toggle-title'
+
+    const btn = document.createElement('span')
+    btn.className = 'rte-toggle-btn'; btn.contentEditable = 'false'
+    btn.innerHTML = `<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z"/></svg>`
+
+    const titleText = document.createTextNode('​')
+    titleDiv.appendChild(btn); titleDiv.appendChild(titleText)
+
+    const body = document.createElement('div')
+    body.className = 'rte-toggle-body'
+    const p = document.createElement('p'); p.innerHTML = '<br>'; body.appendChild(p)
+
+    toggle.appendChild(titleDiv); toggle.appendChild(body)
+
+    range.deleteContents(); range.insertNode(toggle)
+
+    // Also insert a paragraph after toggle so cursor can escape
+    const after = document.createElement('p'); after.innerHTML = '<br>'
+    toggle.after(after)
+
+    // Place cursor in toggle title
+    const r = document.createRange(); r.setStart(titleText, 0); r.collapse(true)
+    sel.removeAllRanges(); sel.addRange(r)
+    rerender(n => n + 1); setTimeout(handleInput, 0)
+  }
+
+  // ── Blur: linkify ────────────────────────────────────────────────────────────
   const handleBlur = () => {
-    const el = editorRef.current
-    if (!el) return
-    linkifyNode(el)
-    rerender(n => n + 1)
-    setTimeout(handleInput, 0)
+    const el = editorRef.current; if (!el) return
+    linkifyNode(el); rerender(n => n + 1); setTimeout(handleInput, 0)
   }
 
-  // ── Click: links + checklist ────────────────────────────────────────────────
+  // ── Click handler ────────────────────────────────────────────────────────────
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as Element
 
-    // Open links on click (Ctrl/Cmd not required — it's a content editor)
+    // Open link
     const anchor = target.closest('a') as HTMLAnchorElement | null
-    if (anchor?.href) {
-      e.preventDefault()
-      window.open(anchor.href, '_blank', 'noopener,noreferrer')
-      return
+    if (anchor?.href) { e.preventDefault(); window.open(anchor.href, '_blank', 'noopener,noreferrer'); return }
+
+    // Toggle open/close
+    if (target.closest('.rte-toggle-btn')) {
+      const toggleDiv = target.closest('.rte-toggle')
+      if (toggleDiv) {
+        const isOpen = toggleDiv.getAttribute('data-open') === 'true'
+        toggleDiv.setAttribute('data-open', isOpen ? 'false' : 'true')
+        handleInput()
+      }
+      e.preventDefault(); return
     }
 
-    // Toggle checklist checkbox
+    // Checklist checkbox
     if (target.classList.contains('rte-chk')) {
       const li = target.closest('li')
       if (li) {
-        const checked = li.getAttribute('data-checked') === 'true'
-        li.setAttribute('data-checked', String(!checked))
-        handleInput()
-        e.preventDefault()
+        li.setAttribute('data-checked', li.getAttribute('data-checked') === 'true' ? 'false' : 'true')
+        handleInput(); e.preventDefault()
       }
     }
   }
 
-  // ── Key handler ─────────────────────────────────────────────────────────────
+  // ── Key handler ──────────────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const sel = window.getSelection()
 
-    // ── Tab: indent/outdent ─────────────────────────────────────────────────
+    // Tab: indent/outdent
     if (e.key === 'Tab') {
       e.preventDefault()
       if (isActive('insertUnorderedList') || isActive('insertOrderedList')) {
         cmd(e.shiftKey ? 'outdent' : 'indent')
-      } else {
-        cmd('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;')
-      }
-      rerender(n => n + 1)
-      setTimeout(handleInput, 0)
-      return
+      } else { cmd('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;') }
+      rerender(n => n + 1); setTimeout(handleInput, 0); return
     }
 
-    // ── Enter in checklist ──────────────────────────────────────────────────
     if (e.key === 'Enter' && sel && sel.rangeCount > 0) {
-      const li = getClosestLi(sel.getRangeAt(0).startContainer)
+      const startNode = sel.getRangeAt(0).startContainer
+      const el = closestEl(startNode)
+
+      // Enter in toggle TITLE → go to body
+      if (el?.closest('.rte-toggle-title')) {
+        e.preventDefault()
+        const toggleDiv = el.closest('.rte-toggle')!
+        toggleDiv.setAttribute('data-open', 'true')
+        let body = toggleDiv.querySelector('.rte-toggle-body') as HTMLElement
+        if (!body) { body = document.createElement('div'); body.className = 'rte-toggle-body'; toggleDiv.appendChild(body) }
+        let first = body.firstElementChild as HTMLElement
+        if (!first) { first = document.createElement('p'); first.innerHTML = '<br>'; body.appendChild(first) }
+        const r = document.createRange(); r.setStart(first, 0); r.collapse(true)
+        sel.removeAllRanges(); sel.addRange(r)
+        rerender(n => n + 1); setTimeout(handleInput, 0); return
+      }
+
+      // Enter on empty line in toggle BODY → exit toggle
+      const toggleBody = el?.closest('.rte-toggle-body')
+      if (toggleBody) {
+        const block = el?.closest('p, div:not(.rte-toggle-body):not(.rte-toggle)') as HTMLElement | null
+        const isEmpty = block && (block.textContent ?? '').trim() === '' && block.innerHTML === '<br>'
+        if (isEmpty) {
+          e.preventDefault()
+          const toggleDiv = toggleBody.closest('.rte-toggle')!
+          block.remove()
+          const p = document.createElement('p'); p.innerHTML = '<br>'
+          toggleDiv.after(p)
+          const r = document.createRange(); r.setStart(p, 0); r.collapse(true)
+          sel.removeAllRanges(); sel.addRange(r)
+          rerender(n => n + 1); setTimeout(handleInput, 0); return
+        }
+      }
+
+      // Enter in checklist item
+      const li = getClosestLi(startNode)
       if (li?.closest('ul.rte-checklist')) {
         const textContent = (li.textContent ?? '').replace(/​/g, '').trim()
-
         if (!textContent) {
-          // Empty item → exit checklist
           e.preventDefault()
-          const ul = li.closest('ul')!
-          li.remove()
-          const p = document.createElement('p')
-          p.innerHTML = '<br>'
-          if (ul.children.length === 0) ul.replaceWith(p)
-          else ul.after(p)
-          const r = document.createRange()
-          r.setStart(p, 0)
-          r.collapse(true)
-          sel.removeAllRanges()
-          sel.addRange(r)
-          rerender(n => n + 1)
-          setTimeout(handleInput, 0)
-          return
+          const ul = li.closest('ul')!; li.remove()
+          const p = document.createElement('p'); p.innerHTML = '<br>'
+          if (ul.children.length === 0) ul.replaceWith(p); else ul.after(p)
+          const r = document.createRange(); r.setStart(p, 0); r.collapse(true)
+          sel.removeAllRanges(); sel.addRange(r)
+          rerender(n => n + 1); setTimeout(handleInput, 0); return
         }
-
-        // Non-empty → let browser create new <li>, then inject rte-chk span
         setTimeout(() => {
-          const sel2 = window.getSelection()
-          if (!sel2 || sel2.rangeCount === 0) return
+          const sel2 = window.getSelection(); if (!sel2 || sel2.rangeCount === 0) return
           const newLi = getClosestLi(sel2.getRangeAt(0).startContainer)
           if (newLi && newLi.closest('ul.rte-checklist') && !newLi.querySelector('.rte-chk')) {
-            const chk = document.createElement('span')
-            chk.className = 'rte-chk'
-            chk.contentEditable = 'false'
-            newLi.setAttribute('data-checked', 'false')
-            newLi.prepend(chk)
+            const chk = document.createElement('span'); chk.className = 'rte-chk'; chk.contentEditable = 'false'
+            newLi.setAttribute('data-checked', 'false'); newLi.prepend(chk)
           }
-          rerender(n => n + 1)
-          setTimeout(handleInput, 0)
+          rerender(n => n + 1); setTimeout(handleInput, 0)
         }, 0)
         return
       }
     }
 
-    // ── Inline triggers ─────────────────────────────────────────────────────
+    // Inline triggers
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0)
       if (range.collapsed) {
         const node = range.startContainer
         const textBefore = node.nodeType === Node.TEXT_NODE
-          ? (node.textContent ?? '').slice(0, range.startOffset)
-          : ''
+          ? (node.textContent ?? '').slice(0, range.startOffset) : ''
+
+        const deletePrefix = (len: number) => {
+          const del = range.cloneRange(); del.setStart(node, range.startOffset - len); del.deleteContents()
+        }
 
         // "- " → bullet list
         if (e.key === ' ' && textBefore === '-') {
-          e.preventDefault()
-          const del = range.cloneRange()
-          del.setStart(node, range.startOffset - 1)
-          del.deleteContents()
-          cmd('insertUnorderedList')
-          rerender(n => n + 1)
-          setTimeout(handleInput, 0)
-          return
+          e.preventDefault(); deletePrefix(1); cmd('insertUnorderedList')
+          rerender(n => n + 1); setTimeout(handleInput, 0); return
         }
 
-        // Linkify after space or Enter (do it after browser processes the key)
+        // "> " → toggle
+        if (e.key === ' ' && textBefore === '>') {
+          e.preventDefault(); deletePrefix(1); insertToggle(); return
+        }
+
+        // "[]" → checklist
+        if (e.key === ']' && textBefore === '[') {
+          e.preventDefault(); deletePrefix(1); insertChecklist(); return
+        }
+
+        // Linkify after space/enter
         if (e.key === ' ' || e.key === 'Enter') {
           setTimeout(() => {
             const el = editorRef.current
             if (el) { linkifyNode(el); rerender(n => n + 1); setTimeout(handleInput, 0) }
           }, 0)
         }
-
-        // "[]" → checklist  (type [ then ])
-        if (e.key === ']' && textBefore === '[') {
-          e.preventDefault()
-          const del = range.cloneRange()
-          del.setStart(node, range.startOffset - 1)
-          del.deleteContents()
-          insertChecklist()
-          return
-        }
       }
     }
   }
 
   const exec = (command: string, value?: string) => {
-    editorRef.current?.focus()
-    cmd(command, value)
-    rerender(n => n + 1)
-    setTimeout(handleInput, 0)
+    editorRef.current?.focus(); cmd(command, value); rerender(n => n + 1); setTimeout(handleInput, 0)
   }
-
   const toggleBlock = (tag: string) => {
     editorRef.current?.focus()
-    const current = blockTag()
-    cmd('formatBlock', current === tag ? 'p' : tag)
-    rerender(n => n + 1)
-    setTimeout(handleInput, 0)
+    const current = blockTag(); cmd('formatBlock', current === tag ? 'p' : tag)
+    rerender(n => n + 1); setTimeout(handleInput, 0)
   }
 
-  const bold    = isActive('bold')
-  const italic  = isActive('italic')
-  const strike  = isActive('strikeThrough')
-  const ul      = isActive('insertUnorderedList')
-  const ol      = isActive('insertOrderedList')
-  const quote   = blockTag() === 'blockquote'
-  const h1      = blockTag() === 'h1'
-  const h2      = blockTag() === 'h2'
+  const bold      = isActive('bold')
+  const italic    = isActive('italic')
+  const strike    = isActive('strikeThrough')
+  const ul        = isActive('insertUnorderedList')
+  const ol        = isActive('insertOrderedList')
+  const quote     = blockTag() === 'blockquote'
+  const h1        = blockTag() === 'h1'
+  const h2        = blockTag() === 'h2'
 
-  const selNode = (() => {
-    try { return window.getSelection()?.getRangeAt(0).startContainer ?? null } catch { return null }
-  })()
-  const checklist = !!(selNode && getClosestLi(selNode)?.closest('ul.rte-checklist'))
+  const selNode = (() => { try { return window.getSelection()?.getRangeAt(0).startContainer ?? null } catch { return null } })()
+  const selEl   = selNode ? closestEl(selNode) : null
+  const checklist = !!(selEl?.closest('ul.rte-checklist'))
+  const inToggle  = !!(selEl?.closest('.rte-toggle'))
 
   return (
     <div style={{ border: '1.5px solid var(--gray3)', borderRadius: 10, background: 'var(--white)', overflow: 'hidden' }}>
@@ -449,6 +440,13 @@ export function RichTextEditor({
             <path d="M7 4h5M7 9h5" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
           </svg>
         </ToolBtn>
+        <ToolBtn title="Toggle (recolhível) — ou digite '> '" active={inToggle} onCmd={insertToggle}>
+          <svg width={13} height={12} viewBox="0 0 13 12" fill="none">
+            <path d="M2 3l3 3-3 3" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7 6h5" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+            <path d="M7 9h5" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+          </svg>
+        </ToolBtn>
         <ToolBtn title="Citação" active={quote} onCmd={() => toggleBlock('blockquote')}>
           <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
             <path d="M1 4c0-1 .7-1.5 1.5-1.5S4 3 4 4s-.7 1.5-1.5 1.5L2 6.5V8M7 4c0-1 .7-1.5 1.5-1.5S10 3 10 4s-.7 1.5-1.5 1.5L8 6.5V8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
@@ -489,25 +487,11 @@ export function RichTextEditor({
         onBlur={handleBlur}
         onClick={handleClick}
         data-placeholder={placeholder}
-        style={{
-          minHeight,
-          outline: 'none',
-          padding: '10px 12px',
-          fontSize: 13,
-          lineHeight: 1.65,
-          color: 'var(--black)',
-          fontFamily: 'inherit',
-          cursor: 'text',
-        }}
+        style={{ minHeight, outline: 'none', padding: '10px 12px', fontSize: 13, lineHeight: 1.65, color: 'var(--black)', fontFamily: 'inherit', cursor: 'text' }}
       />
 
       <style>{`
-        [contenteditable]:empty:before {
-          content: attr(data-placeholder);
-          color: var(--gray2);
-          opacity: 0.6;
-          pointer-events: none;
-        }
+        [contenteditable]:empty:before { content: attr(data-placeholder); color: var(--gray2); opacity: 0.6; pointer-events: none; }
         [contenteditable] h1 { font-size: 16px; font-weight: 800; margin: 6px 0 3px; }
         [contenteditable] h2 { font-size: 14px; font-weight: 700; margin: 5px 0 3px; }
         [contenteditable] p  { margin: 0 0 4px; }
@@ -518,72 +502,49 @@ export function RichTextEditor({
         [contenteditable] ul ul ul { list-style-type: square; }
         [contenteditable] ol ol { list-style-type: lower-alpha; }
         [contenteditable] ol ol ol { list-style-type: lower-roman; }
-        [contenteditable] blockquote {
-          border-left: 3px solid var(--primary);
-          padding-left: 10px; margin: 6px 0;
-          color: var(--gray); font-style: italic;
-        }
-        [contenteditable] hr {
-          border: none; border-top: 1.5px dashed var(--gray3); margin: 10px 0;
-        }
+        [contenteditable] blockquote { border-left: 3px solid var(--primary); padding-left: 10px; margin: 6px 0; color: var(--gray); font-style: italic; }
+        [contenteditable] hr { border: none; border-top: 1.5px dashed var(--gray3); margin: 10px 0; }
         [contenteditable] strong, [contenteditable] b { font-weight: 700; }
         [contenteditable] em, [contenteditable] i { font-style: italic; }
         [contenteditable] s, [contenteditable] strike { text-decoration: line-through; color: var(--gray2); }
         [contenteditable] a { color: #2563EB; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; word-break: break-all; }
         [contenteditable] a:hover { color: #1D4ED8; }
 
-        /* ── Checklist ── */
-        [contenteditable] ul.rte-checklist {
-          list-style: none;
-          padding-left: 2px;
-          margin: 4px 0;
+        /* ── Toggle ── */
+        .rte-toggle { margin: 4px 0; }
+        .rte-toggle-title {
+          display: flex; align-items: flex-start; gap: 3px;
+          border-radius: 5px; padding: 2px 3px 2px 0;
+          min-height: 22px; transition: background 0.1s;
         }
-        [contenteditable] ul.rte-checklist > li {
-          position: relative;
-          padding-left: 22px;
-          margin: 4px 0;
-          min-height: 18px;
-          display: block;
-        }
-        .rte-chk {
-          position: absolute;
-          left: 0;
-          top: 3px;
-          width: 14px;
-          height: 14px;
-          border: 1.5px solid var(--gray2);
-          border-radius: 3px;
-          background: var(--bg);
-          cursor: pointer;
-          display: inline-block;
-          flex-shrink: 0;
-          transition: background 0.15s, border-color 0.15s;
+        .rte-toggle-title:hover { background: var(--bg); }
+        .rte-toggle-btn {
+          flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px;
+          display: inline-flex; align-items: center; justify-content: center;
+          cursor: pointer; color: var(--gray2); border-radius: 4px;
+          transition: color 0.12s, background 0.12s, transform 0.18s ease;
           user-select: none;
         }
-        .rte-chk:hover {
-          border-color: var(--primary);
-          background: var(--primary-dim);
+        .rte-toggle-btn:hover { color: var(--black); background: var(--gray3); }
+        .rte-toggle[data-open="true"] > .rte-toggle-title > .rte-toggle-btn {
+          transform: rotate(90deg);
         }
-        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk {
-          background: var(--primary);
-          border-color: var(--primary);
+        .rte-toggle-body {
+          padding-left: 22px;
+          border-left: 2px solid var(--gray3);
+          margin-left: 8px;
+          margin-top: 2px;
         }
-        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk::after {
-          content: '';
-          position: absolute;
-          left: 2px;
-          top: 1px;
-          width: 7px;
-          height: 4px;
-          border-left: 1.5px solid #fff;
-          border-bottom: 1.5px solid #fff;
-          transform: rotate(-45deg);
-          display: block;
-        }
-        [contenteditable] ul.rte-checklist > li[data-checked="true"] {
-          color: var(--gray2);
-          text-decoration: line-through;
-        }
+        .rte-toggle[data-open="false"] > .rte-toggle-body { display: none; }
+
+        /* ── Checklist ── */
+        [contenteditable] ul.rte-checklist { list-style: none; padding-left: 2px; margin: 4px 0; }
+        [contenteditable] ul.rte-checklist > li { position: relative; padding-left: 22px; margin: 4px 0; min-height: 18px; display: block; }
+        .rte-chk { position: absolute; left: 0; top: 3px; width: 14px; height: 14px; border: 1.5px solid var(--gray2); border-radius: 3px; background: var(--bg); cursor: pointer; display: inline-block; flex-shrink: 0; transition: background 0.15s, border-color 0.15s; user-select: none; }
+        .rte-chk:hover { border-color: var(--primary); background: var(--primary-dim); }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk { background: var(--primary); border-color: var(--primary); }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] > .rte-chk::after { content: ''; position: absolute; left: 2px; top: 1px; width: 7px; height: 4px; border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff; transform: rotate(-45deg); display: block; }
+        [contenteditable] ul.rte-checklist > li[data-checked="true"] { color: var(--gray2); text-decoration: line-through; }
       `}</style>
     </div>
   )
