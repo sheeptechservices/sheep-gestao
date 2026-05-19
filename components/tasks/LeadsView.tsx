@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type LeadStage = 'contato' | 'qualificacao' | 'proposta' | 'negociacao' | 'contrato' | 'ganho' | 'perdido'
+type LeadStage = 'contato_inicial' | 'apresentacao_proposta' | 'negociacao' | 'assinatura_contrato' | 'venda_realizada' | 'perdido'
 
 interface Lead {
   id: string
@@ -21,31 +21,30 @@ interface Lead {
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 const MOCK_LEADS: Lead[] = [
-  { id: '1',  company: 'NovaPay Fintech',      contact: 'Renata Souza',    segment: 'Fintech',    value: 18000,  source: 'Indicação', tags: ['IA', 'SaaS'],    stage: 'contato',      createdAt: '2026-05-14', note: 'Interesse em automação de atendimento ao cliente via IA.' },
-  { id: '2',  company: 'Grupo Alvorada',        contact: 'Felipe Tavares',  segment: 'Varejo',     value: null,   source: 'Outbound',  tags: ['BI'],            stage: 'contato',      createdAt: '2026-05-16' },
-  { id: '3',  company: 'MedCare Saúde',         contact: 'Dra. Carla Lima', segment: 'Saúde',      value: 32000,  source: 'LinkedIn',  tags: ['IA', 'TaaS'],    stage: 'contato',      createdAt: '2026-05-18', note: 'Quer triagem automatizada de pacientes.' },
-  { id: '4',  company: 'LogiTrans Brasil',       contact: 'Marco Henrique',  segment: 'Logística',  value: 24000,  source: 'Evento',    tags: ['SaaS'],          stage: 'qualificacao', createdAt: '2026-05-08', note: 'Reunião de discovery agendada para quinta.' },
-  { id: '5',  company: 'EduFlex',               contact: 'Patrícia Nunes',  segment: 'Edtech',     value: 12000,  source: 'Indicação', tags: ['IA'],            stage: 'qualificacao', createdAt: '2026-05-10' },
-  { id: '6',  company: 'IndusTech S.A.',         contact: 'Ricardo Campos',  segment: 'Indústria',  value: 58000,  source: 'Inbound',   tags: ['BI', 'TaaS'],    stage: 'proposta',     createdAt: '2026-04-28', note: 'Proposta enviada em 12/05. Aguardando retorno do jurídico.' },
-  { id: '7',  company: 'Supermercados Boa',      contact: 'Cleusa Ramos',    segment: 'Varejo',     value: 21000,  source: 'Indicação', tags: ['BI'],            stage: 'proposta',     createdAt: '2026-04-30' },
-  { id: '8',  company: 'StartupHub',             contact: 'André Leal',      segment: 'Tech',       value: 42000,  source: 'Inbound',   tags: ['IA', 'SaaS'],    stage: 'negociacao',   createdAt: '2026-04-15', note: 'Ajuste no escopo — cliente quer incluir app mobile.' },
-  { id: '9',  company: 'Banco Meridian',         contact: 'Tatiana Borges',  segment: 'Financeiro', value: 120000, source: 'Evento',    tags: ['IA', 'TaaS'],    stage: 'negociacao',   createdAt: '2026-04-10', note: 'Revisão de cláusula de SLA pendente.' },
-  { id: '10', company: 'AgroSmart',              contact: 'Bruno Carvalho',  segment: 'Agro',       value: 36000,  source: 'Indicação', tags: ['SaaS'],          stage: 'contrato',     createdAt: '2026-03-20', note: 'Contrato enviado. Aguardando assinatura digital.' },
-  { id: '11', company: 'Clínica Vita',           contact: 'Dr. Paulo Melo',  segment: 'Saúde',      value: 28000,  source: 'LinkedIn',  tags: ['IA'],            stage: 'ganho',        createdAt: '2026-03-05' },
-  { id: '12', company: 'RetailMax',              contact: 'Simone Ferreira', segment: 'Varejo',     value: 45000,  source: 'Evento',    tags: ['BI', 'SaaS'],    stage: 'ganho',        createdAt: '2026-02-18' },
-  { id: '13', company: 'OldTech Ltda',           contact: 'Jorge Mendes',    segment: 'Indústria',  value: 15000,  source: 'Outbound',  tags: ['BI'],            stage: 'perdido',      createdAt: '2026-03-01', note: 'Optou por solução interna.' },
+  { id: '1',  company: 'NovaPay Fintech',    contact: 'Renata Souza',    segment: 'Fintech',    value: 18000,  source: 'Indicação', tags: ['IA', 'SaaS'], stage: 'contato_inicial',       createdAt: '2026-05-14', note: 'Interesse em automação de atendimento ao cliente via IA.' },
+  { id: '2',  company: 'Grupo Alvorada',     contact: 'Felipe Tavares',  segment: 'Varejo',     value: null,   source: 'Outbound',  tags: ['BI'],         stage: 'contato_inicial',       createdAt: '2026-05-16' },
+  { id: '3',  company: 'MedCare Saúde',      contact: 'Dra. Carla Lima', segment: 'Saúde',      value: 32000,  source: 'LinkedIn',  tags: ['IA', 'TaaS'], stage: 'contato_inicial',       createdAt: '2026-05-18', note: 'Quer triagem automatizada de pacientes.' },
+  { id: '4',  company: 'LogiTrans Brasil',   contact: 'Marco Henrique',  segment: 'Logística',  value: 24000,  source: 'Evento',    tags: ['SaaS'],       stage: 'apresentacao_proposta', createdAt: '2026-05-08', note: 'Reunião de apresentação agendada para quinta.' },
+  { id: '5',  company: 'EduFlex',            contact: 'Patrícia Nunes',  segment: 'Edtech',     value: 12000,  source: 'Indicação', tags: ['IA'],         stage: 'apresentacao_proposta', createdAt: '2026-05-10', note: 'Proposta enviada, aguardando retorno.' },
+  { id: '6',  company: 'IndusTech S.A.',     contact: 'Ricardo Campos',  segment: 'Indústria',  value: 58000,  source: 'Inbound',   tags: ['BI', 'TaaS'], stage: 'negociacao',            createdAt: '2026-04-28', note: 'Ajuste de escopo e revisão de valores em andamento.' },
+  { id: '7',  company: 'Supermercados Boa',  contact: 'Cleusa Ramos',    segment: 'Varejo',     value: 21000,  source: 'Indicação', tags: ['BI'],         stage: 'negociacao',            createdAt: '2026-04-30', note: 'Cliente quer incluir módulo de relatórios extras.' },
+  { id: '8',  company: 'StartupHub',         contact: 'André Leal',      segment: 'Tech',       value: 42000,  source: 'Inbound',   tags: ['IA', 'SaaS'], stage: 'negociacao',            createdAt: '2026-04-15', note: 'Ajuste no escopo — cliente quer incluir app mobile.' },
+  { id: '9',  company: 'Banco Meridian',     contact: 'Tatiana Borges',  segment: 'Financeiro', value: 120000, source: 'Evento',    tags: ['IA', 'TaaS'], stage: 'assinatura_contrato',   createdAt: '2026-04-10', note: 'Revisão de cláusula de SLA pendente. Contrato quase fechado.' },
+  { id: '10', company: 'AgroSmart',          contact: 'Bruno Carvalho',  segment: 'Agro',       value: 36000,  source: 'Indicação', tags: ['SaaS'],       stage: 'assinatura_contrato',   createdAt: '2026-03-20', note: 'Contrato enviado. Aguardando assinatura digital.' },
+  { id: '11', company: 'Clínica Vita',       contact: 'Dr. Paulo Melo',  segment: 'Saúde',      value: 28000,  source: 'LinkedIn',  tags: ['IA'],         stage: 'venda_realizada',       createdAt: '2026-03-05' },
+  { id: '12', company: 'RetailMax',          contact: 'Simone Ferreira', segment: 'Varejo',     value: 45000,  source: 'Evento',    tags: ['BI', 'SaaS'], stage: 'venda_realizada',       createdAt: '2026-02-18' },
+  { id: '13', company: 'OldTech Ltda',       contact: 'Jorge Mendes',    segment: 'Indústria',  value: 15000,  source: 'Outbound',  tags: ['BI'],         stage: 'perdido',               createdAt: '2026-03-01', note: 'Optou por solução interna.' },
 ]
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const STAGES: { id: LeadStage; label: string; color: string; bg: string }[] = [
-  { id: 'contato',      label: 'Contato',      color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
-  { id: 'qualificacao', label: 'Qualificação',  color: '#0891B2', bg: 'rgba(8,145,178,0.07)'   },
-  { id: 'proposta',     label: 'Proposta',      color: '#D97706', bg: 'rgba(217,119,6,0.07)'   },
-  { id: 'negociacao',   label: 'Negociação',    color: '#EA580C', bg: 'rgba(234,88,12,0.07)'   },
-  { id: 'contrato',     label: 'Contrato',      color: '#7C3AED', bg: 'rgba(124,58,237,0.07)'  },
-  { id: 'ganho',        label: 'Ganho',         color: '#1E8A3E', bg: 'rgba(30,138,62,0.07)'   },
-  { id: 'perdido',      label: 'Perdido',       color: '#9CA3AF', bg: 'rgba(156,163,175,0.07)' },
+  { id: 'contato_inicial',       label: 'Contato Inicial',       color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
+  { id: 'apresentacao_proposta', label: 'Apresentação Proposta', color: '#0891B2', bg: 'rgba(8,145,178,0.07)'   },
+  { id: 'negociacao',            label: 'Negociação',            color: '#EA580C', bg: 'rgba(234,88,12,0.07)'   },
+  { id: 'assinatura_contrato',   label: 'Assinatura Contrato',   color: '#7C3AED', bg: 'rgba(124,58,237,0.07)'  },
+  { id: 'venda_realizada',       label: 'Venda Realizada',       color: '#1E8A3E', bg: 'rgba(30,138,62,0.07)'   },
+  { id: 'perdido',               label: 'Perdido',               color: '#9CA3AF', bg: 'rgba(156,163,175,0.07)' },
 ]
 
 const TAG_COLORS: Record<string, { color: string; bg: string }> = {
@@ -302,23 +301,23 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 export function LeadsView() {
   const [openLead, setOpenLead] = useState<Lead | null>(null)
 
-  const activeStages = STAGES.filter(s => s.id !== 'ganho' && s.id !== 'perdido')
-  const closedStages = STAGES.filter(s => s.id === 'ganho' || s.id === 'perdido')
+  const activeStages = STAGES.filter(s => s.id !== 'perdido')
+  const lostStage    = STAGES.find(s => s.id === 'perdido')!
 
   const totalValue = MOCK_LEADS
-    .filter(l => !['ganho', 'perdido'].includes(l.stage) && l.value)
+    .filter(l => !['venda_realizada', 'perdido'].includes(l.stage) && l.value)
     .reduce((s, l) => s + (l.value ?? 0), 0)
   const wonValue = MOCK_LEADS
-    .filter(l => l.stage === 'ganho' && l.value)
+    .filter(l => l.stage === 'venda_realizada' && l.value)
     .reduce((s, l) => s + (l.value ?? 0), 0)
-  const activeCount = MOCK_LEADS.filter(l => !['ganho', 'perdido'].includes(l.stage)).length
-  const negotiatingCount = MOCK_LEADS.filter(l => ['negociacao', 'contrato'].includes(l.stage)).length
+  const activeCount = MOCK_LEADS.filter(l => !['venda_realizada', 'perdido'].includes(l.stage)).length
+  const negotiatingCount = MOCK_LEADS.filter(l => ['negociacao', 'assinatura_contrato'].includes(l.stage)).length
 
   const KPIS = [
-    { label: 'Leads ativos',   value: activeCount,                         color: '#6366F1', icon: 'M4 17V7l8-4 8 4v10M12 17V7' },
-    { label: 'Em negociação',  value: negotiatingCount,                     color: '#EA580C', icon: 'M17 20H7M12 4v16M4 9l8-5 8 5' },
-    { label: 'Pipeline total', value: `R$ ${(totalValue/1000).toFixed(0)}k`, color: '#0891B2', icon: 'M12 20V10M6 20V16M18 20V4' },
-    { label: 'Ganhos (mês)',   value: `R$ ${(wonValue/1000).toFixed(0)}k`,   color: '#1E8A3E', icon: 'M20 6L9 17l-5-5' },
+    { label: 'Leads ativos',    value: activeCount,                          color: '#6366F1' },
+    { label: 'Em negociação',   value: negotiatingCount,                      color: '#EA580C' },
+    { label: 'Pipeline total',  value: `R$ ${(totalValue/1000).toFixed(0)}k`, color: '#0891B2' },
+    { label: 'Vendas (mês)',    value: `R$ ${(wonValue/1000).toFixed(0)}k`,   color: '#1E8A3E' },
   ]
 
   return (
@@ -388,6 +387,7 @@ export function LeadsView() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
         {/* Active stages — full-width grid */}
+        {/* ── 5 etapas ativas em grid full-width ── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`,
@@ -449,66 +449,54 @@ export function LeadsView() {
           })}
         </div>
 
-        {/* Divider */}
+        {/* Divider — Perdidos */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
           <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
           <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-            Encerrados
+            Perdidos
           </span>
           <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
         </div>
 
-        {/* Closed stages — full-width grid, 2 columns */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 8,
-          alignItems: 'start',
-        }}>
-          {closedStages.map(stage => {
-            const leads = MOCK_LEADS.filter(l => l.stage === stage.id)
-            const stageValue = leads.filter(l => l.value).reduce((s, l) => s + (l.value ?? 0), 0)
-            const isLost = stage.id === 'perdido'
-
-            return (
-              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: isLost ? 0.7 : 1 }}>
-                {/* Column header */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '9px 12px',
-                  background: stage.bg,
-                  borderRadius: 8,
-                  borderBottom: `2px solid ${stage.color}`,
+        {/* ── Perdido — linha única com cards na horizontal ── */}
+        {(() => {
+          const leads = MOCK_LEADS.filter(l => l.stage === 'perdido')
+          const stage = lostStage
+          return (
+            <div style={{ opacity: 0.7 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 4px', marginBottom: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {stage.label}
+                  </span>
+                </div>
+                <span style={{
+                  minWidth: 18, height: 18, borderRadius: 6,
+                  background: stage.color + '18', color: stage.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 800, padding: '0 4px',
+                  border: `1px solid ${stage.color}33`,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: stage.color }}>{stage.label}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {stageValue > 0 && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: stage.color, opacity: 0.75 }}>{fmtK(stageValue)}</span>
-                    )}
-                    <span style={{
-                      minWidth: 18, height: 18, borderRadius: 6,
-                      background: stage.color, color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 800, padding: '0 4px',
-                    }}>
-                      {leads.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Compact cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {leads.map(lead => (
-                    <LeadCard key={lead.id} lead={lead} color={stage.color} onOpen={() => setOpenLead(lead)} />
-                  ))}
-                </div>
+                  {leads.length}
+                </span>
               </div>
-            )
-          })}
-        </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`,
+                gap: 8,
+              }}>
+                {leads.map(lead => (
+                  <LeadCard key={lead.id} lead={lead} color={stage.color} onOpen={() => setOpenLead(lead)} />
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
       </div>
 
       {/* Detail modal */}
