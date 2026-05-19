@@ -1499,8 +1499,6 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
     </>
   )
 }
-  )
-}
 
 // ── Day view ──────────────────────────────────────────────────────────────────
 function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onStatusChange }: {
