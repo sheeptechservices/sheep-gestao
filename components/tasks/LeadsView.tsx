@@ -187,16 +187,8 @@ function LeadCard({
         display: 'flex', flexDirection: 'column', gap: 8,
       }}
     >
-        {/* Header: avatar + company + value */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-            background: color + '18', border: `1px solid ${color}33`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 800, color,
-          }}>
-            {initials(lead.company)}
-          </div>
+        {/* Header: company + value */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--gray2)', marginBottom: 1 }}>
               {lead.contact}
