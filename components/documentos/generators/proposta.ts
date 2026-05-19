@@ -95,21 +95,7 @@ body{background:var(--bg);color:var(--black);font-family:'Manrope',sans-serif;he
 .inv-total td:last-child{color:var(--yellow)!important;font-size:clamp(13px,1.39vw,20px)}
 .sol-icon{display:inline-flex;align-items:center;justify-content:center;width:clamp(26px,3.06vw,44px);height:clamp(26px,3.06vw,44px);border-radius:clamp(7px,0.83vw,12px);background:var(--yellow);font-size:clamp(14px,1.53vw,22px);margin-bottom:clamp(8px,0.97vw,14px);flex-shrink:0;transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
 .card:hover .sol-icon{transform:scale(1.18) rotate(-8deg)}
-.gantt-wrap{display:flex;flex-direction:column;gap:0;margin-top:clamp(8px,0.97vw,14px);width:100%}
-.gantt-header{display:flex;margin-bottom:clamp(2px,0.28vw,4px)}
-.gantt-name-col{width:clamp(120px,15.3vw,220px);flex-shrink:0}
-.gantt-weeks{flex:1;position:relative;height:clamp(11px,1.25vw,18px)}
-.gantt-week-mark{position:absolute;font-size:clamp(6px,0.69vw,10px);font-weight:700;color:var(--gray2);letter-spacing:.06em;transform:translateX(-50%);white-space:nowrap}
-.gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--gray3);pointer-events:none}
-.gantt-row{display:flex;align-items:center;padding:clamp(4px,0.42vw,6px) 0;border-bottom:1px solid var(--gray3);position:relative;cursor:default}
-.gantt-row:last-child{border-bottom:none}
-.gantt-name{width:clamp(120px,15.3vw,220px);flex-shrink:0;display:flex;align-items:center;gap:clamp(6px,0.69vw,10px);font-size:clamp(8px,0.9vw,13px);font-weight:700;color:var(--black);padding-right:clamp(9px,1.11vw,16px)}
-.gantt-num{width:clamp(14px,1.53vw,22px);height:clamp(14px,1.53vw,22px);border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:clamp(6px,0.69vw,10px);font-weight:800;color:var(--black);flex-shrink:0}
-.gantt-track{flex:1;height:clamp(18px,2.08vw,30px);background:rgba(0,0,0,0.04);border-radius:clamp(4px,0.42vw,6px);position:relative;overflow:hidden}
-.gantt-bar{position:absolute;top:0;height:100%;border-radius:clamp(4px,0.42vw,6px);background:var(--yellow);transform-origin:left center;animation:ganttbar .65s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0;display:flex;align-items:center;justify-content:flex-end;padding-right:clamp(6px,0.69vw,10px)}
-.gantt-bar-label{font-size:clamp(6px,0.69vw,10px);font-weight:800;color:rgba(0,0,0,0.6);white-space:nowrap}
-@keyframes ganttbar{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
-.gantt-total{margin-top:clamp(6px,0.69vw,10px);font-size:clamp(7px,0.76vw,11px);font-weight:700;color:var(--gray2);letter-spacing:.1em;text-transform:uppercase}
+@keyframes gbar{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
 .gtip{position:fixed;background:var(--black);color:#fff;font-size:clamp(8px,0.83vw,12px);font-weight:600;padding:clamp(5px,0.56vw,8px) clamp(9px,0.97vw,14px);border-radius:clamp(5px,0.56vw,8px);pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;white-space:nowrap;border:1px solid rgba(190,255,1,0.25);line-height:1.5}
 .gtip.show{opacity:1}
 `;
@@ -413,14 +399,32 @@ function slide07(p: PropostaData): string {
 // ── SLIDE 8 — CRONOGRAMA ───────────────────────────────
 function slide09(p: PropostaData): string {
   const fases = p.fases.filter(f => f.nome && f.semanas > 0);
+  const toAbsWeek = (f: { mes: number }) => Math.max(1, (f.mes - 1) * 4 + 1);
+  const maxWeek = fases.length ? Math.max(...fases.map(f => toAbsWeek(f) + (f.semanas || 1) - 1)) : 0;
+  const numMonths = fases.length ? Math.ceil(maxWeek / 4) : 0;
   return `
 <!-- 08 CRONOGRAMA -->
-<div class="slide sw">
+<div class="slide sw" style="padding-top:clamp(56px,8vh,88px)">
   ${slideHeader('Cronograma', '08 / 12')}
-  <div class="title a">Fases do <span class="acc">projeto</span></div>
-  <div class="rule a"></div>
-  <div class="a" style="width:100%;overflow:hidden">
-    ${buildGantt(fases, false)}
+  <div style="display:flex;gap:clamp(24px,3.5vw,48px);align-items:flex-start;flex:1;min-height:0">
+
+    <!-- Left column: title + stats -->
+    <div style="width:26%;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:clamp(6px,0.8vh,10px)">
+      <div style="font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#aaa">CRONOGRAMA</div>
+      <div class="title">Fases do<br><span class="acc">projeto</span></div>
+      <div class="rule" style="margin:clamp(6px,0.8vh,10px) 0"></div>
+      ${fases.length ? `
+      <div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="background:var(--yd);color:#2a4a00;border:1px solid var(--yb);border-radius:100px;font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.08em;padding:clamp(2px,0.3vh,4px) clamp(8px,0.9vw,12px)">${fases.length} fase${fases.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div style="font-size:clamp(8px,0.72vw,10px);color:var(--gray2);font-weight:600;letter-spacing:.06em">${maxWeek} semanas · ${numMonths} ${numMonths === 1 ? 'mês' : 'meses'}</div>` : ''}
+    </div>
+
+    <!-- Right column: Gantt -->
+    <div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center">
+      ${buildGantt(fases, false)}
+    </div>
+
   </div>
   ${slideFooter(8 / 12)}
 </div>`;

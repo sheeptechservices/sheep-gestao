@@ -136,53 +136,69 @@ export function buildGantt(
   const maxWeek = Math.max(...fases.map(f => toAbsWeek(f) + (f.semanas || 1) - 1));
   const totalWeeks = Math.ceil(maxWeek / 4) * 4;
   const numMonths = totalWeeks / 4;
-  const col = `180px repeat(${totalWeeks},1fr)`;
+  const col = `clamp(150px,18vw,210px) repeat(${totalWeeks},1fr)`;
 
-  const monthBg = (m: number) => dark
-    ? (m % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.055)')
-    : (m % 2 === 0 ? 'var(--white)' : 'var(--bg)');
-  const borderCol = dark ? 'rgba(255,255,255,0.08)' : 'var(--gray3)';
-  const textCol   = dark ? 'rgba(255,255,255,0.45)' : 'var(--gray2)';
-  const labelCol  = dark ? 'rgba(255,255,255,0.8)'  : 'var(--black)';
+  const bc = dark ? 'rgba(255,255,255,0.08)' : 'var(--gray3)';
+  const textCol = dark ? 'rgba(255,255,255,0.45)' : 'var(--gray2)';
+  const tc = dark ? 'rgba(255,255,255,0.7)' : 'var(--gray2)';
+  const labelCol = dark ? 'rgba(255,255,255,0.85)' : 'var(--black)';
+  const monthBg = (m: number) =>
+    m % 2 === 0 ? 'rgba(190,255,1,0.06)' : 'transparent';
 
+  // Month header row
   const monthCells = Array.from({ length: numMonths }, (_, m) =>
-    `<div style="grid-column:span 4;text-align:center;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:${textCol};padding:5px 0;border-left:1px solid ${borderCol};background:${monthBg(m)}">Mês ${m + 1}</div>`
+    `<div style="grid-column:span 4;text-align:center;font-size:clamp(7px,0.65vw,9px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${textCol};padding:4px 0;border-left:1px solid ${bc};background:${monthBg(m)}">Mês ${m + 1}</div>`
   ).join('');
 
-  const weekCells = Array.from({ length: totalWeeks }, (_, w) =>
-    `<div style="text-align:center;font-size:9px;font-weight:700;color:${textCol};padding:3px 0;border-left:1px solid ${w % 4 === 0 ? borderCol : (dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)')}">S${(w % 4) + 1}</div>`
-  ).join('');
+  // Week sub-header row (hidden for long timelines)
+  const showWeeks = totalWeeks <= 16;
+  const weekCells = showWeeks
+    ? Array.from({ length: totalWeeks }, (_, w) =>
+        `<div style="text-align:center;font-size:clamp(6px,0.55vw,8px);font-weight:600;color:${textCol};opacity:.6;padding:2px 0;${w % 4 === 0 ? `border-left:1px solid ${bc}` : ''}">S${(w % 4) + 1}</div>`
+      ).join('')
+    : '';
 
+  // Background stripe cells for each phase row (reused per row)
   const bgCells = Array.from({ length: numMonths }, (_, m) =>
-    `<div style="grid-row:1;grid-column:${m * 4 + 2}/span 4;background:${monthBg(m)};height:100%;border-left:1px solid ${borderCol}"></div>`
+    `<div style="grid-row:1;grid-column:${m * 4 + 2}/span 4;background:${monthBg(m)};height:100%;border-left:1px solid ${bc}"></div>`
   ).join('');
+
+  const rowH = 'clamp(30px,3.8vh,48px)';
+  const badgeSize = 'clamp(16px,1.8vw,24px)';
+  const badgeFontSize = 'clamp(7px,0.8vw,10px)';
+  const nameFontSize = 'clamp(8px,0.85vw,12px)';
+  const barRadius = 'clamp(4px,0.4vw,6px)';
 
   const rows = fases.map((f, i) => {
     const inicio  = toAbsWeek(f);
     const semanas = Math.max(1, f.semanas || 1);
-    const delay   = (i * 0.07).toFixed(2);
+    const delay   = (0.25 + i * 0.09).toFixed(2);
     const tip = `${esc(f.nome)} · ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} · Mês ${f.mes}`;
     return `
-    <div class="gantt-row" data-tip="${tip}" style="display:grid;grid-template-columns:${col};grid-template-rows:30px;align-items:center;margin-bottom:3px">
-      <div style="grid-row:1;grid-column:1;font-size:11px;font-weight:700;color:${labelCol};padding-right:10px;display:flex;align-items:center;gap:7px;overflow:hidden">
-        <div style="width:18px;height:18px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#000;flex-shrink:0">${String(i + 1).padStart(2, '0')}</div>
+    <div class="gantt-row" data-tip="${tip}" style="display:grid;grid-template-columns:${col};grid-template-rows:${rowH};align-items:center;margin-bottom:clamp(4px,0.5vh,7px);position:relative">
+      <div style="grid-row:1;grid-column:1;font-size:${nameFontSize};font-weight:700;color:${labelCol};padding-right:10px;display:flex;align-items:center;gap:clamp(5px,0.6vw,8px);overflow:hidden">
+        <div style="width:${badgeSize};height:${badgeSize};min-width:${badgeSize};border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:${badgeFontSize};font-weight:800;color:#000;flex-shrink:0">${String(i + 1).padStart(2, '0')}</div>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.nome)}</span>
       </div>
       ${bgCells}
-      <div style="grid-row:1;grid-column:${inicio + 1}/span ${semanas};background:var(--yellow);border-radius:4px;height:22px;transform-origin:left center;animation:ganttbar .5s cubic-bezier(.34,1.56,.64,1) ${delay}s forwards;opacity:0;display:flex;align-items:center;justify-content:flex-end;padding:0 7px;z-index:2;position:relative">
-        ${semanas >= 2 ? `<span style="font-size:9px;font-weight:800;color:rgba(0,0,0,0.55);white-space:nowrap">${semanas}sem</span>` : ''}
+      <div style="grid-row:1;grid-column:${inicio + 1}/span ${semanas};position:relative;display:flex;align-items:center;z-index:2">
+        <div
+          style="width:100%;height:70%;border-radius:${barRadius};background:linear-gradient(90deg,var(--yellow),rgba(190,255,1,0.72));transform-origin:left center;animation:gbar .55s cubic-bezier(.34,1.56,.64,1) ${delay}s both;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(4px,0.5vw,8px);transition:filter .2s,transform .15s ease;cursor:default"
+          onmouseenter="this.style.filter='brightness(1.12) drop-shadow(0 0 10px rgba(190,255,1,0.55))';this.style.transform='scaleY(1.12)'"
+          onmouseleave="this.style.filter='';this.style.transform=''"
+        >${semanas >= 2 ? `<span style="font-size:clamp(7px,0.65vw,9px);font-weight:800;color:rgba(0,0,0,0.5);white-space:nowrap">${semanas}sem</span>` : ''}</div>
       </div>
     </div>`;
   }).join('');
 
+  const totalLine = `DURAÇÃO TOTAL: ${maxWeek} SEMANAS · ${numMonths} MESES`;
+
   return `
   <div id="gtip" class="gtip"></div>
-  <div style="display:grid;grid-template-columns:${col};border-bottom:1px solid ${borderCol}">
+  <div style="display:grid;grid-template-columns:${col};border-bottom:1px solid ${bc}">
     <div></div>${monthCells}
   </div>
-  <div style="display:grid;grid-template-columns:${col};border-bottom:2px solid ${borderCol};margin-bottom:5px">
-    <div></div>${weekCells}
-  </div>
+  ${showWeeks ? `<div style="display:grid;grid-template-columns:${col};border-bottom:2px solid ${bc};margin-bottom:clamp(4px,0.5vh,7px)"><div></div>${weekCells}</div>` : ''}
   ${rows}
-  <div style="margin-top:8px;font-size:10px;font-weight:700;color:${textCol};letter-spacing:.1em;text-transform:uppercase">Duração total: ${maxWeek} ${maxWeek === 1 ? 'semana' : 'semanas'} · ${numMonths} ${numMonths === 1 ? 'mês' : 'meses'}</div>`;
+  <div style="margin-top:clamp(6px,0.8vh,10px);font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${tc}">${totalLine}</div>`;
 }
