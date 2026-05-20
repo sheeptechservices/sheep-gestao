@@ -1288,6 +1288,15 @@ function ModelPickerPill({ model, effort, onModel, onEffort }: {
   )
 }
 
+// ── Slash commands ────────────────────────────────────────────────────────────
+
+const SLASH_COMMANDS = [
+  { cmd: '/imagem',   label: 'Gerar imagem',     desc: 'Cria uma imagem com DALL-E 3 a partir de um prompt',  icon: '🖼️' },
+  { cmd: '/resumo',  label: 'Resumir conversa',  desc: 'Pede um resumo de tudo que foi discutido até aqui',   icon: '📝' },
+  { cmd: '/tarefa',  label: 'Criar tarefa',       desc: 'Sugere uma tarefa com base no contexto atual',        icon: '✅' },
+  { cmd: '/ajuda',   label: 'Ajuda',              desc: 'Lista o que o agente atual sabe fazer',               icon: '💡' },
+]
+
 // ── Single chat panel ────────────────────────────────────────────────────────
 
 interface ChatPanelProps {
@@ -1338,6 +1347,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [githubContext, setGithubContext]   = useState<string | null>(null)
   const [githubLoading, setGithubLoading]   = useState(false)
   const [projectFiles, setProjectFiles]     = useState<{ filename: string; text_content: string }[]>([])
+  const [cmdIndex, setCmdIndex]             = useState(0)
   const recognitionRef   = useRef<unknown>(null)
   const prevStreamingRef = useRef(false)
   const resizingRef                         = useRef(false)
@@ -1937,6 +1947,35 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   }, [voiceMode, startListening, sendMessage])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const filteredCmds = SLASH_COMMANDS.filter(c => c.cmd.startsWith(input.toLowerCase()))
+    const menuOpen = input.startsWith('/') && filteredCmds.length > 0
+
+    if (menuOpen) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setCmdIndex(i => (i - 1 + filteredCmds.length) % filteredCmds.length)
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setCmdIndex(i => (i + 1) % filteredCmds.length)
+        return
+      }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault()
+        const chosen = filteredCmds[cmdIndex]
+        if (chosen) setInput(chosen.cmd + ' ')
+        setCmdIndex(0)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setInput('')
+        setCmdIndex(0)
+        return
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (streaming) handleAbort()
@@ -2235,8 +2274,56 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
           </div>
         )}
 
+        {/* Slash-command menu */}
+        {(() => {
+          const filteredCmds = SLASH_COMMANDS.filter(c => c.cmd.startsWith(input.toLowerCase()))
+          if (!input.startsWith('/') || filteredCmds.length === 0) return null
+          return (
+            <div style={{ position: 'relative', marginBottom: 4 }}>
+              <div style={{
+                position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0,
+                background: 'var(--white)', border: '1px solid var(--gray3)',
+                borderRadius: 12, boxShadow: '0 -8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+                overflow: 'hidden', zIndex: 9999,
+                animation: 'fadeIn 0.12s ease both',
+              }}>
+                <div style={{ padding: '6px 10px 4px', fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gray2)' }}>
+                  Comandos
+                </div>
+                {filteredCmds.map((c, i) => (
+                  <div
+                    key={c.cmd}
+                    onMouseDown={e => { e.preventDefault(); setInput(c.cmd + ' '); setCmdIndex(0) }}
+                    onMouseEnter={() => setCmdIndex(i)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      background: i === cmdIndex ? agent.color + '12' : 'transparent',
+                      borderLeft: i === cmdIndex ? `3px solid ${agent.color}` : '3px solid transparent',
+                      transition: 'all 0.1s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{c.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: i === cmdIndex ? agent.color : 'var(--black)', fontFamily: 'monospace' }}>{c.cmd}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--black)', opacity: 0.75 }}>{c.label}</span>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--gray2)', marginTop: 1, lineHeight: 1.3 }}>{c.desc}</div>
+                    </div>
+                    {i === cmdIndex && (
+                      <kbd style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>↵</kbd>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: inputFocused ? 'var(--white)' : 'var(--bg)', border: `1.5px solid ${inputFocused ? agent.color + '60' : 'var(--gray3)'}`, borderRadius: 14, padding: '9px 9px 9px 14px', boxShadow: inputFocused ? `0 0 0 4px ${agent.color}12` : 'none', transition: 'all 0.2s ease' }}>
-          <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} placeholder={`Pergunte ao ${agent.name}…`} rows={1}
+          <textarea ref={textareaRef} value={input} onChange={e => { setInput(e.target.value); setCmdIndex(0) }} onKeyDown={handleKeyDown} onPaste={handlePaste} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} placeholder={`Pergunte ao ${agent.name}…`} rows={1}
             style={{ flex: 1, border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: 13, color: 'var(--black)', lineHeight: 1.5, fontFamily: 'inherit', maxHeight: 120, overflowY: 'auto' }} />
           {/* Paperclip button */}
           <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
