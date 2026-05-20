@@ -661,13 +661,15 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
         cursor: isDragging ? 'grabbing' : 'pointer',
         opacity: isDragging ? 0.5 : task.done ? 0.65 : 1,
         transform: isDragging
-          ? 'rotate(2deg) scale(1.04)'
-          : hov ? 'translateY(-2px)' : 'none',
+          ? 'rotate(2deg) scale(1.04) translateZ(0)'
+          : hov ? 'translateY(-2px) translateZ(0)' : 'translateZ(0)',
         boxShadow: isDragging
           ? `0 8px 24px ${color}44`
           : hov ? `0 4px 14px rgba(0,0,0,0.09), 0 0 0 0px ${color}22`
           : 'none',
         transition: 'all 0.18s ease',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
         display: 'flex', flexDirection: 'column', gap: 6,
         userSelect: 'none', position: 'relative',
       }}
