@@ -218,9 +218,24 @@ function MessageBubble({ msg, agentColor, agentEmoji, isStreaming }: {
                     const lastSep = msg.content.lastIndexOf(sep)
                     displayText = lastSep !== -1 ? msg.content.slice(lastSep + sep.length).trim() : ''
                   }
-                  return displayText
-                    ? <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontWeight: 500 }}>{displayText}</p>
-                    : null
+                  if (!displayText) return null
+                  // Highlight slash commands in message bubble
+                  const cmdMatch = SLASH_COMMANDS.find(c =>
+                    displayText.toLowerCase().startsWith(c.cmd + ' ') || displayText.toLowerCase() === c.cmd
+                  )
+                  if (cmdMatch) {
+                    const rest = displayText.slice(cmdMatch.cmd.length).trim()
+                    return (
+                      <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontWeight: 500, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.30)', borderRadius: 7, padding: '1px 8px 1px 5px', fontFamily: 'monospace', fontWeight: 800, fontSize: 12, letterSpacing: '-0.01em', flexShrink: 0 }}>
+                          <span style={{ fontSize: 14 }}>{cmdMatch.icon}</span>
+                          {cmdMatch.cmd}
+                        </span>
+                        {rest && <span style={{ wordBreak: 'break-word' }}>{rest}</span>}
+                      </p>
+                    )
+                  }
+                  return <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontWeight: 500 }}>{displayText}</p>
                 })()
               : isStreaming
                 ? <p style={{ fontSize: 13, lineHeight: 1.65, margin: 0, color: 'var(--black)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -1348,6 +1363,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [githubLoading, setGithubLoading]   = useState(false)
   const [projectFiles, setProjectFiles]     = useState<{ filename: string; text_content: string }[]>([])
   const [cmdIndex, setCmdIndex]             = useState(0)
+  const [activeSlashCmd, setActiveSlashCmd] = useState<typeof SLASH_COMMANDS[number] | null>(null)
   const recognitionRef   = useRef<unknown>(null)
   const prevStreamingRef = useRef(false)
   const resizingRef                         = useRef(false)
@@ -1595,10 +1611,13 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   }, [])
 
   const sendMessage = useCallback(async (overrideText?: string) => {
-    const rawText = (overrideText ?? input).trim()
+    // If a slash command chip is active, prepend it to the input
+    const baseText = overrideText ?? (activeSlashCmd ? `${activeSlashCmd.cmd} ${input}` : input)
+    const rawText = baseText.trim()
     const hasAttachments = attachments.length > 0
     const hasImages      = pastedImages.length > 0
     if (!rawText && !hasAttachments && !hasImages) return
+    setActiveSlashCmd(null)
 
     // ── /imagem command — generate image via DALL-E ───────────────────────────
     const IMAGE_PREFIX = '/imagem '
@@ -1964,13 +1983,14 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
         e.preventDefault()
         const chosen = filteredCmds[cmdIndex]
-        if (chosen) setInput(chosen.cmd + ' ')
+        if (chosen) { setActiveSlashCmd(chosen); setInput('') }
         setCmdIndex(0)
         return
       }
       if (e.key === 'Escape') {
         e.preventDefault()
         setInput('')
+        setActiveSlashCmd(null)
         setCmdIndex(0)
         return
       }
@@ -2293,7 +2313,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
                 {filteredCmds.map((c, i) => (
                   <div
                     key={c.cmd}
-                    onMouseDown={e => { e.preventDefault(); setInput(c.cmd + ' '); setCmdIndex(0) }}
+                    onMouseDown={e => { e.preventDefault(); setActiveSlashCmd(c); setInput(''); setCmdIndex(0) }}
                     onMouseEnter={() => setCmdIndex(i)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
@@ -2322,8 +2342,31 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
           )
         })()}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: inputFocused ? 'var(--white)' : 'var(--bg)', border: `1.5px solid ${inputFocused ? agent.color + '60' : 'var(--gray3)'}`, borderRadius: 14, padding: '9px 9px 9px 14px', boxShadow: inputFocused ? `0 0 0 4px ${agent.color}12` : 'none', transition: 'all 0.2s ease' }}>
-          <textarea ref={textareaRef} value={input} onChange={e => { setInput(e.target.value); setCmdIndex(0) }} onKeyDown={handleKeyDown} onPaste={handlePaste} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} placeholder={`Pergunte ao ${agent.name}…`} rows={1}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: activeSlashCmd ? agent.color + '0D' : inputFocused ? 'var(--white)' : 'var(--bg)', border: `1.5px solid ${activeSlashCmd ? agent.color + '70' : inputFocused ? agent.color + '60' : 'var(--gray3)'}`, borderRadius: 14, padding: '9px 9px 9px 10px', boxShadow: activeSlashCmd ? `0 0 0 4px ${agent.color}15` : inputFocused ? `0 0 0 4px ${agent.color}12` : 'none', transition: 'all 0.2s ease' }}>
+          {/* Active slash-command chip */}
+          {activeSlashCmd && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: agent.color, borderRadius: 8, padding: '3px 8px 3px 6px', flexShrink: 0, animation: 'fadeIn 0.15s ease both' }}>
+              <span style={{ fontSize: 13, lineHeight: 1 }}>{activeSlashCmd.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>{activeSlashCmd.cmd}</span>
+              <button
+                onMouseDown={e => { e.preventDefault(); setActiveSlashCmd(null); setInput('') }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: 0, color: '#fff', marginLeft: 1 }}
+              >
+                <svg width={7} height={7} viewBox="0 0 8 8" fill="none"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/></svg>
+              </button>
+            </div>
+          )}
+          <textarea ref={textareaRef} value={input} onChange={e => {
+            const val = e.target.value
+            // If user manually types "/cmd " activate the chip
+            if (!activeSlashCmd) {
+              const matched = SLASH_COMMANDS.find(c => val.toLowerCase().startsWith(c.cmd + ' '))
+              if (matched) { setActiveSlashCmd(matched); setInput(val.slice(matched.cmd.length + 1)); setCmdIndex(0); return }
+            }
+            // If chip is active and user clears the textarea, also clear on Backspace of empty
+            if (activeSlashCmd && val === '') { setActiveSlashCmd(null) }
+            setInput(val); setCmdIndex(0)
+          }} onKeyDown={handleKeyDown} onPaste={handlePaste} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} placeholder={activeSlashCmd ? `Descreva o que deseja…` : `Pergunte ao ${agent.name}…`} rows={1}
             style={{ flex: 1, border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: 13, color: 'var(--black)', lineHeight: 1.5, fontFamily: 'inherit', maxHeight: 120, overflowY: 'auto' }} />
           {/* Paperclip button */}
           <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
