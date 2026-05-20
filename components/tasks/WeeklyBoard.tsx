@@ -220,6 +220,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   const [previewAtt, setPreviewAtt]     = useState<TaskAttachment | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [attHoverId, setAttHoverId]     = useState<string | null>(null)
+  const [attToDelete, setAttToDelete]   = useState<TaskAttachment | null>(null)
 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
@@ -676,7 +677,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
                     <button
                       type="button"
                       disabled={attLoading}
-                      onClick={e => { e.stopPropagation(); handleDeleteAttachment(att) }}
+                      onClick={e => { e.stopPropagation(); setAttToDelete(att) }}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         width: 22, height: 22, borderRadius: 6, border: 'none',
@@ -697,6 +698,80 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
             </div>
           )}
         </div>
+
+        {/* Confirm delete attachment modal */}
+        {attToDelete && createPortal(
+          <div
+            onClick={() => setAttToDelete(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99999,
+              background: 'rgba(18,19,22,0.45)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'fadeIn 0.15s ease both',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--white)', borderRadius: 14,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)',
+                padding: '24px 24px 20px',
+                width: 340, maxWidth: 'calc(100vw - 32px)',
+                animation: 'modalSlideUp 0.2s cubic-bezier(0.34,1.1,0.64,1) both',
+              }}
+            >
+              {/* Ícone */}
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, marginBottom: 14,
+                background: 'rgba(217,48,37,0.10)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width={18} height={18} viewBox="0 0 14 14" fill="none">
+                  <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8"
+                    stroke="#D93025" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', marginBottom: 6 }}>
+                Remover anexo?
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--gray)', lineHeight: 1.5, marginBottom: 20 }}>
+                O arquivo{' '}
+                <span style={{ fontWeight: 700, color: 'var(--black)' }}>"{attToDelete.filename}"</span>
+                {' '}será removido permanentemente. Essa ação não pode ser desfeita.
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setAttToDelete(null)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                    border: '1px solid var(--gray3)', background: 'var(--white)',
+                    color: 'var(--gray)', cursor: 'pointer', transition: 'border-color 0.12s',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gray2)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--gray3)'}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => { handleDeleteAttachment(attToDelete); setAttToDelete(null) }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    border: 'none', background: '#D93025',
+                    color: '#fff', cursor: 'pointer', transition: 'background 0.12s',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#B91C1C'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#D93025'}
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
