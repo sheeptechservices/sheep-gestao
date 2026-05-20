@@ -3589,7 +3589,7 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
               options={gestores.map(g => ({ value: g, label: g }))}
             />
             <FilterDropdown
-              label="Dev"
+              label="Responsável"
               value={filterDev}
               onChange={setFilterDev}
               options={devOpts}
