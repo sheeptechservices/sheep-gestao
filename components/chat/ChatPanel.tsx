@@ -129,6 +129,21 @@ function MarkdownContent({ content, color, small }: { content: string; color: st
       table: ({ children }) => <div style={{ overflowX: 'auto', margin: '8px 0' }}><table style={{ borderCollapse: 'collapse', fontSize: base - 1, width: '100%', minWidth: 200 }}>{children}</table></div>,
       th: ({ children }) => <th style={{ padding: '5px 10px', fontWeight: 700, borderBottom: `2px solid ${color}40`, textAlign: 'left', whiteSpace: 'nowrap', background: color + '08' }}>{children}</th>,
       td: ({ children }) => <td style={{ padding: '4px 10px', borderBottom: '1px solid var(--gray3)', verticalAlign: 'top' }}>{children}</td>,
+      a: ({ href, children }) => (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color, fontWeight: 600, textDecoration: 'underline', textDecorationColor: color + '60', textUnderlineOffset: 2, display: 'inline-flex', alignItems: 'center', gap: 3, wordBreak: 'break-all' }}
+          onMouseEnter={e => { e.currentTarget.style.textDecorationColor = color; e.currentTarget.style.opacity = '0.85' }}
+          onMouseLeave={e => { e.currentTarget.style.textDecorationColor = color + '60'; e.currentTarget.style.opacity = '1' }}
+        >
+          {children}
+          <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, opacity: 0.7 }}>
+            <path d="M4 2H2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V6M6 1h3m0 0v3m0-3L5 5" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </a>
+      ),
     }}>
       {content}
     </ReactMarkdown>
