@@ -653,7 +653,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.07)' : atencao ? 'rgba(124,58,237,0.07)' : revisar ? 'rgba(217,119,6,0.07)' : hov ? 'var(--gray3)' : 'var(--white)',
+        background: isDragging ? accentColor + '12' : bloqueado ? 'rgba(220,38,38,0.07)' : atencao ? 'rgba(124,58,237,0.07)' : revisar ? 'rgba(217,119,6,0.07)' : hov ? 'rgba(0,0,0,0.03)' : 'var(--white)',
         borderRadius: 10,
         border: `1px solid ${isDragging ? accentColor + '55' : bloqueado ? 'rgba(220,38,38,0.30)' : atencao ? 'rgba(124,58,237,0.30)' : revisar ? 'rgba(217,119,6,0.30)' : hov ? color + '44' : 'var(--gray3)'}`,
         borderLeft: `3px solid ${isDragging ? accentColor : bloqueado ? '#DC2626' : atencao ? '#7C3AED' : revisar ? '#D97706' : hov ? color : 'var(--gray3)'}`,
