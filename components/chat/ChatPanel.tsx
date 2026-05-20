@@ -1491,6 +1491,9 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
 
   const agent = getAgent(agentType)
 
+  // Focus textarea on mount
+  useEffect(() => { setTimeout(() => textareaRef.current?.focus(), 80) }, [])
+
   // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current
