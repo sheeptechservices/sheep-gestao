@@ -1606,11 +1606,41 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       addMessage(agentType, { id: assistantId, role: 'assistant', content: '' })
       setStreaming(agentType, true)
 
+      // ── Build enriched prompt with project/task/conversation context ──────
+      const contextParts: string[] = []
+
+      if (selectedProject) {
+        let projectCtx = `Projeto: ${selectedProject.name}`
+        if (selectedProject.client?.name) projectCtx += ` (cliente: ${selectedProject.client.name})`
+        if (selectedProject.type)        projectCtx += ` | Tipo: ${selectedProject.type}`
+        if ((selectedProject as Record<string, unknown>).description) projectCtx += ` | Descrição: ${(selectedProject as Record<string, unknown>).description}`
+        contextParts.push(projectCtx)
+      }
+
+      if (selectedTask) {
+        let taskCtx = `Tarefa: ${selectedTask.title}`
+        if ((selectedTask as Record<string, unknown>).description) taskCtx += ` | ${(selectedTask as Record<string, unknown>).description}`
+        contextParts.push(taskCtx)
+      }
+
+      // Last 6 assistant+user messages as conversation summary
+      const recentMsgs = messages.slice(-6).filter(m => m.content.trim() && !m.content.startsWith('/imagem'))
+      if (recentMsgs.length > 0) {
+        const convSummary = recentMsgs
+          .map(m => `${m.role === 'user' ? 'Usuário' : 'Assistente'}: ${m.content.slice(0, 300)}`)
+          .join('\n')
+        contextParts.push(`Conversa recente:\n${convSummary}`)
+      }
+
+      const enrichedPrompt = contextParts.length > 0
+        ? `${imagePrompt}\n\n[Contexto para auxiliar na geração:\n${contextParts.join('\n')}]`
+        : imagePrompt
+
       try {
         const r = await fetch('/api/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: imagePrompt }),
+          body: JSON.stringify({ prompt: enrichedPrompt }),
         })
         const data = await r.json()
         if (!r.ok) {
