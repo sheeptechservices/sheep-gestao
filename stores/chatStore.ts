@@ -14,6 +14,7 @@ export interface ChatMessage {
   content: string
   attachedFiles?: string[]            // filenames shown in UI (content already embedded in `content`)
   images?: ChatImageAttachment[]      // pasted / attached images sent to vision API
+  generatedImages?: string[]          // URLs de imagens geradas por DALL-E
 }
 
 export interface ChatInstance {

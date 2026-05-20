@@ -193,6 +193,21 @@ function MessageBubble({ msg, agentColor, agentEmoji, isStreaming }: {
               ))}
             </div>
           )}
+          {/* Generated images (DALL-E) */}
+          {!isUser && msg.generatedImages && msg.generatedImages.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: msg.content ? 8 : 0 }}>
+              {msg.generatedImages.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt="Imagem gerada"
+                    style={{ maxWidth: '100%', borderRadius: 12, border: '1.5px solid var(--gray3)', display: 'block', cursor: 'zoom-in', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}
+                  />
+                </a>
+              ))}
+            </div>
+          )}
           {msg.content
             ? isUser
               ? (() => {
@@ -1574,6 +1589,56 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     const hasAttachments = attachments.length > 0
     const hasImages      = pastedImages.length > 0
     if (!rawText && !hasAttachments && !hasImages) return
+
+    // ── /imagem command — generate image via DALL-E ───────────────────────────
+    const IMAGE_PREFIX = '/imagem '
+    if (rawText.toLowerCase().startsWith(IMAGE_PREFIX)) {
+      const imagePrompt = rawText.slice(IMAGE_PREFIX.length).trim()
+      if (!imagePrompt) return
+      if (!overrideText) { setInput(''); setAttachments([]); setPastedImages([]) }
+      userScrolledUp.current = false
+      setShowScrollBtn(false)
+
+      const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: rawText }
+      addMessage(agentType, userMsg)
+
+      const assistantId = `a-${Date.now()}`
+      addMessage(agentType, { id: assistantId, role: 'assistant', content: '' })
+      setStreaming(agentType, true)
+
+      try {
+        const r = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: imagePrompt }),
+        })
+        const data = await r.json()
+        if (!r.ok) {
+          updateMessage(agentType, assistantId, `Erro ao gerar imagem: ${data.error ?? 'desconhecido'}`)
+        } else {
+          const caption = data.revised_prompt ? `*${data.revised_prompt}*` : ''
+          updateMessage(agentType, assistantId, caption)
+          // Store URL in generatedImages field via a direct store patch
+          useChatStore.setState(s => ({
+            instances: {
+              ...s.instances,
+              [agentType]: {
+                ...s.instances[agentType],
+                messages: s.instances[agentType].messages.map(m =>
+                  m.id === assistantId ? { ...m, generatedImages: [data.url] } : m
+                ),
+              },
+            },
+          }))
+        }
+      } catch (err) {
+        updateMessage(agentType, assistantId, `Erro ao gerar imagem: ${String(err)}`)
+      } finally {
+        setStreaming(agentType, false)
+      }
+      return
+    }
+
     // Se já está gerando, aborta a resposta atual antes de enviar a nova
     if (streaming) abortRef.current?.abort()
 
