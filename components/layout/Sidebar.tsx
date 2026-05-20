@@ -90,8 +90,9 @@ export function Sidebar() {
       width: 220,
       flexShrink: 0,
       ...(effectivePinned ? {
-        // In-grid: overflow:hidden lets the grid column animation clip the content
-        overflow: 'hidden',
+        // In-grid: overflowX:hidden clips content during column-width animation
+        overflowX: 'hidden',
+        overflowY: 'auto',
         minWidth: 0,
       } : {
         position: 'fixed',
