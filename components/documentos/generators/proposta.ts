@@ -404,13 +404,12 @@ function slide09(p: PropostaData): string {
   const numMonths = fases.length ? Math.ceil(maxWeek / 4) : 0;
   return `
 <!-- 08 CRONOGRAMA -->
-<div class="slide sw" style="padding-top:clamp(56px,8vh,88px)">
+<div class="slide sw">
   ${slideHeader('Cronograma', '08 / 12')}
-  <div style="display:flex;gap:clamp(24px,3.5vw,48px);align-items:flex-start;flex:1;min-height:0">
+  <div style="display:flex;gap:clamp(24px,3.5vw,48px);align-items:center;flex:1;min-height:0">
 
     <!-- Left column: title + stats -->
-    <div style="width:26%;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:clamp(6px,0.8vh,10px)">
-      <div style="font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#aaa">CRONOGRAMA</div>
+    <div style="width:26%;flex-shrink:0;display:flex;flex-direction:column;gap:clamp(6px,0.8vh,10px)">
       <div class="title">Fases do<br><span class="acc">projeto</span></div>
       <div class="rule" style="margin:clamp(6px,0.8vh,10px) 0"></div>
       ${fases.length ? `
@@ -421,7 +420,7 @@ function slide09(p: PropostaData): string {
     </div>
 
     <!-- Right column: Gantt -->
-    <div style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center">
+    <div style="flex:1;min-width:0;overflow:hidden">
       ${buildGantt(fases, false)}
     </div>
 
