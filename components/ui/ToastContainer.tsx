@@ -2,52 +2,104 @@
 import { useEffect, useRef, useState } from 'react'
 import { useToastStore, type ToastItem, type ToastType } from '@/stores/toastStore'
 
-// ── Theme por tipo ─────────────────────────────────────────────────────────────
+// ── Temas por tipo × modo ──────────────────────────────────────────────────────
 
-const THEME: Record<ToastType, {
-  accent: string        // cor sólida (ícone, barra, texto título)
-  bg: string            // fundo translúcido
-  border: string        // borda sutil
-  shadow: string        // sombra colorida
-  shadowHov: string     // sombra no hover
-  iconBg: string        // fundo do círculo do ícone
-  textColor: string     // cor do título
-  subColor: string      // cor da mensagem secundária
-  closeBg: string       // hover do botão fechar
-}> = {
+type ThemeEntry = {
+  accent: string
+  bg: string
+  border: string
+  shadow: string
+  shadowHov: string
+  iconBg: string
+  textColor: string
+  subColor: string
+  closeBg: string
+}
+
+const LIGHT: Record<ToastType, ThemeEntry> = {
   success: {
     accent:    '#1A7A36',
-    bg:        'rgba(30,138,62,0.13)',
-    border:    'rgba(30,138,62,0.28)',
-    shadow:    '0 8px 32px rgba(30,138,62,0.18), 0 2px 8px rgba(30,138,62,0.12)',
-    shadowHov: '0 12px 40px rgba(30,138,62,0.28), 0 4px 12px rgba(30,138,62,0.18)',
-    iconBg:    'rgba(30,138,62,0.18)',
+    bg:        'rgba(30,138,62,0.10)',
+    border:    'rgba(30,138,62,0.25)',
+    shadow:    '0 8px 32px rgba(30,138,62,0.14), 0 2px 8px rgba(30,138,62,0.10)',
+    shadowHov: '0 12px 40px rgba(30,138,62,0.24), 0 4px 12px rgba(30,138,62,0.16)',
+    iconBg:    'rgba(30,138,62,0.14)',
     textColor: '#0F2E18',
     subColor:  '#2D6B42',
-    closeBg:   'rgba(30,138,62,0.15)',
+    closeBg:   'rgba(30,138,62,0.12)',
   },
   error: {
     accent:    '#B91C1C',
-    bg:        'rgba(217,48,37,0.12)',
-    border:    'rgba(217,48,37,0.28)',
-    shadow:    '0 8px 32px rgba(217,48,37,0.18), 0 2px 8px rgba(217,48,37,0.12)',
-    shadowHov: '0 12px 40px rgba(217,48,37,0.28), 0 4px 12px rgba(217,48,37,0.18)',
-    iconBg:    'rgba(217,48,37,0.15)',
+    bg:        'rgba(217,48,37,0.10)',
+    border:    'rgba(217,48,37,0.25)',
+    shadow:    '0 8px 32px rgba(217,48,37,0.14), 0 2px 8px rgba(217,48,37,0.10)',
+    shadowHov: '0 12px 40px rgba(217,48,37,0.24), 0 4px 12px rgba(217,48,37,0.16)',
+    iconBg:    'rgba(217,48,37,0.12)',
     textColor: '#2D0A08',
     subColor:  '#8B2A24',
-    closeBg:   'rgba(217,48,37,0.15)',
+    closeBg:   'rgba(217,48,37,0.12)',
   },
   info: {
     accent:    '#1D4ED8',
-    bg:        'rgba(59,130,246,0.12)',
-    border:    'rgba(59,130,246,0.28)',
-    shadow:    '0 8px 32px rgba(59,130,246,0.18), 0 2px 8px rgba(59,130,246,0.12)',
-    shadowHov: '0 12px 40px rgba(59,130,246,0.28), 0 4px 12px rgba(59,130,246,0.18)',
-    iconBg:    'rgba(59,130,246,0.15)',
+    bg:        'rgba(59,130,246,0.10)',
+    border:    'rgba(59,130,246,0.25)',
+    shadow:    '0 8px 32px rgba(59,130,246,0.14), 0 2px 8px rgba(59,130,246,0.10)',
+    shadowHov: '0 12px 40px rgba(59,130,246,0.24), 0 4px 12px rgba(59,130,246,0.16)',
+    iconBg:    'rgba(59,130,246,0.12)',
     textColor: '#0C1A40',
     subColor:  '#2E5AA8',
-    closeBg:   'rgba(59,130,246,0.15)',
+    closeBg:   'rgba(59,130,246,0.12)',
   },
+}
+
+const DARK: Record<ToastType, ThemeEntry> = {
+  success: {
+    accent:    '#4ADE80',
+    bg:        'rgba(74,222,128,0.12)',
+    border:    'rgba(74,222,128,0.22)',
+    shadow:    '0 8px 32px rgba(0,0,0,0.40), 0 2px 8px rgba(74,222,128,0.10)',
+    shadowHov: '0 12px 40px rgba(0,0,0,0.50), 0 4px 12px rgba(74,222,128,0.18)',
+    iconBg:    'rgba(74,222,128,0.15)',
+    textColor: '#D1FAE5',
+    subColor:  '#6EE7B7',
+    closeBg:   'rgba(74,222,128,0.15)',
+  },
+  error: {
+    accent:    '#F87171',
+    bg:        'rgba(248,113,113,0.12)',
+    border:    'rgba(248,113,113,0.22)',
+    shadow:    '0 8px 32px rgba(0,0,0,0.40), 0 2px 8px rgba(248,113,113,0.10)',
+    shadowHov: '0 12px 40px rgba(0,0,0,0.50), 0 4px 12px rgba(248,113,113,0.18)',
+    iconBg:    'rgba(248,113,113,0.15)',
+    textColor: '#FEE2E2',
+    subColor:  '#FCA5A5',
+    closeBg:   'rgba(248,113,113,0.15)',
+  },
+  info: {
+    accent:    '#60A5FA',
+    bg:        'rgba(96,165,250,0.12)',
+    border:    'rgba(96,165,250,0.22)',
+    shadow:    '0 8px 32px rgba(0,0,0,0.40), 0 2px 8px rgba(96,165,250,0.10)',
+    shadowHov: '0 12px 40px rgba(0,0,0,0.50), 0 4px 12px rgba(96,165,250,0.18)',
+    iconBg:    'rgba(96,165,250,0.15)',
+    textColor: '#DBEAFE',
+    subColor:  '#93C5FD',
+    closeBg:   'rgba(96,165,250,0.15)',
+  },
+}
+
+// ── Detect dark mode ───────────────────────────────────────────────────────────
+
+function useIsDark() {
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    const check = () => setDark(document.documentElement.getAttribute('data-theme') === 'dark')
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => obs.disconnect()
+  }, [])
+  return dark
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -83,8 +135,12 @@ function Toast({ item }: { item: ToastItem }) {
   const [exiting, setExiting] = useState(false)
   const [hovered, setHovered] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const t = THEME[item.type]
+  const isDark = useIsDark()
+  const t = (isDark ? DARK : LIGHT)[item.type]
   const duration = item.duration ?? 4000
+
+  // fundo sólido da sidebar no dark para garantir contraste
+  const solidBg = isDark ? '#1C1F28' : '#FFFFFF'
 
   const leave = () => {
     setExiting(true)
@@ -110,7 +166,9 @@ function Toast({ item }: { item: ToastItem }) {
         alignItems: 'flex-start',
         gap: 11,
         width: 320,
-        background: t.bg,
+        background: isDark
+          ? `linear-gradient(135deg, ${solidBg}, ${solidBg})`
+          : 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderRadius: 14,
@@ -126,6 +184,15 @@ function Toast({ item }: { item: ToastItem }) {
         transition: 'box-shadow 0.2s ease',
       }}
     >
+      {/* Barra colorida lateral */}
+      <div style={{
+        position: 'absolute',
+        left: 0, top: 0, bottom: 0,
+        width: 3,
+        background: t.accent,
+        borderRadius: '14px 0 0 14px',
+      }} />
+
       {/* Ícone */}
       <div style={{
         flexShrink: 0,
