@@ -439,7 +439,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
           <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             Anexos
             {attFetching
-              ? <span style={{ width: 28, height: 12, borderRadius: 4, background: 'var(--gray3)', display: 'inline-block', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+              ? <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--gray3)', borderTopColor: 'var(--gray2)', display: 'inline-block', animation: 'spin-slow 0.7s linear infinite', flexShrink: 0 }} />
               : attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', color: 'var(--gray2)' }}>({attachments.length})</span>
             }
           </label>
