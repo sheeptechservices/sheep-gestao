@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           gridTemplateColumns: inGrid ? (open ? '220px 1fr' : '0px 1fr') : '1fr',
           gridTemplateRows: '60px 1fr',
           height: '100vh',
-          overflow: 'hidden',
+          overflow: 'clip',
           transition: 'grid-template-columns 0.28s cubic-bezier(0.4,0,0.2,1)',
         }}>
           <Topbar />
