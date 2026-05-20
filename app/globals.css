@@ -150,6 +150,10 @@ body {
   0%   { transform: translateX(-150%); }
   100% { transform: translateX(250%); }
 }
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
 @keyframes pulse-dot {
   0%, 100% { opacity: 1;   transform: scale(1);   }
   50%       { opacity: 0.4; transform: scale(0.75); }

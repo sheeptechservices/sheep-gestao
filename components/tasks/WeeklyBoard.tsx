@@ -213,6 +213,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   // ── Attachments state ──────────────────────────────────────────────────────
   const [attachments, setAttachments]   = useState<TaskAttachment[]>([])
   const [attLoading, setAttLoading]     = useState(false)
+  const [attFetching, setAttFetching]   = useState(false)
   const [attUploading, setAttUploading] = useState(false)
   const [dragOver, setDragOver]         = useState(false)
   const [attHover, setAttHover]         = useState(false)
@@ -223,10 +224,12 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
     if (!effectiveId) return
+    setAttFetching(true)
     fetch(`/api/attachments?task_id=${effectiveId}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setAttachments(data) })
       .catch(() => {})
+      .finally(() => setAttFetching(false))
   }, [effectiveId])
 
   async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -433,8 +436,12 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
 
         {/* Attachments */}
         <div>
-          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>
-            Anexos {attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', color: 'var(--gray2)' }}>({attachments.length})</span>}
+          <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            Anexos
+            {attFetching
+              ? <span style={{ width: 28, height: 12, borderRadius: 4, background: 'var(--gray3)', display: 'inline-block', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+              : attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', color: 'var(--gray2)' }}>({attachments.length})</span>
+            }
           </label>
 
           {/* Drop zone */}
@@ -597,8 +604,24 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
             document.body
           )}
 
+          {/* Lista de anexos — skeleton enquanto carrega */}
+          {attFetching && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
+              {[0, 1].map(i => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--gray3)', background: 'var(--white)', animation: `skeleton-pulse 1.5s ease-in-out ${i * 0.15}s infinite` }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--gray3)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <div style={{ height: 10, borderRadius: 4, background: 'var(--gray3)', width: `${52 + i * 22}%` }} />
+                    <div style={{ height: 8, borderRadius: 4, background: 'var(--gray3)', width: '28%' }} />
+                  </div>
+                  <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--gray3)', flexShrink: 0 }} />
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Lista de anexos */}
-          {attachments.length > 0 && (
+          {!attFetching && attachments.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
               {attachments.map(att => {
                 const isImg  = att.mime_type.startsWith('image/')

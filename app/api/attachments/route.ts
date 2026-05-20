@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
       sql:  'SELECT id, task_id, filename, url, size, mime_type, created_at FROM task_attachments WHERE task_id = ? ORDER BY created_at ASC',
       args: [taskId],
     })
-    return NextResponse.json(res.rows as unknown as TaskAttachment[])
+    const response = NextResponse.json(res.rows as unknown as TaskAttachment[])
+    response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60')
+    return response
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
