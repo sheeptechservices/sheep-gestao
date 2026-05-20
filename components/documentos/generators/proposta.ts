@@ -399,31 +399,14 @@ function slide07(p: PropostaData): string {
 // ── SLIDE 8 — CRONOGRAMA ───────────────────────────────
 function slide09(p: PropostaData): string {
   const fases = p.fases.filter(f => f.nome && f.semanas > 0);
-  const toAbsWeek = (f: { mes: number }) => Math.max(1, (f.mes - 1) * 4 + 1);
-  const maxWeek = fases.length ? Math.max(...fases.map(f => toAbsWeek(f) + (f.semanas || 1) - 1)) : 0;
-  const numMonths = fases.length ? Math.ceil(maxWeek / 4) : 0;
   return `
 <!-- 08 CRONOGRAMA -->
 <div class="slide sw">
   ${slideHeader('Cronograma', '08 / 12')}
-  <div style="display:flex;gap:clamp(24px,3.5vw,48px);align-items:center;flex:1;min-height:0">
-
-    <!-- Left column: title + stats -->
-    <div style="width:26%;flex-shrink:0;display:flex;flex-direction:column;gap:clamp(6px,0.8vh,10px)">
-      <div class="title">Fases do<br><span class="acc">projeto</span></div>
-      <div class="rule" style="margin:clamp(6px,0.8vh,10px) 0"></div>
-      ${fases.length ? `
-      <div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span style="background:var(--yd);color:#2a4a00;border:1px solid var(--yb);border-radius:100px;font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.08em;padding:clamp(2px,0.3vh,4px) clamp(8px,0.9vw,12px)">${fases.length} fase${fases.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div style="font-size:clamp(8px,0.72vw,10px);color:var(--gray2);font-weight:600;letter-spacing:.06em">${maxWeek} semanas · ${numMonths} ${numMonths === 1 ? 'mês' : 'meses'}</div>` : ''}
-    </div>
-
-    <!-- Right column: Gantt -->
-    <div style="flex:1;min-width:0;overflow:hidden">
-      ${buildGantt(fases, false)}
-    </div>
-
+  <div class="title a">Fases do <span class="acc">projeto</span></div>
+  <div class="rule a"></div>
+  <div class="a" style="width:100%;overflow:hidden">
+    ${buildGantt(fases, false)}
   </div>
   ${slideFooter(8 / 12)}
 </div>`;
