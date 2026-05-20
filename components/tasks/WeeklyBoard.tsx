@@ -217,6 +217,8 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   const [dragOver, setDragOver]         = useState(false)
   const [attHover, setAttHover]         = useState(false)
   const [previewAtt, setPreviewAtt]     = useState<TaskAttachment | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [attHoverId, setAttHoverId]     = useState<string | null>(null)
 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
@@ -545,18 +547,27 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
                 </div>
 
                 {/* Preview content */}
-                <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', minHeight: 200 }}>
+                <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', minHeight: 200, position: 'relative' }}>
+                  {/* Loading spinner */}
+                  {previewLoading && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'var(--bg)', zIndex: 2 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--gray3)', borderTopColor: 'var(--primary)', animation: 'spin-slow 0.7s linear infinite' }} />
+                      <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 600 }}>Carregando…</span>
+                    </div>
+                  )}
                   {previewAtt.mime_type.startsWith('image/') ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={`${previewAtt.url}?preview=1`}
                       alt={previewAtt.filename}
-                      style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4, display: 'block' }}
+                      onLoad={() => setPreviewLoading(false)}
+                      style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4, display: 'block', opacity: previewLoading ? 0 : 1, transition: 'opacity 0.2s ease' }}
                     />
                   ) : previewAtt.mime_type === 'application/pdf' ? (
                     <iframe
                       src={`${previewAtt.url}?preview=1`}
-                      style={{ width: '100%', height: '75vh', border: 'none' }}
+                      onLoad={() => setPreviewLoading(false)}
+                      style={{ width: '100%', height: '75vh', border: 'none', opacity: previewLoading ? 0 : 1, transition: 'opacity 0.2s ease' }}
                       title={previewAtt.filename}
                     />
                   ) : (
@@ -599,14 +610,21 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
                   ? `${(att.size / 1024).toFixed(0)} KB`
                   : `${(att.size / 1024 / 1024).toFixed(1)} MB`
                 return (
-                  <div key={att.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '7px 10px', borderRadius: 8,
-                    border: '1px solid var(--gray3)', background: 'var(--white)',
-                  }}>
+                  <div
+                    key={att.id}
+                    onMouseEnter={() => setAttHoverId(att.id)}
+                    onMouseLeave={() => setAttHoverId(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 10px', borderRadius: 8,
+                      border: `1px solid ${attHoverId === att.id ? 'var(--gray2)' : 'var(--gray3)'}`,
+                      background: attHoverId === att.id ? 'var(--bg)' : 'var(--white)',
+                      transition: 'background 0.15s, border-color 0.15s',
+                    }}
+                  >
                     <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
                     <div
-                      onClick={e => { e.stopPropagation(); setPreviewAtt(att) }}
+                      onClick={e => { e.stopPropagation(); setPreviewLoading(true); setPreviewAtt(att) }}
                       style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                       title="Pré-visualizar"
                     >
