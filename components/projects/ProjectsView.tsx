@@ -3509,10 +3509,10 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
       {/* Header + filtros */}
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
-        gap: 16, marginBottom: 20,
-        position: 'sticky', top: 60, zIndex: 200,
-        background: 'var(--bg)', padding: '14px 0',
-        margin: '-14px 0 20px',
+        gap: 16,
+        position: 'sticky', top: 0, zIndex: 200,
+        background: 'var(--bg)', padding: '8px 0 14px',
+        marginBottom: 20,
       }}>
         {/* Título — coluna esquerda */}
         <div style={{ flexShrink: 0 }}>
