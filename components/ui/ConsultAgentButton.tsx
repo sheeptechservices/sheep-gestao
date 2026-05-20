@@ -59,16 +59,25 @@ function PopoverPortal({
     if (!anchorRef.current) return
     const rect = anchorRef.current.getBoundingClientRect()
     const POPOVER_W = 210
-    const POPOVER_H = 280 // approx max height
+    const POPOVER_H = 320 // generous estimate for max height
+
+    const topUp   = rect.top  + window.scrollY - POPOVER_H - 6
+    const topDown = rect.bottom + window.scrollY + 6
+
+    const fitsUp   = topUp   >= window.scrollY + 8
+    const fitsDown = topDown + POPOVER_H <= window.scrollY + window.innerHeight - 8
 
     let top: number
-    if (direction === 'up') {
-      top = rect.top + window.scrollY - POPOVER_H - 6
+    if (direction === 'up' && fitsUp) {
+      top = topUp
+    } else if (fitsDown) {
+      top = topDown
+    } else if (fitsUp) {
+      top = topUp
     } else {
-      top = rect.bottom + window.scrollY + 6
+      // Neither fits perfectly — clamp to bottom of viewport
+      top = window.scrollY + window.innerHeight - POPOVER_H - 8
     }
-    // Clamp so it doesn't go off-screen top
-    if (top < window.scrollY + 8) top = rect.bottom + window.scrollY + 6
 
     const left = Math.min(
       rect.right + window.scrollX - POPOVER_W,
@@ -115,6 +124,8 @@ function PopoverPortal({
         display: 'flex', flexDirection: 'column', gap: 2,
         zIndex: 99999,
         minWidth: 200,
+        maxHeight: '80vh',
+        overflowY: 'auto',
         animation: 'slideUp 0.18s ease both',
       }}
     >
