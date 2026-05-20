@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
@@ -37,10 +37,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data.error?.message ?? 'Erro na API OpenAI.' }, { status: r.status })
     }
 
-    return NextResponse.json({
-      url: data.data[0].url,
-      revised_prompt: data.data[0].revised_prompt,
-    })
+    const item = data.data[0]
+    // gpt-image-1 returns b64_json; older models return url
+    const url = item.url ?? `data:image/png;base64,${item.b64_json}`
+
+    return NextResponse.json({ url })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
