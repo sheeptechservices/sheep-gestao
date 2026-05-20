@@ -67,15 +67,15 @@ function Toast({ item }: { item: ToastItem }) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [hovered, duration]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Glassmorphism idêntico para ambos os modos
-  const bg         = isDark ? 'rgba(22, 25, 35, 0.82)' : 'rgba(255,255,255,0.88)'
-  const border     = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)'
+  // Glassmorphism — light mais translúcido para efeito de vidro visível
+  const bg         = isDark ? 'rgba(22, 25, 35, 0.82)' : 'rgba(255,255,255,0.62)'
+  const border     = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.90)'
   const shadow     = isDark
     ? '0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25)'
-    : '0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)'
+    : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)'
   const shadowHov  = isDark
     ? '0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.30)'
-    : '0 12px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08)'
+    : '0 12px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.10)'
   const textColor  = isDark ? '#E2E8F0' : '#121316'
   const subColor   = isDark ? '#94A3B8' : '#64748B'
   const closeBg    = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
