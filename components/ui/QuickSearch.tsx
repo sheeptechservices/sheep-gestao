@@ -169,6 +169,7 @@ export function QuickSearch() {
 
   const filteredTasks: EnrichedTask[] = query
     ? tasks
+        .filter(t => !t.done)
         .filter(t => {
           const q = query.toLowerCase()
           return (
