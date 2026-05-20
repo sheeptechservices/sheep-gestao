@@ -68,7 +68,7 @@ function Toast({ item }: { item: ToastItem }) {
   }, [hovered, duration]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Glassmorphism — light mais translúcido para efeito de vidro visível
-  const bg         = isDark ? 'rgba(22, 25, 35, 0.82)' : 'rgba(255,255,255,0.62)'
+  const bg         = isDark ? 'rgba(22, 25, 35, 0.82)' : 'rgba(255,255,255,0.48)'
   const border     = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.90)'
   const shadow     = isDark
     ? '0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25)'
