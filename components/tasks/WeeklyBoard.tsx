@@ -216,6 +216,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   const [attUploading, setAttUploading] = useState(false)
   const [dragOver, setDragOver]         = useState(false)
   const [attHover, setAttHover]         = useState(false)
+  const [previewAtt, setPreviewAtt]     = useState<TaskAttachment | null>(null)
 
   // Carrega anexos (em edição, task.id já existe; em novo, quando draftId estiver pronto)
   useEffect(() => {
@@ -487,6 +488,104 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
           </div>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleAttachFile} />
 
+          {/* ── File preview modal ─────────────────────────────────────────── */}
+          {previewAtt && createPortal(
+            <div
+              onClick={() => setPreviewAtt(null)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 99999,
+                background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                padding: 24, animation: 'fadeIn 0.18s ease both',
+              }}
+            >
+              {/* Modal box */}
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  width: '90vw', maxWidth: 900, maxHeight: '90vh',
+                  background: 'var(--white)', borderRadius: 16,
+                  boxShadow: '0 24px 80px rgba(0,0,0,0.45)', overflow: 'hidden',
+                  animation: 'msgLeft 0.22s cubic-bezier(0.34,1.2,0.64,1) both',
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--gray3)', flexShrink: 0 }}>
+                  <span style={{ fontSize: 18 }}>
+                    {previewAtt.mime_type.startsWith('image/') ? '🖼' : previewAtt.mime_type === 'application/pdf' ? '📄' : previewAtt.mime_type.includes('word') ? '📝' : previewAtt.mime_type.includes('spreadsheet') ? '📊' : '📎'}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewAtt.filename}</div>
+                    <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>
+                      {previewAtt.size < 1024 * 1024 ? `${(previewAtt.size / 1024).toFixed(0)} KB` : `${(previewAtt.size / 1024 / 1024).toFixed(1)} MB`}
+                    </div>
+                  </div>
+                  {/* Download */}
+                  <a
+                    href={previewAtt.url}
+                    download={previewAtt.filename}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--gray3)', background: 'var(--bg)', fontSize: 11, fontWeight: 700, color: 'var(--black)', textDecoration: 'none', flexShrink: 0, transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                  >
+                    <svg width={12} height={12} viewBox="0 0 14 14" fill="none"><path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Baixar
+                  </a>
+                  {/* Close */}
+                  <button
+                    onClick={() => setPreviewAtt(null)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.12s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+                  >
+                    <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+
+                {/* Preview content */}
+                <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', minHeight: 200 }}>
+                  {previewAtt.mime_type.startsWith('image/') ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`${previewAtt.url}?preview=1`}
+                      alt={previewAtt.filename}
+                      style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4, display: 'block' }}
+                    />
+                  ) : previewAtt.mime_type === 'application/pdf' ? (
+                    <iframe
+                      src={`${previewAtt.url}?preview=1`}
+                      style={{ width: '100%', height: '75vh', border: 'none' }}
+                      title={previewAtt.filename}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ fontSize: 48, marginBottom: 16 }}>
+                        {previewAtt.mime_type.includes('word') ? '📝' : previewAtt.mime_type.includes('spreadsheet') ? '📊' : '📎'}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--black)', marginBottom: 6 }}>
+                        Pré-visualização não disponível
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--gray2)', marginBottom: 20 }}>
+                        Este tipo de arquivo não pode ser visualizado no navegador.<br/>Faça o download para abrir.
+                      </div>
+                      <a
+                        href={previewAtt.url}
+                        download={previewAtt.filename}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 10, background: 'var(--primary)', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                      >
+                        <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Baixar {previewAtt.filename}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
           {/* Lista de anexos */}
           {attachments.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
@@ -506,8 +605,12 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
                     border: '1px solid var(--gray3)', background: 'var(--white)',
                   }}>
                     <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div
+                      onClick={e => { e.stopPropagation(); setPreviewAtt(att) }}
+                      style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                      title="Pré-visualizar"
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 }}>
                         {att.filename}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{kb}</div>
