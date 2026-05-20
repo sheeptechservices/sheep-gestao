@@ -33,6 +33,10 @@ export function Step09_Cronograma() {
     set({ fases: fases.map(f => f.id === fid
       ? { ...f, subfases: (f.subfases || []).map((s: SubFase) => s.id === sid ? { ...s, nome: val } : s) }
       : f) })
+  const updateSubfaseField = (fid: string, sid: string, field: keyof SubFase, val: number | undefined) =>
+    set({ fases: fases.map(f => f.id === fid
+      ? { ...f, subfases: (f.subfases || []).map((s: SubFase) => s.id === sid ? { ...s, [field]: val } : s) }
+      : f) })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -79,24 +83,44 @@ export function Step09_Cronograma() {
                   Detalhamento
                 </div>
                 {subs.map((sub, si) => (
-                  <div key={sub.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: '50%',
-                      background: 'var(--yd)', border: '1px solid var(--yb)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 800, color: '#2a4a00', flexShrink: 0,
-                    }}>
-                      {si + 1}
+                  <div key={sub.id} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: 'var(--yd)', border: '1px solid var(--yb)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 9, fontWeight: 800, color: '#2a4a00', flexShrink: 0,
+                      }}>
+                        {si + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Input
+                          label=""
+                          value={sub.nome}
+                          onChange={e => updateSubfase(f.id, sub.id, e.target.value)}
+                          placeholder={`Ex: Entrevistas com stakeholders`}
+                        />
+                      </div>
+                      <RemoveButton onClick={() => removeSubfase(f.id, sub.id)} />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, paddingLeft: 28 }}>
                       <Input
-                        label=""
-                        value={sub.nome}
-                        onChange={e => updateSubfase(f.id, sub.id, e.target.value)}
-                        placeholder={`Ex: Entrevistas com stakeholders`}
+                        label="Mês (opcional)"
+                        type="number"
+                        value={sub.mes !== undefined ? String(sub.mes) : ''}
+                        onChange={e => updateSubfaseField(f.id, sub.id, 'mes', e.target.value ? Number(e.target.value) : undefined)}
+                        min={1}
+                        placeholder="—"
+                      />
+                      <Input
+                        label="Sem (opcional)"
+                        type="number"
+                        value={sub.semanas !== undefined ? String(sub.semanas) : ''}
+                        onChange={e => updateSubfaseField(f.id, sub.id, 'semanas', e.target.value ? Number(e.target.value) : undefined)}
+                        min={1}
+                        placeholder="—"
                       />
                     </div>
-                    <RemoveButton onClick={() => removeSubfase(f.id, sub.id)} />
                   </div>
                 ))}
                 {subs.length < MAX_SUBFASES && (

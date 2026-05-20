@@ -128,145 +128,137 @@ export function ticker(text: string, dark = false): string {
 }
 
 export function buildGantt(
-  fases: Array<{ nome: string; mes: number; semanas: number; subfases?: Array<{ nome: string }> }>,
+  fases: Array<{ nome: string; mes: number; semanas: number; subfases?: Array<{ nome: string; mes?: number; semanas?: number }> }>,
   dark = false
 ): string {
   if (!fases.length) return '';
-  const toAbsWeek = (f: { mes: number }) => Math.max(1, (f.mes - 1) * 4 + 1);
-  const maxWeek = Math.max(...fases.map(f => toAbsWeek(f) + (f.semanas || 1) - 1));
+
+  const toAbsW = (mes: number) => Math.max(1, (mes - 1) * 4 + 1);
+
+  // Calcula total de semanas (fases + subfases)
+  const ends: number[] = [];
+  fases.forEach(f => {
+    ends.push(toAbsW(f.mes) + Math.max(1, f.semanas) - 1);
+    (f.subfases || []).forEach(s => {
+      if (s.mes && s.semanas) ends.push(toAbsW(s.mes) + s.semanas - 1);
+    });
+  });
+  const maxWeek = Math.max(...ends);
   const totalWeeks = Math.ceil(maxWeek / 4) * 4;
   const numMonths = totalWeeks / 4;
-  const col = `clamp(150px,18vw,210px) repeat(${totalWeeks},1fr)`;
 
-  const bc = dark ? 'rgba(255,255,255,0.08)' : 'var(--gray3)';
-  const textCol = dark ? 'rgba(255,255,255,0.45)' : 'var(--gray2)';
-  const tc = dark ? 'rgba(255,255,255,0.7)' : 'var(--gray2)';
-  const labelCol = dark ? 'rgba(255,255,255,0.85)' : 'var(--black)';
-  const detailBg = dark ? 'rgba(190,255,1,0.06)' : 'rgba(190,255,1,0.07)';
-  const monthBg = (m: number) =>
-    m % 2 === 0 ? 'rgba(190,255,1,0.06)' : 'transparent';
+  const nameW = 'clamp(160px,18vw,220px)';
+  const col = `${nameW} repeat(${totalWeeks},1fr)`;
 
-  // Month header row
-  const monthCells = Array.from({ length: numMonths }, (_, m) =>
-    `<div style="grid-column:span 4;text-align:center;font-size:clamp(7px,0.65vw,9px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${textCol};padding:4px 0;border-left:1px solid ${bc};background:${monthBg(m)}">Mês ${m + 1}</div>`
-  ).join('');
+  // Cores — tabela sempre escura
+  const tableBg = '#0E0F13';
+  const hdrBg   = '#18191E';
+  const border   = 'rgba(255,255,255,0.08)';
+  const mthClr   = 'rgba(255,255,255,0.85)';
+  const wkClr    = 'rgba(255,255,255,0.28)';
+  const sfClr    = 'rgba(255,255,255,0.72)';
+  const rowEven  = '#131418';
+  const rowOdd   = '#111216';
+  const labelClr = dark ? 'rgba(255,255,255,0.45)' : 'var(--gray2)';
 
-  // Week sub-header row (hidden for long timelines)
-  const showWeeks = totalWeeks <= 16;
-  const weekCells = showWeeks
-    ? Array.from({ length: totalWeeks }, (_, w) =>
-        `<div style="text-align:center;font-size:clamp(6px,0.55vw,8px);font-weight:600;color:${textCol};opacity:.6;padding:2px 0;${w % 4 === 0 ? `border-left:1px solid ${bc}` : ''}">S${(w % 4) + 1}</div>`
-      ).join('')
-    : '';
+  let ri = 0;
+  const rowBg = () => ri++ % 2 === 0 ? rowEven : rowOdd;
+  let animIdx = 0;
+  const nextDelay = () => (0.08 + animIdx++ * 0.07).toFixed(2);
 
-  // Background stripe cells for each phase row (reused per row)
-  const bgCells = Array.from({ length: numMonths }, (_, m) =>
-    `<div style="grid-row:1;grid-column:${m * 4 + 2}/span 4;background:${monthBg(m)};height:100%;border-left:1px solid ${bc}"></div>`
-  ).join('');
-
-  const rowH = 'clamp(30px,3.8vh,48px)';
-  const badgeSize = 'clamp(16px,1.8vw,24px)';
-  const badgeFontSize = 'clamp(7px,0.8vw,10px)';
-  const nameFontSize = 'clamp(8px,0.85vw,12px)';
-  const barRadius = 'clamp(4px,0.4vw,6px)';
-
-  let hasAnySubfases = false;
-
-  const rows = fases.map((f, i) => {
-    const inicio  = toAbsWeek(f);
-    const semanas = Math.max(1, f.semanas || 1);
-    const delay   = (0.25 + i * 0.09).toFixed(2);
-    const tip = `${esc(f.nome)} · ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} · Mês ${f.mes}`;
-    const subs = (f.subfases || []).filter(s => s.nome.trim());
-    const hasSubs = subs.length > 0;
-    if (hasSubs) hasAnySubfases = true;
-
-    // Chevron icon (only for phases with subfases)
-    const chevron = hasSubs
-      ? `<svg id="pc-${i}" width="10" height="14" viewBox="0 0 10 14" fill="none" style="margin-left:auto;flex-shrink:0;transition:transform .28s cubic-bezier(.34,1.56,.64,1);opacity:.75">
-           <path d="M3 4.5L7 7L3 9.5" stroke="rgba(190,255,1,0.95)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-         </svg>`
-      : '';
-
-    const rowStyle = [
-      `display:grid`,
-      `grid-template-columns:${col}`,
-      `grid-template-rows:${rowH}`,
-      `align-items:center`,
-      `margin-bottom:clamp(4px,0.5vh,7px)`,
-      `position:relative`,
-      `border-radius:clamp(4px,0.4vw,6px)`,
-      `transition:background .22s ease`,
-      hasSubs ? 'cursor:pointer' : '',
-    ].filter(Boolean).join(';');
-
-    const onclickAttr = hasSubs
-      ? `onclick="tP(${i});event.stopPropagation()" `
-      : '';
-
-    // Detail panel (expanded on click)
-    const detailPanel = hasSubs ? `
-    <div id="pd-${i}" data-open="0" style="max-height:0;overflow:hidden;opacity:0;transition:max-height .38s ease,opacity .28s ease;margin-bottom:0">
-      <div style="border-left:3px solid var(--yellow);background:${detailBg};border-radius:0 clamp(6px,0.7vw,10px) clamp(6px,0.7vw,10px) 0;padding:clamp(8px,1vh,14px) clamp(12px,1.4vw,18px);margin-bottom:clamp(4px,0.5vh,7px)">
-        <div style="font-size:clamp(6px,0.6vw,9px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${textCol};margin-bottom:clamp(6px,0.7vh,10px)">${esc(f.nome)} — detalhamento</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:clamp(4px,0.5vh,6px) clamp(10px,1.2vw,16px)">
-          ${subs.map((s, si) => `
-          <div style="display:flex;align-items:center;gap:clamp(6px,0.7vw,9px)">
-            <div style="width:clamp(14px,1.5vw,19px);height:clamp(14px,1.5vw,19px);border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:clamp(6px,0.6vw,8px);font-weight:800;color:#000;flex-shrink:0">${String(si + 1).padStart(2, '0')}</div>
-            <span style="font-size:clamp(8px,0.82vw,12px);font-weight:600;color:${labelCol};line-height:1.4">${esc(s.nome)}</span>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>` : '';
-
-    return `
-    <div id="pr-${i}" class="gantt-row" data-tip="${tip}" ${onclickAttr}style="${rowStyle}">
-      <div style="grid-row:1;grid-column:1;font-size:${nameFontSize};font-weight:700;color:${labelCol};padding-right:10px;display:flex;align-items:center;gap:clamp(5px,0.6vw,8px);overflow:hidden">
-        <div style="width:${badgeSize};height:${badgeSize};min-width:${badgeSize};border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:${badgeFontSize};font-weight:800;color:#000;flex-shrink:0">${String(i + 1).padStart(2, '0')}</div>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(f.nome)}</span>
-        ${chevron}
-      </div>
-      ${bgCells}
-      <div style="grid-row:1;grid-column:${inicio + 1}/span ${semanas};position:relative;display:flex;align-items:center;z-index:2">
-        <div
-          style="width:100%;height:70%;border-radius:${barRadius};background:linear-gradient(90deg,var(--yellow),rgba(190,255,1,0.72));transform-origin:left center;animation:gbar .55s cubic-bezier(.34,1.56,.64,1) ${delay}s both;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(4px,0.5vw,8px);transition:filter .2s,transform .15s ease;cursor:default"
-          onmouseenter="this.style.filter='brightness(1.12) drop-shadow(0 0 10px rgba(190,255,1,0.55))';this.style.transform='scaleY(1.12)'"
-          onmouseleave="this.style.filter='';this.style.transform=''"
-        >${semanas >= 2 ? `<span style="font-size:clamp(7px,0.65vw,9px);font-weight:800;color:rgba(0,0,0,0.5);white-space:nowrap">${semanas}sem</span>` : ''}</div>
-      </div>
-    </div>
-    ${detailPanel}`;
+  // Fundo listrado por mês (por linha)
+  const mkBg = () => Array.from({ length: numMonths }, (_, m) => {
+    const mbg = m % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent';
+    return `<div style="grid-row:1;grid-column:${m * 4 + 2}/span 4;background:${mbg};height:100%;border-left:1px solid ${border}"></div>`;
   }).join('');
 
-  const totalLine = `DURAÇÃO TOTAL: ${maxWeek} SEMANAS · ${numMonths} MESES`;
+  // Cabeçalho: nomes dos meses
+  const monthCells = Array.from({ length: numMonths }, (_, m) =>
+    `<div style="grid-column:span 4;text-align:center;font-size:clamp(8px,0.72vw,10px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${mthClr};padding:clamp(5px,0.55vh,8px) 0;border-left:1px solid ${border}">mês ${m + 1}</div>`
+  ).join('');
 
-  // Toggle script — injected once, guarded against re-definition
-  const tpScript = hasAnySubfases ? `
-<script>if(!window.tP){window.tP=function(idx){
-  document.querySelectorAll('[id^="pd-"]').forEach(function(el){
-    var k=parseInt(el.id.slice(3),10);
-    var isSelf=k===idx;
-    var wasOpen=el.dataset.open==='1';
-    var open=isSelf&&!wasOpen;
-    el.dataset.open=open?'1':'0';
-    el.style.maxHeight=open?el.scrollHeight+'px':'0';
-    el.style.opacity=open?'1':'0';
-    el.style.marginBottom=open?'6px':'0';
-    var r=document.getElementById('pr-'+k);
-    var c=document.getElementById('pc-'+k);
-    if(r)r.style.background=open?'rgba(190,255,1,0.06)':'';
-    if(c)c.style.transform=open?'rotate(90deg)':'';
-  });
-};}
-<\/script>` : '';
+  // Cabeçalho: números das semanas
+  const weekCells = Array.from({ length: totalWeeks }, (_, w) =>
+    `<div style="text-align:center;font-size:clamp(6px,0.58vw,9px);font-weight:600;color:${wkClr};padding:clamp(2px,0.3vh,4px) 0;${w % 4 === 0 ? `border-left:1px solid ${border}` : ''}">${(w % 4) + 1}</div>`
+  ).join('');
+
+  // Diamantes de sprint review
+  const sprintCells = Array.from({ length: totalWeeks }, (_, w) => {
+    const gc = w + 2;
+    const isEnd = (w + 1) % 4 === 0 && w < totalWeeks - 1;
+    const isLast = w === totalWeeks - 1;
+    const fill = isLast ? '#3B82F6' : '#F59E0B';
+    if (!isEnd && !isLast) return '';
+    return `<div style="grid-row:1;grid-column:${gc};display:flex;align-items:center;justify-content:center;z-index:3"><svg width="8" height="8" viewBox="0 0 8 8"><rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 4)" fill="${fill}"/></svg></div>`;
+  }).filter(Boolean).join('');
+
+  // Linhas de fases + subfases
+  const rows = fases.map((f, fi) => {
+    const subs = (f.subfases || []).filter(s => s.nome.trim());
+    const subsWithBars = subs.filter(s => s.mes && s.semanas);
+
+    // Linha de cabeçalho da fase (badge amarelo)
+    const phRow = `
+<div style="display:grid;grid-template-columns:${col};min-height:clamp(26px,3vh,38px);align-items:center;background:${rowBg()};border-top:1px solid ${border}">
+  <div style="grid-row:1;grid-column:1;padding:clamp(4px,0.45vh,6px) clamp(8px,0.9vw,12px);display:flex;align-items:center">
+    <span style="display:inline-block;background:var(--yellow);color:#000;border-radius:clamp(3px,0.3vw,4px);padding:clamp(1px,0.2vh,3px) clamp(5px,0.58vw,8px);font-size:clamp(8px,0.74vw,11px);font-weight:800;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${String(fi + 1).padStart(2, '0')}: ${esc(f.nome)}</span>
+  </div>
+  ${mkBg()}
+</div>`;
+
+    // Linhas de subfases
+    const sfRows = subs.map(s => {
+      const hasBar = !!(s.mes && s.semanas);
+      const bg = rowBg();
+      const delay = nextDelay();
+      const span = Math.max(1, s.semanas || 1);
+      const startGc = hasBar ? toAbsW(s.mes!) + 1 : 0;
+
+      return `
+<div style="display:grid;grid-template-columns:${col};min-height:clamp(22px,2.6vh,34px);align-items:center;background:${bg};border-top:1px solid ${border}">
+  <div style="grid-row:1;grid-column:1;padding:clamp(3px,0.32vh,5px) clamp(10px,1.1vw,14px);font-size:clamp(7px,0.67vw,10px);font-weight:600;color:${sfClr};display:flex;align-items:center;gap:clamp(4px,0.44vw,6px);overflow:hidden">
+    <span style="width:3px;height:3px;border-radius:50%;background:var(--yellow);flex-shrink:0"></span>
+    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.nome)}</span>
+  </div>
+  ${mkBg()}
+  ${hasBar ? `<div style="grid-row:1;grid-column:${startGc}/span ${span};z-index:2;padding:clamp(3px,0.38vh,5px) 0;display:flex;align-items:center"><div style="width:100%;height:62%;border-radius:clamp(3px,0.3vw,4px);background:linear-gradient(90deg,var(--yellow),rgba(190,255,1,0.78));transform-origin:left;animation:gbar .5s cubic-bezier(.34,1.56,.64,1) ${delay}s both;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(3px,0.3vw,5px);cursor:default;transition:filter .18s" onmouseenter="this.style.filter='brightness(1.12) drop-shadow(0 0 8px rgba(190,255,1,0.5))'" onmouseleave="this.style.filter=''">${span >= 2 ? `<span style="font-size:clamp(6px,0.54vw,8px);font-weight:800;color:rgba(0,0,0,0.5)">${span}sem</span>` : ''}</div></div>` : ''}
+</div>`;
+    }).join('');
+
+    // Barra da fase (só se sem subfases com timing)
+    let phBar = '';
+    if (subs.length === 0 || subsWithBars.length === 0) {
+      const bg = rowBg();
+      const startGc = toAbsW(f.mes) + 1;
+      const span = Math.max(1, f.semanas);
+      const delay = nextDelay();
+      phBar = `
+<div style="display:grid;grid-template-columns:${col};min-height:clamp(24px,2.8vh,36px);align-items:center;background:${bg};border-top:1px solid ${border}">
+  <div style="grid-row:1;grid-column:1"></div>
+  ${mkBg()}
+  <div style="grid-row:1;grid-column:${startGc}/span ${span};z-index:2;padding:clamp(3px,0.4vh,6px) 0;display:flex;align-items:center"><div style="width:100%;height:58%;border-radius:clamp(3px,0.3vw,4px);background:linear-gradient(90deg,var(--yellow),rgba(190,255,1,0.78));transform-origin:left;animation:gbar .55s cubic-bezier(.34,1.56,.64,1) ${delay}s both;display:flex;align-items:center;justify-content:flex-end;padding:0 clamp(3px,0.3vw,5px);cursor:default;transition:filter .18s" onmouseenter="this.style.filter='brightness(1.12) drop-shadow(0 0 8px rgba(190,255,1,0.5))'" onmouseleave="this.style.filter=''">${span >= 2 ? `<span style="font-size:clamp(6px,0.54vw,8px);font-weight:800;color:rgba(0,0,0,0.5)">${span}sem</span>` : ''}</div></div>
+</div>`;
+    }
+
+    return phRow + sfRows + phBar;
+  }).join('');
 
   return `
-  <div id="gtip" class="gtip"></div>
-  <div style="display:grid;grid-template-columns:${col};border-bottom:1px solid ${bc}">
-    <div></div>${monthCells}
+<div id="gtip" class="gtip"></div>
+<div style="border-radius:clamp(8px,0.9vw,12px);overflow:hidden;width:100%">
+  <div style="display:grid;grid-template-columns:${col};background:${hdrBg}">
+    <div style="font-size:clamp(7px,0.62vw,9px);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.36);padding:clamp(5px,0.58vh,8px) clamp(8px,0.9vw,12px);border-right:1px solid ${border}">etapa</div>
+    ${monthCells}
   </div>
-  ${showWeeks ? `<div style="display:grid;grid-template-columns:${col};border-bottom:2px solid ${bc};margin-bottom:clamp(4px,0.5vh,7px)"><div></div>${weekCells}</div>` : ''}
+  <div style="display:grid;grid-template-columns:${col};background:${hdrBg};border-top:1px solid ${border}">
+    <div></div>${weekCells}
+  </div>
+  <div style="display:grid;grid-template-columns:${col};height:clamp(14px,1.6vh,20px);background:${tableBg};border-top:1px solid ${border}">
+    <div style="grid-row:1;grid-column:1"></div>
+    ${mkBg()}
+    ${sprintCells}
+  </div>
   ${rows}
-  <div style="margin-top:clamp(6px,0.8vh,10px);font-size:clamp(8px,0.75vw,10px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${tc}">${totalLine}</div>
-  ${tpScript}`;
+</div>
+<div style="margin-top:clamp(5px,0.65vh,9px);font-size:clamp(7px,0.66vw,9px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:${labelClr}">DURAÇÃO TOTAL: ${maxWeek} SEMANAS · ${numMonths} MESES</div>`;
 }

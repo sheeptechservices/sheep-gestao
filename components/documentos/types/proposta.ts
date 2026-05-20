@@ -17,6 +17,8 @@ export interface Entrega {
 export interface SubFase {
   id: string
   nome: string
+  mes?: number
+  semanas?: number
 }
 
 export interface Fase {
