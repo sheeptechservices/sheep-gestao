@@ -8,6 +8,7 @@
   --gray: #666666;
   --gray2: #AAAAAA;
   --gray3: #E3E4DE;
+  --card-hover-bg: #FCFCFB;
 
   /* Primary: Lime green #84CC16 */
   --primary: #84CC16;
@@ -65,6 +66,7 @@
   --gray:  #8A96AA;       /* texto secundário */
   --gray2: #4E5A6E;       /* texto desabilitado / placeholder */
   --gray3: #262B38;       /* bordas / divisores */
+  --card-hover-bg: #23273A; /* hover de card no dark mode */
   --shadow:    0 1px 6px rgba(0,0,0,0.50);
   --shadow-md: 0 4px 24px rgba(0,0,0,0.65);
 }
