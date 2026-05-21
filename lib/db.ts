@@ -266,6 +266,29 @@ async function migrateDb(db: Client) {
     }
   }
 
+  // Seed de membros — importa assigned_to únicos de tasks que ainda não têm cadastro
+  {
+    const COLORS = ['#84CC16','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#3B82F6','#D93025','#1E8A3E','#F97316']
+    const assignedRes = await db.execute({
+      sql:  `SELECT DISTINCT assigned_to FROM tasks WHERE assigned_to IS NOT NULL AND assigned_to != '' ORDER BY assigned_to`,
+      args: [],
+    })
+    const names = assignedRes.rows.map(r => (r as unknown as { assigned_to: string }).assigned_to)
+    if (names.length > 0) {
+      const seedNow = new Date().toISOString()
+      const memberStmts = names.map((name, i) => ({
+        sql:  `INSERT OR IGNORE INTO team_members (id, name, cargo, status, color_hex, created_at) VALUES (?, ?, '', 'active', ?, ?)`,
+        args: [
+          `mbr-seed-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 20)}-${i}`,
+          name,
+          COLORS[i % COLORS.length],
+          seedNow,
+        ] as (string | number)[],
+      }))
+      await db.batch(memberStmts, 'write')
+    }
+  }
+
   // Seed de agentes — INSERT OR IGNORE garante idempotência.
   // Agentes novos adicionados no código aparecem automaticamente no próximo boot.
   // Customizações salvas pelo usuário (UPDATE) não são sobrescritas.
