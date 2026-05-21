@@ -277,37 +277,42 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
             }}
           >
             <div style={{ width: 4, height: 40, borderRadius: 2, background: p.color_hex, marginRight: 14, flexShrink: 0, opacity: isHov ? 1 : 0.6, transition: 'opacity 0.15s' }} />
+            {/* Projeto — 22% */}
             <div style={{ width: '22%', flexShrink: 0, padding: '13px 8px 13px 0', minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
               {p.description && <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>}
             </div>
-            <div style={{ width: '14%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {/* Cliente — 13% */}
+            <div style={{ width: '13%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {p.client?.name ?? '—'}
             </div>
-            <div style={{ width: '9%', flexShrink: 0, padding: '0 8px 0 0' }}>
+            {/* Tipo — 8% */}
+            <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: p.color_hex, background: p.color_hex + '15', padding: '2px 7px', borderRadius: 100 }}>
                 {TYPE_LABEL[p.type]}
               </span>
             </div>
-            <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0' }}>
+            {/* Status — 10% */}
+            <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap' }}>
                 {s.label}
               </span>
             </div>
+            {/* Gestor — 9% */}
             <div style={{ width: '9%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {p.gestor ? p.gestor.split(' ')[0] : '—'}
             </div>
-            {/* Equipe técnica — avatares */}
-            <div style={{ width: '12%', flexShrink: 0, padding: '0 8px 0 0', display: 'flex', alignItems: 'center' }}>
+            {/* Equipe — 12% */}
+            <div style={{ width: '12%', flexShrink: 0, padding: '0 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
               {(() => {
                 const members = (p.project_member_ids ?? [])
                   .map(id => teamMembers.find(m => m.id === id))
                   .filter(Boolean) as typeof teamMembers
                 if (members.length === 0) return <span style={{ fontSize: 12, color: 'var(--gray3)' }}>—</span>
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', lineHeight: 0 }}>
                     {members.slice(0, 5).map((m, idx) => (
-                      <div key={m.id} title={m.name} style={{ marginLeft: idx === 0 ? 0 : -6, zIndex: members.length - idx, position: 'relative' }}>
+                      <div key={m.id} title={m.name} style={{ marginLeft: idx === 0 ? 0 : -6, zIndex: members.length - idx, position: 'relative', display: 'flex', alignItems: 'center' }}>
                         <MemberAvatar member={m} size={26} />
                       </div>
                     ))}
@@ -325,11 +330,13 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
                 )
               })()}
             </div>
+            {/* Fim prev. — 8% */}
             <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>{fmt(p.end_date)}</div>
+            {/* Progresso — 10% */}
             {(() => {
               const prog = calcProgress(p.start_date, p.end_date)
               return (
-                <div style={{ width: '11%', flexShrink: 0, padding: '0 8px 0 0' }}>
+                <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <div style={{ flex: 1, height: 5, background: 'var(--gray3)', borderRadius: 100, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${prog}%`, background: p.color_hex, borderRadius: 100 }} />
