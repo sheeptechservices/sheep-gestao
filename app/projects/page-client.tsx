@@ -10,6 +10,7 @@ import { useCreateStore } from '@/stores/createStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 import {
   EditProjectDrawer,
   STATUS_CONFIG,
@@ -312,8 +313,8 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', lineHeight: 0 }}>
                     {members.slice(0, 5).map((m, idx) => (
-                      <div key={m.id} title={m.name} style={{ marginLeft: idx === 0 ? 0 : -6, zIndex: members.length - idx, position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <MemberAvatar member={m} size={26} />
+                      <div key={m.id} style={{ marginLeft: idx === 0 ? 0 : -6, zIndex: members.length - idx, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <MemberAvatarTip member={m} size={26} />
                       </div>
                     ))}
                     {members.length > 5 && (

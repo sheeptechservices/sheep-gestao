@@ -14,6 +14,7 @@ import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import { WBTaskModal, type FormState } from '@/components/tasks/WeeklyBoard'
 import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 
 // ── Troque para visualizar as variantes de navegação de semanas ───────────────
 // 'pills' | 'accordion' | 'prevnext'
@@ -1976,7 +1977,7 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEd
                     background: m.color_hex + '18', color: m.color_hex,
                     border: `1px solid ${m.color_hex}35`,
                   }}>
-                    <MemberAvatar member={m} size={18} />
+                    <MemberAvatarTip member={m} size={18} />
                     {m.name.split(' ')[0]}
                   </span>
                 ))}
