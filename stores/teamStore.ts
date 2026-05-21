@@ -55,23 +55,34 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!res.ok) { set({ members: prev }); toast.error('Erro', 'Não foi possível salvar as alterações') }
+      if (!res.ok) {
+        set({ members: prev })
+        toast.error('Erro ao salvar', 'Não foi possível salvar as alterações')
+      } else {
+        const name = get().members.find(m => m.id === id)?.name ?? ''
+        toast.success('Membro atualizado', name)
+      }
     } catch {
       set({ members: prev })
-      toast.error('Erro', 'Não foi possível salvar as alterações')
+      toast.error('Erro ao salvar', 'Não foi possível salvar as alterações')
     }
   },
 
   deleteMember: async (id) => {
     const prev = get().members
+    const name = prev.find(m => m.id === id)?.name ?? ''
     set(s => ({ members: s.members.filter(m => m.id !== id) }))
     try {
       const res = await fetch(`/api/team/${id}`, { method: 'DELETE' })
-      if (!res.ok) { set({ members: prev }); toast.error('Erro', 'Não foi possível remover o membro') }
-      else toast.success('Membro removido', '')
+      if (!res.ok) {
+        set({ members: prev })
+        toast.error('Erro ao remover', 'Não foi possível remover o membro')
+      } else {
+        toast.success('Membro removido', name)
+      }
     } catch {
       set({ members: prev })
-      toast.error('Erro', 'Não foi possível remover o membro')
+      toast.error('Erro ao remover', 'Não foi possível remover o membro')
     }
   },
 
@@ -83,6 +94,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       if (!res.ok) { toast.error('Erro', 'Foto não pôde ser salva'); return }
       const { photo_url } = await res.json()
       set(s => ({ members: s.members.map(m => m.id === id ? { ...m, photo_url } : m) }))
+      toast.success('Foto atualizada', '')
     } catch {
       toast.error('Erro', 'Foto não pôde ser salva')
     }
@@ -92,6 +104,9 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     try {
       await fetch(`/api/team/${id}/photo`, { method: 'DELETE' })
       set(s => ({ members: s.members.map(m => m.id === id ? { ...m, photo_url: undefined } : m) }))
-    } catch { /* silent */ }
+      toast.success('Foto removida', '')
+    } catch {
+      toast.error('Erro', 'Não foi possível remover a foto')
+    }
   },
 }))
