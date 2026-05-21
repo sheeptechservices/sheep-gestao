@@ -12,6 +12,8 @@ import { localToday, localDateStr } from '@/lib/localDate'
 import { playDoneSound } from '@/lib/sounds'
 import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import { WBTaskModal, type FormState } from '@/components/tasks/WeeklyBoard'
+import { useTeamStore } from '@/stores/teamStore'
+import { MemberAvatar } from '@/components/ui/MemberAvatar'
 
 // ── Troque para visualizar as variantes de navegação de semanas ───────────────
 // 'pills' | 'accordion' | 'prevnext'
@@ -1807,6 +1809,7 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEd
   const [view, setView]       = useState<'list' | 'kanban' | 'day'>('list')
   const [viewKey, setViewKey] = useState(0)
   const [hov, setHov]         = useState(false)
+  const { members: teamMembers } = useTeamStore()
 
   function switchView(v: 'list' | 'kanban' | 'day') {
     if (v === view) return
@@ -1954,19 +1957,39 @@ function ProjectRow({ project, tasks, isOpen, onToggle, onAdd, onAddForDay, onEd
       }}>
         <div style={{ borderTop: `1px solid ${project.color_hex}33`, padding: '16px 22px 20px' }}>
 
-          {/* Equipe técnica */}
-          {project.team_members && project.team_members.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0 }}>Equipe</span>
-              {project.team_members.map(name => (
-                <span key={name} style={{
-                  fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-                  background: project.color_hex + '15', color: project.color_hex,
-                  border: `1px solid ${project.color_hex}35`,
-                }}>{name}</span>
-              ))}
-            </div>
-          )}
+          {/* Equipe técnica — usa member IDs novos, com fallback para nomes legados */}
+          {(() => {
+            const resolvedMembers = (project.project_member_ids ?? [])
+              .map(id => teamMembers.find(m => m.id === id))
+              .filter(Boolean) as typeof teamMembers
+            const legacyNames = (!resolvedMembers.length && project.team_members?.length)
+              ? project.team_members : []
+            const hasTeam = resolvedMembers.length > 0 || legacyNames.length > 0
+            if (!hasTeam) return null
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0 }}>Equipe</span>
+                {resolvedMembers.map(m => (
+                  <span key={m.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 700, padding: '2px 9px 2px 4px', borderRadius: 20,
+                    background: m.color_hex + '18', color: m.color_hex,
+                    border: `1px solid ${m.color_hex}35`,
+                  }}>
+                    <MemberAvatar member={m} size={18} />
+                    {m.name.split(' ')[0]}
+                  </span>
+                ))}
+                {legacyNames.map(name => (
+                  <span key={name} style={{
+                    fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+                    background: project.color_hex + '15', color: project.color_hex,
+                    border: `1px solid ${project.color_hex}35`,
+                  }}>{name}</span>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Week goals banner */}
           {effectiveWeek?.goals && (
@@ -2792,6 +2815,9 @@ function ClientGroupRow({ clientId, clientName, clientColor, projects, tasks, we
 }
 
 export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
+  const { fetchMembers } = useTeamStore()
+  useEffect(() => { fetchMembers() }, [fetchMembers])
+
   const tasks        = useTasksStore(s => s.tasks)
   const fetchTasks   = useTasksStore(s => s.fetchTasks)
   const addTask      = useTasksStore(s => s.addTask)

@@ -203,7 +203,8 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE projects ADD COLUMN links         TEXT`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN team_members  TEXT`),
     tryAlter(db, `ALTER TABLE projects ADD COLUMN display_order INTEGER DEFAULT 0`),
-    tryAlter(db, `ALTER TABLE projects ADD COLUMN github_repo  TEXT`),
+    tryAlter(db, `ALTER TABLE projects ADD COLUMN github_repo         TEXT`),
+    tryAlter(db, `ALTER TABLE projects ADD COLUMN project_member_ids  TEXT`),
     // task_attachments — coluna data adicionada após a criação inicial
     tryAlter(db, `ALTER TABLE task_attachments ADD COLUMN data TEXT`),
     // tasks

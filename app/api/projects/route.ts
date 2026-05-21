@@ -61,7 +61,8 @@ function rowToProject(row: Record<string, unknown>): Project {
     gestor: row.gestor as string | undefined,
     observacoes: row.observacoes as string | undefined,
     links: row.links as string | undefined,
-    team_members: row.team_members ? JSON.parse(row.team_members as string) : undefined,
+    team_members:       row.team_members       ? JSON.parse(row.team_members       as string) : undefined,
+    project_member_ids: row.project_member_ids ? JSON.parse(row.project_member_ids as string) : undefined,
     display_order: row.display_order as number | undefined,
     github_repo: row.github_repo as string | undefined,
   }
@@ -90,16 +91,19 @@ export async function POST(req: NextRequest) {
       sql: `
         INSERT INTO projects
           (id, client_id, name, description, status, type, color_hex,
-           start_date, end_date, progress, created_at, gestor, observacoes, links, team_members, github_repo)
+           start_date, end_date, progress, created_at, gestor, observacoes, links,
+           team_members, github_repo, project_member_ids)
         VALUES
           (:id, :client_id, :name, :description, :status, :type, :color_hex,
-           :start_date, :end_date, :progress, :created_at, :gestor, :observacoes, :links, :team_members, :github_repo)
+           :start_date, :end_date, :progress, :created_at, :gestor, :observacoes, :links,
+           :team_members, :github_repo, :project_member_ids)
       `,
       args: {
         description: null, end_date: null, gestor: null, observacoes: null, links: null, github_repo: null,
         ...body,
-        progress: body.progress ?? 0,
-        team_members: body.team_members?.length ? JSON.stringify(body.team_members) : null,
+        progress:           body.progress ?? 0,
+        team_members:       body.team_members?.length       ? JSON.stringify(body.team_members)       : null,
+        project_member_ids: body.project_member_ids?.length ? JSON.stringify(body.project_member_ids) : null,
       },
     })
     const res = await db.execute({ sql: SQL_SINGLE_PROJECT, args: [body.id] })

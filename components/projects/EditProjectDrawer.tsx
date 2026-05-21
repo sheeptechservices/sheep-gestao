@@ -4,7 +4,9 @@ import type { Project, ProjectStatus, ProjectType, Client } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { MemberPicker } from '@/components/ui/MemberPicker'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useTeamStore } from '@/stores/teamStore'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -549,20 +551,10 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
 }) {
   const [form, setForm] = useState<Project>({ ...project })
   const [focusedField, setFocusedField] = useState<string | null>(null)
-  const [teamInput, setTeamInput] = useState('')
   const { isMobile } = useBreakpoint()
+  const { fetchMembers } = useTeamStore()
 
-  function addMember() {
-    const name = teamInput.trim()
-    if (!name) return
-    if (form.team_members?.includes(name)) { setTeamInput(''); return }
-    setForm(f => ({ ...f, team_members: [...(f.team_members ?? []), name] }))
-    setTeamInput('')
-  }
-
-  function removeMember(name: string) {
-    setForm(f => ({ ...f, team_members: (f.team_members ?? []).filter(m => m !== name) }))
-  }
+  useEffect(() => { fetchMembers() }, [fetchMembers])
 
   // Close on Escape
   useEffect(() => {
@@ -689,51 +681,11 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
 
           {/* Equipe técnica */}
           <Field label="Equipe técnica">
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: (form.team_members?.length ?? 0) > 0 ? 8 : 0 }}>
-              {form.team_members?.map(name => (
-                <span key={name} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700, padding: '3px 8px 3px 10px', borderRadius: 20,
-                  background: form.color_hex + '18', color: form.color_hex,
-                  border: `1px solid ${form.color_hex}40`,
-                }}>
-                  {name}
-                  <button
-                    type="button"
-                    onClick={() => removeMember(name)}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 14, height: 14, borderRadius: '50%', border: 'none',
-                      background: form.color_hex + '30', color: form.color_hex,
-                      cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 11, fontWeight: 800,
-                    }}
-                  >×</button>
-                </span>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                value={teamInput}
-                onChange={e => setTeamInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMember() } }}
-                onFocus={() => setFocusedField('team')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Nome do dev / membro técnico..."
-                style={{ ...focusStyle('team'), flex: 1 }}
-              />
-              <button
-                type="button"
-                onClick={addMember}
-                disabled={!teamInput.trim()}
-                style={{
-                  padding: '0 14px', borderRadius: 8, border: 'none', fontSize: 18, fontWeight: 400,
-                  background: teamInput.trim() ? form.color_hex : 'var(--gray3)',
-                  color: teamInput.trim() ? '#fff' : 'var(--gray2)',
-                  cursor: teamInput.trim() ? 'pointer' : 'default',
-                  transition: 'all 0.15s', flexShrink: 0,
-                }}
-              >+</button>
-            </div>
+            <MemberPicker
+              value={form.project_member_ids ?? []}
+              onChange={ids => setForm(f => ({ ...f, project_member_ids: ids }))}
+              placeholder="— Selecionar membros —"
+            />
           </Field>
 
           {/* Tipo + Status */}

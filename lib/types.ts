@@ -91,7 +91,8 @@ export interface Project {
   gestor?: string;
   observacoes?: string;
   links?: string;
-  team_members?: string[];
+  team_members?: string[];       // legacy: names as strings
+  project_member_ids?: string[]; // new: member IDs (links to team_members table)
   display_order?: number;
   github_repo?: string;   // formato "owner/repo" — ex: "sheeptechservices/sheep-gestao"
 }
