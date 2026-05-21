@@ -14,9 +14,8 @@ const COLOR_PRESETS = [
 ]
 
 const STATUS_CONFIG: Record<MemberStatus, { label: string; color: string; bg: string; border: string }> = {
-  active:   { label: 'Ativo',   color: '#1E8A3E', bg: 'rgba(30,138,62,0.10)',  border: 'rgba(30,138,62,0.25)'  },
+  active:   { label: 'Ativo',   color: '#1E8A3E', bg: 'rgba(30,138,62,0.10)',   border: 'rgba(30,138,62,0.25)'  },
   inactive: { label: 'Inativo', color: '#666666', bg: 'rgba(100,100,100,0.08)', border: 'var(--gray3)'          },
-  vacation: { label: 'Férias',  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', border: 'rgba(124,58,237,0.25)' },
 }
 
 const CARGOS = [
@@ -802,7 +801,6 @@ export default function TeamPage() {
   const PILLS: { key: MemberStatus | 'all'; label: string }[] = [
     { key: 'all',      label: 'Todos'   },
     { key: 'active',   label: 'Ativos'  },
-    { key: 'vacation', label: 'Férias'  },
     { key: 'inactive', label: 'Inativos'},
   ]
 

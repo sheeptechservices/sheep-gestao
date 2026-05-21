@@ -4,7 +4,7 @@ export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales"
 
 export type ClientStatus = 'active' | 'inactive' | 'paused' | 'cancelled'
 
-export type MemberStatus   = 'active' | 'inactive' | 'vacation'
+export type MemberStatus   = 'active' | 'inactive'
 export type MemberSexo     = 'masculino' | 'feminino' | 'outro' | 'nao_informado'
 export type MemberSenior   = 'junior' | 'pleno' | 'senior' | 'especialista' | 'lideranca'
 export type MemberIngles   = 'nenhum' | 'basico' | 'intermediario' | 'avancado' | 'fluente'
