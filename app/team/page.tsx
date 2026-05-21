@@ -117,15 +117,15 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(18,19,22,0.22)', backdropFilter: 'blur(2px)', animation: 'fadeIn 0.18s ease both' }} />
       <aside style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1001,
-        width: 380, maxWidth: '100vw', background: 'var(--bg-card)',
-        borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column',
-        boxShadow: '-8px 0 32px rgba(0,0,0,0.18)',
+        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 3001,
+        width: 400, maxWidth: '100vw', background: 'var(--white)',
+        borderLeft: '1px solid var(--gray3)', display: 'flex', flexDirection: 'column',
+        boxShadow: '-8px 0 40px rgba(0,0,0,0.14)', animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
       }}>
         {/* Header */}
-        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--black)' }}>
             {isNew ? 'Novo membro' : 'Editar membro'}
           </h2>
@@ -187,7 +187,7 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--gray3)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', color: 'var(--black)' }}>
             Cancelar
           </button>
