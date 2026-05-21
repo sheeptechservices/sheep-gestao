@@ -1809,13 +1809,12 @@ export function WeeklyBoard() {
             onChange={setFilterClient}
           />
         )}
-        <div style={{ minWidth: 180, maxWidth: 280 }}>
-          <MemberPicker
-            value={filterDevIds}
-            onChange={setFilterDevIds}
-            placeholder="Dev / Responsável"
-          />
-        </div>
+        <MemberPicker
+          value={filterDevIds}
+          onChange={setFilterDevIds}
+          placeholder="Dev / Responsável"
+          compact
+        />
         {(filterClient || filterDevIds.length > 0) && (
           <button
             onClick={() => { setFilterClient(''); setFilterDevIds([]) }}

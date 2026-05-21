@@ -8,9 +8,10 @@ interface Props {
   value: string[]                      // array de member_ids
   onChange: (ids: string[]) => void
   placeholder?: string
+  compact?: boolean   // matches FilterPill height/style (for filter bars)
 }
 
-export function MemberPicker({ value, onChange, placeholder = '— Selecionar —' }: Props) {
+export function MemberPicker({ value, onChange, placeholder = '— Selecionar —', compact = false }: Props) {
   const { members, fetchMembers } = useTeamStore()
 
   // Garante que os membros estejam carregados independentemente da página visitada
@@ -199,24 +200,32 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
-          width: '100%',
-          minHeight: 38,
-          padding: selected.length > 1 ? '5px 11px' : '8px 11px',
+          width: compact ? 'auto' : '100%',
+          minHeight: compact ? 'unset' : 38,
+          padding: compact
+            ? '5px 10px'
+            : selected.length > 1 ? '5px 11px' : '8px 11px',
           borderRadius: 8,
           border: `1px solid ${open ? 'var(--primary)' : hov ? 'var(--gray2)' : 'var(--gray3)'}`,
           boxShadow: open ? '0 0 0 3px var(--primary-dim)' : 'none',
-          background: 'var(--bg)',
-          fontSize: 13,
-          color: selected.length ? 'var(--black)' : 'var(--gray2)',
+          background: compact
+            ? (selected.length > 0 ? 'var(--primary-dim)' : 'var(--white)')
+            : 'var(--bg)',
+          fontSize: compact ? 11 : 13,
+          fontWeight: compact ? 700 : 400,
+          color: selected.length
+            ? (compact ? 'var(--primary)' : 'var(--black)')
+            : 'var(--gray)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 8,
+          gap: compact ? 4 : 8,
           userSelect: 'none',
-          transition: 'border-color 0.15s, box-shadow 0.15s',
+          transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
           boxSizing: 'border-box',
           fontFamily: 'inherit',
+          whiteSpace: 'nowrap',
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, flexWrap: 'wrap' }}>
@@ -225,9 +234,9 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
           )}
           {selected.length === 1 && (
             <>
-              <MemberAvatar member={selected[0]} size={20} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                {selected[0].name}
+              <MemberAvatar member={selected[0]} size={compact ? 16 : 20} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: compact ? 700 : 500 }}>
+                {compact ? selected[0].name.split(' ')[0] : selected[0].name}
               </span>
             </>
           )}
