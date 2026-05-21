@@ -10,7 +10,7 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
-  title: 'Sheep Tech — Gestão de Projetos',
+  title: 'Gestão de Projetos',
   description: 'Sistema interno de gestão de projetos da Sheep Tech',
 }
 
