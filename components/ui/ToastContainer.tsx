@@ -68,7 +68,7 @@ function Toast({ item }: { item: ToastItem }) {
   }, [hovered, duration]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fundo tintado com a cor do tipo — claro ou escuro
-  const bgAlpha    = isDark ? '28' : '0f'   // hex opacity
+  const bgAlpha    = isDark ? '55' : '22'   // hex opacity
   const bdAlpha    = isDark ? '55' : '35'
   const bg         = accent + bgAlpha
   const borderCol  = accent + bdAlpha
@@ -96,6 +96,8 @@ function Toast({ item }: { item: ToastItem }) {
         padding: '12px 12px 12px 13px',
         cursor: 'default',
         position: 'relative',
+        backdropFilter:         'blur(16px)',
+        WebkitBackdropFilter:   'blur(16px)',
         animation: exiting
           ? 'toastOut 0.32s cubic-bezier(0.4,0,1,1) both'
           : 'toastIn 0.38s cubic-bezier(0.34,1.1,0.64,1) both',

@@ -23,9 +23,10 @@ const PROJECT_STATUS: Record<ProjectStatus, { label: string; color: string; bg: 
 }
 
 const URGENCY_CFG: Record<TaskUrgency, { label: string; color: string; bg: string }> = {
-  low:    { label: 'Baixa',  color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
-  medium: { label: 'Média',  color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
-  high:   { label: 'Alta',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  low:      { label: 'Baixa',     color: '#059669', bg: 'rgba(5,150,105,0.10)'   },
+  medium:   { label: 'Média',     color: '#B45309', bg: 'rgba(180,83,9,0.10)'    },
+  high:     { label: 'Alta',      color: '#DC2626', bg: 'rgba(220,38,38,0.10)'   },
+  critical: { label: 'Altíssima', color: '#7F1D1D', bg: 'rgba(127,29,29,0.12)'  },
 }
 
 const CLIENT_STATUS: Record<ClientStatus, { label: string; color: string; bg: string }> = {

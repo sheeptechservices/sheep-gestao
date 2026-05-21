@@ -8,7 +8,7 @@ import type { Task, Project, AgentType, TaskUrgency } from '@/lib/types'
 
 // ── Urgency labels ─────────────────────────────────────────────────────────────
 const URGENCY_LABEL: Record<TaskUrgency, string> = {
-  low: 'Baixa', medium: 'Média', high: 'Alta',
+  low: 'Baixa', medium: 'Média', high: 'Alta', critical: 'Altíssima',
 }
 
 // ── Build the pre-filled context message ──────────────────────────────────────

@@ -174,7 +174,7 @@ const FLAG_CONFIG: Record<string, { label: string; color: string; bg: string }> 
 const ALL_FLAGS = Object.keys(FLAG_CONFIG)
 
 // ── Urgency sort ──────────────────────────────────────────────────────────────
-const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
+const URGENCY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 function sortByUrgency(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
     const oa = a.urgency ? (URGENCY_ORDER[a.urgency] ?? 3) : 3
@@ -185,9 +185,10 @@ function sortByUrgency(tasks: Task[]): Task[] {
 
 // ── Urgency config ────────────────────────────────────────────────────────────
 const URGENCY_CONFIG: Record<TaskUrgency, { label: string; color: string; bg: string }> = {
-  low:    { label: 'Baixa',  color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
-  medium: { label: 'Média',  color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
-  high:   { label: 'Alta',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  low:      { label: 'Baixa',     color: '#059669', bg: 'rgba(5,150,105,0.10)'  },
+  medium:   { label: 'Média',     color: '#B45309', bg: 'rgba(180,83,9,0.10)'   },
+  high:     { label: 'Alta',      color: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
+  critical: { label: 'Altíssima', color: '#7F1D1D', bg: 'rgba(127,29,29,0.12)' },
 }
 
 function FlagBadge({ flag }: { flag: string }) {
@@ -3261,8 +3262,8 @@ export function ProjectsView({ autoExpandId }: { autoExpandId?: string } = {}) {
       }))
       .filter(r => r.projectTasks.length > 0)
 
-    const URGENCY_LABELS: Record<string, string> = { high: 'Alta',  medium: 'Média', low: 'Baixa' }
-    const URGENCY_COLORS: Record<string, string> = { high: '#DC2626', medium: '#D97706', low: '#059669' }
+    const URGENCY_LABELS: Record<string, string> = { critical: 'Altíssima', high: 'Alta',  medium: 'Média', low: 'Baixa' }
+    const URGENCY_COLORS: Record<string, string> = { critical: '#7F1D1D', high: '#DC2626', medium: '#D97706', low: '#059669' }
     const STATUS_LABELS:  Record<string, string> = {
       active: 'Em curso', negotiation: 'Em negociação',
       completed: 'Finalizado', paused: 'Pausado', cancelled: 'Cancelado',
