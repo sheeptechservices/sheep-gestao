@@ -17,6 +17,7 @@ import { RichTextEditor } from '@/components/ui/RichTextEditor'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 import { MemberPicker } from '@/components/ui/MemberPicker'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -999,7 +1000,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
             ? <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                 {assignedMembers.map((m, i) => (
                   <span key={m.id} style={{ marginLeft: i > 0 ? -6 : 0, display: 'inline-flex' }}>
-                    <MemberAvatar member={m} size={16} />
+                    <MemberAvatarTip member={m} size={16} />
                   </span>
                 ))}
               </span>
