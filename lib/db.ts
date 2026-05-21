@@ -289,6 +289,18 @@ async function migrateDb(db: Client) {
     }
   }
 
+  // Vincula member_id nas tasks que já têm assigned_to mas ainda não têm member_id
+  await db.execute({
+    sql:  `UPDATE tasks
+           SET member_id = (
+             SELECT id FROM team_members WHERE name = tasks.assigned_to LIMIT 1
+           )
+           WHERE assigned_to IS NOT NULL
+             AND assigned_to != ''
+             AND member_id IS NULL`,
+    args: [],
+  })
+
   // Seed de agentes — INSERT OR IGNORE garante idempotência.
   // Agentes novos adicionados no código aparecem automaticamente no próximo boot.
   // Customizações salvas pelo usuário (UPDATE) não são sobrescritas.
