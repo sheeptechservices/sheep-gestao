@@ -5,8 +5,8 @@ import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from './MemberAvatar'
 
 interface Props {
-  value?: string          // member_id
-  onChange: (id: string | undefined) => void
+  value: string[]                      // array de member_ids
+  onChange: (ids: string[]) => void
   placeholder?: string
 }
 
@@ -23,7 +23,6 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Fecha ao clicar fora
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -33,7 +32,6 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  // Fecha com Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
@@ -41,13 +39,12 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     return () => document.removeEventListener('keydown', handler)
   }, [open])
 
-  // Foca o input de busca quando abre
   useEffect(() => {
     if (open) setTimeout(() => searchRef.current?.focus(), 30)
     else setQuery('')
   }, [open])
 
-  const active   = members.find(m => m.id === value)
+  const selected = members.filter(m => value.includes(m.id))
   const filtered = members
     .filter(m => m.status === 'active')
     .filter(m => !query || m.name.toLowerCase().includes(query.toLowerCase()) || m.cargo?.toLowerCase().includes(query.toLowerCase()))
@@ -57,7 +54,7 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     if (open) { setOpen(false); return }
     if (triggerRef.current) {
       const r          = triggerRef.current.getBoundingClientRect()
-      const estHeight  = Math.min((filtered.length + 1) * 36 + 52, 300)
+      const estHeight  = Math.min((filtered.length + 1) * 36 + 60, 300)
       const spaceBelow = window.innerHeight - r.bottom - 8
       const spaceAbove = r.top - 8
       if (spaceBelow >= estHeight || spaceBelow >= spaceAbove) {
@@ -69,9 +66,13 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     setOpen(true)
   }
 
-  function handleSelect(id: string | undefined) {
-    onChange(id)
-    setOpen(false)
+  function toggleMember(id: string) {
+    if (value.includes(id)) {
+      onChange(value.filter(v => v !== id))
+    } else {
+      onChange([...value, id])
+    }
+    // keep dropdown open for multi-select
   }
 
   // ── Dropdown via portal ────────────────────────────────────────────────────
@@ -79,13 +80,13 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     <div
       onMouseDown={e => e.stopPropagation()}
       style={{
-        position:  'fixed',
-        top:       rect.top,
-        bottom:    rect.bottom,
-        left:      rect.left,
-        minWidth:  Math.max(rect.width, 220),
-        maxHeight: rect.maxHeight,
-        zIndex:    4000,
+        position:     'fixed',
+        top:          rect.top,
+        bottom:       rect.bottom,
+        left:         rect.left,
+        minWidth:     Math.max(rect.width, 220),
+        maxHeight:    rect.maxHeight,
+        zIndex:       4000,
         background:   'var(--white)',
         border:       '1px solid var(--gray3)',
         borderRadius: 10,
@@ -120,10 +121,10 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
 
       {/* Options */}
       <div style={{ overflowY: 'auto', flex: 1, padding: 4 }}>
-        {/* Limpar seleção */}
-        {value && (
+        {/* Limpar tudo */}
+        {value.length > 0 && (
           <div
-            onClick={() => handleSelect(undefined)}
+            onClick={() => onChange([])}
             style={optionStyle(false)}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
@@ -133,7 +134,7 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
                 <path d="M2 2l8 8M10 2l-8 8" strokeLinecap="round"/>
               </svg>
             </span>
-            <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 500 }}>Sem responsável</span>
+            <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 500 }}>Limpar seleção</span>
           </div>
         )}
 
@@ -144,16 +145,32 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
         )}
 
         {filtered.map(m => {
-          const isSel = m.id === value
+          const isSel = value.includes(m.id)
           return (
             <div
               key={m.id}
-              onClick={() => handleSelect(m.id)}
-              style={optionStyle(isSel)}
-              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
-              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = isSel ? 'var(--bg)' : 'transparent' }}
+              onClick={() => toggleMember(m.id)}
+              style={{ ...optionStyle(isSel), background: isSel ? 'var(--bg)' : 'transparent' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSel ? 'var(--bg)' : 'transparent' }}
             >
-              <MemberAvatar member={m} size={24} />
+              {/* Checkbox visual */}
+              <div style={{
+                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                border: isSel ? '2px solid var(--primary-text)' : '1.5px solid var(--gray2)',
+                background: isSel ? 'var(--primary-text)' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.12s',
+              }}>
+                {isSel && (
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <path d="M1.5 4.5l2 2L7.5 2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+
+              <MemberAvatar member={m} size={22} />
+
               <span style={{ fontSize: 12, fontWeight: isSel ? 700 : 500, color: 'var(--black)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {m.name}
               </span>
@@ -161,11 +178,6 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
                 <span style={{ fontSize: 10, color: 'var(--gray2)', flexShrink: 0 }}>
                   {m.cargo}
                 </span>
-              )}
-              {isSel && (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
-                  <path d="M2 5l2.5 2.5L8 3" stroke="var(--primary-text)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
               )}
             </div>
           )
@@ -175,6 +187,7 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
     document.body
   ) : null
 
+  // ── Trigger ────────────────────────────────────────────────────────────────
   return (
     <>
       <div
@@ -184,13 +197,14 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
         onMouseLeave={() => setHov(false)}
         style={{
           width: '100%',
-          padding: '8px 11px',
+          minHeight: 38,
+          padding: selected.length > 1 ? '5px 11px' : '8px 11px',
           borderRadius: 8,
           border: `1px solid ${open ? 'var(--primary)' : hov ? 'var(--gray2)' : 'var(--gray3)'}`,
           boxShadow: open ? '0 0 0 3px var(--primary-dim)' : 'none',
           background: 'var(--bg)',
           fontSize: 13,
-          color: active ? 'var(--black)' : 'var(--gray2)',
+          color: selected.length ? 'var(--black)' : 'var(--gray2)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -202,16 +216,34 @@ export function MemberPicker({ value, onChange, placeholder = '— Selecionar �
           fontFamily: 'inherit',
         }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
-          {active
-            ? <>
-                <MemberAvatar member={active} size={20} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                  {active.name}
-                </span>
-              </>
-            : <span style={{ fontWeight: 400 }}>{placeholder}</span>
-          }
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, flexWrap: 'wrap' }}>
+          {selected.length === 0 && (
+            <span style={{ fontWeight: 400 }}>{placeholder}</span>
+          )}
+          {selected.length === 1 && (
+            <>
+              <MemberAvatar member={selected[0]} size={20} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                {selected[0].name}
+              </span>
+            </>
+          )}
+          {selected.length > 1 && selected.map(m => (
+            <span
+              key={m.id}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 7px 2px 3px', borderRadius: 100,
+                background: m.color_hex + '22',
+                border: `1px solid ${m.color_hex}44`,
+                fontSize: 11, fontWeight: 600, color: 'var(--black)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <MemberAvatar member={m} size={16} />
+              {m.name.split(' ')[0]}
+            </span>
+          ))}
         </span>
         <svg width={10} height={10} viewBox="0 0 8 8" fill="none"
           style={{ opacity: 0.45, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>

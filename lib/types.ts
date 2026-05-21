@@ -82,6 +82,7 @@ export interface Task {
   done: boolean;
   assigned_to?: string;
   member_id?: string;
+  member_ids?: string[];
   flags?: string[];
   flag_comment?: string;
   deadline?: string;          // ISO date 'YYYY-MM-DD' — previsão de entrega

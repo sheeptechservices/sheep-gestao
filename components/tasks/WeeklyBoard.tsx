@@ -71,7 +71,7 @@ const ALL_FLAGS = Object.keys(FLAG_CONFIG)
 
 export interface FormState {
   title: string; description: string; urgency: TaskUrgency | ''
-  done: boolean; assigned_to: string; member_id?: string; week_id: string | null
+  done: boolean; assigned_to: string; member_ids: string[]; week_id: string | null
   project_id: string; flags: string[]; flag_comment: string; deadline: string
 }
 
@@ -172,7 +172,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
     urgency:      task?.urgency      ?? '',
     done:         task?.done         ?? false,
     assigned_to:  task?.assigned_to  ?? '',
-    member_id:    task?.member_id,
+    member_ids:   task?.member_ids ?? (task?.member_id ? [task.member_id] : []),
     week_id:      task?.week_id      ?? defaultWeekId ?? null,
     project_id:   task?.project_id   ?? defaultProjectId ?? '',
     flags:        task?.flags        ?? [],
@@ -389,8 +389,8 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
           <div style={{ flex: 1, minWidth: 0 }}>
             <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Responsável</label>
             <MemberPicker
-              value={form.member_id}
-              onChange={id => setForm(f => ({ ...f, member_id: id }))}
+              value={form.member_ids}
+              onChange={ids => setForm(f => ({ ...f, member_ids: ids }))}
             />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -866,8 +866,11 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   const revisar    = task.flags?.includes('revisar')
   const atencao    = task.flags?.includes('atencao')
   const accentColor = bloqueado ? '#DC2626' : atencao ? '#7C3AED' : revisar ? '#D97706' : color
-  const members    = useTeamStore(s => s.members)
-  const assignedMember = task.member_id ? members.find(m => m.id === task.member_id) : undefined
+  const members         = useTeamStore(s => s.members)
+  const assignedMembers = (task.member_ids?.length
+    ? task.member_ids
+    : task.member_id ? [task.member_id] : []
+  ).map(id => members.find(m => m.id === id)).filter(Boolean) as typeof members
 
   return (
     <div
@@ -992,8 +995,14 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
               background: URGENCY_CONFIG[task.urgency].bg,
             }}>{URGENCY_CONFIG[task.urgency].label}</span>
           )}
-          {assignedMember
-            ? <MemberAvatar member={assignedMember} size={16} />
+          {assignedMembers.length > 0
+            ? <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {assignedMembers.map((m, i) => (
+                  <span key={m.id} style={{ marginLeft: i > 0 ? -6 : 0, display: 'inline-flex' }}>
+                    <MemberAvatar member={m} size={16} />
+                  </span>
+                ))}
+              </span>
             : task.assigned_to && (
                 <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
                   {task.assigned_to.split(' ')[0]}
@@ -1633,7 +1642,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         data.done,
         assigned_to:  data.assigned_to  || undefined,
-        member_id:    data.member_id    || undefined,
+        member_ids:   data.member_ids.length ? data.member_ids : undefined,
         week_id:      data.week_id      ?? undefined,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,
@@ -1649,7 +1658,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         data.done,
         assigned_to:  data.assigned_to  || undefined,
-        member_id:    data.member_id    || undefined,
+        member_ids:   data.member_ids.length ? data.member_ids : undefined,
         week_id:      data.week_id      ?? currentWeek?.id,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,
@@ -1669,7 +1678,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         false,
         assigned_to:  data.assigned_to  || undefined,
-        member_id:    data.member_id    || undefined,
+        member_ids:   data.member_ids.length ? data.member_ids : undefined,
         week_id:      data.week_id      ?? currentWeek?.id,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,

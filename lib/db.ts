@@ -213,6 +213,7 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN deadline     TEXT`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN is_draft     INTEGER NOT NULL DEFAULT 0`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_id    TEXT REFERENCES team_members(id)`),
+    tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_ids   TEXT`),
   ])
 
   // Limpa rascunhos órfãos:
@@ -298,6 +299,15 @@ async function migrateDb(db: Client) {
            WHERE assigned_to IS NOT NULL
              AND assigned_to != ''
              AND member_id IS NULL`,
+    args: [],
+  })
+
+  // Promove member_id → member_ids (JSON array) onde member_ids ainda está vazio
+  await db.execute({
+    sql:  `UPDATE tasks
+           SET member_ids = json_array(member_id)
+           WHERE member_id IS NOT NULL
+             AND (member_ids IS NULL OR member_ids = '')`,
     args: [],
   })
 
