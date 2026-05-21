@@ -1488,8 +1488,8 @@ export function WeeklyBoard() {
   }
 
   // Filter state
-  const [filterClient, setFilterClient] = useState('')
-  const [filterDev,    setFilterDev]    = useState('')
+  const [filterClient,  setFilterClient]  = useState('')
+  const [filterDevIds,  setFilterDevIds]  = useState<string[]>([])
 
   // Drag state
   const [dragId,   setDragId]   = useState<string | null>(null)
@@ -1570,21 +1570,14 @@ export function WeeklyBoard() {
     return opts.sort((a, b) => a.label.localeCompare(b.label))
   })()
 
-  const devOptions = (() => {
-    const seen = new Set<string>()
-    const opts: { value: string; label: string }[] = []
-    for (const t of weekTasksAll) {
-      if (t.assigned_to && !seen.has(t.assigned_to)) {
-        seen.add(t.assigned_to)
-        opts.push({ value: t.assigned_to, label: t.assigned_to })
-      }
-    }
-    return opts.sort((a, b) => a.label.localeCompare(b.label))
-  })()
 
   // Filtered tasks (with urgency sort)
   const weekTasks = weekTasksAll.filter(t => {
-    if (filterDev && t.assigned_to !== filterDev) return false
+    if (filterDevIds.length > 0) {
+      // match any of the selected IDs against member_ids array or legacy member_id
+      const taskIds = t.member_ids?.length ? t.member_ids : t.member_id ? [t.member_id] : []
+      if (!filterDevIds.some(id => taskIds.includes(id))) return false
+    }
     if (filterClient) {
       const proj = projects.find(p => p.id === t.project_id)
       const cid  = proj?.client?.id ?? proj?.client_id
@@ -1816,17 +1809,16 @@ export function WeeklyBoard() {
             onChange={setFilterClient}
           />
         )}
-        {devOptions.length > 0 && (
-          <FilterPill
-            label="Dev / Responsável"
-            value={filterDev}
-            options={devOptions}
-            onChange={setFilterDev}
+        <div style={{ minWidth: 180, maxWidth: 280 }}>
+          <MemberPicker
+            value={filterDevIds}
+            onChange={setFilterDevIds}
+            placeholder="Dev / Responsável"
           />
-        )}
-        {(filterClient || filterDev) && (
+        </div>
+        {(filterClient || filterDevIds.length > 0) && (
           <button
-            onClick={() => { setFilterClient(''); setFilterDev('') }}
+            onClick={() => { setFilterClient(''); setFilterDevIds([]) }}
             style={{
               fontSize: 11, fontWeight: 600, color: 'var(--gray2)',
               background: 'none', border: 'none', cursor: 'pointer',
