@@ -67,18 +67,19 @@ function Toast({ item }: { item: ToastItem }) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [hovered, duration]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Glassmorphism — light mais translúcido para efeito de vidro visível
-  const bg         = isDark ? 'rgba(22, 25, 35, 0.82)' : 'rgba(255,255,255,0.32)'
-  const border     = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.70)'
+  // Fundo tintado com a cor do tipo — claro ou escuro
+  const bgAlpha    = isDark ? '28' : '0f'   // hex opacity
+  const bdAlpha    = isDark ? '55' : '35'
+  const bg         = accent + bgAlpha
+  const borderCol  = accent + bdAlpha
   const shadow     = isDark
-    ? '0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25)'
-    : '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)'
+    ? `0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px ${borderCol}`
+    : `0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px ${borderCol}`
   const shadowHov  = isDark
-    ? '0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.30)'
-    : '0 12px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.10)'
-  const textColor  = isDark ? '#E2E8F0' : '#121316'
+    ? `0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.30), 0 0 0 1px ${borderCol}`
+    : `0 12px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px ${borderCol}`
   const subColor   = isDark ? '#94A3B8' : '#64748B'
-  const closeBg    = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const closeBg    = accent + '22'
 
   return (
     <div
@@ -88,11 +89,9 @@ function Toast({ item }: { item: ToastItem }) {
         display: 'flex', alignItems: 'flex-start', gap: 10,
         width: 320,
         background: bg,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
         borderRadius: 14,
-        border: `1px solid ${border}`,
-        ...(isDark ? { borderLeft: `3px solid ${accent}` } : {}),
+        border: `1px solid ${borderCol}`,
+        borderLeft: `3.5px solid ${accent}`,
         boxShadow: hovered ? shadowHov : shadow,
         padding: '12px 12px 12px 13px',
         cursor: 'default',
@@ -115,7 +114,7 @@ function Toast({ item }: { item: ToastItem }) {
 
       {/* Conteúdo */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: textColor, lineHeight: 1.3 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: accent, lineHeight: 1.3 }}>
           {item.title}
         </div>
         {item.message && (

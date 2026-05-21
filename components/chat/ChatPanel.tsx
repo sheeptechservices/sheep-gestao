@@ -1537,6 +1537,34 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
+  // Compress an image blob to JPEG, capped at MAX_DIM px on the longest side.
+  // Vercel hard limit is 4.5 MB — keep each image well under 300 KB base64.
+  const compressImage = useCallback((blob: Blob): Promise<{ base64: string; dataUrl: string }> => {
+    const MAX_DIM = 900
+    const QUALITY = 0.72
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let { width, height } = img
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width >= height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM }
+          else                 { width  = Math.round(width  * MAX_DIM / height); height = MAX_DIM }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('no canvas context')); return }
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL('image/jpeg', QUALITY)
+        resolve({ base64: dataUrl.split(',')[1], dataUrl })
+      }
+      img.onerror = reject
+      img.src = url
+    })
+  }, [])
+
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = Array.from(e.clipboardData.items)
     const imageItems = items.filter(item => item.type.startsWith('image/'))
@@ -1545,24 +1573,34 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     imageItems.forEach(item => {
       const blob = item.getAsFile()
       if (!blob) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
-        const base64  = dataUrl.split(',')[1]
-        const mediaType = (item.type === 'image/jpeg' || item.type === 'image/gif' || item.type === 'image/webp')
-          ? item.type as 'image/jpeg'|'image/gif'|'image/webp'
-          : 'image/png' as const
-        const ext = mediaType.split('/')[1]
+      compressImage(blob).then(({ base64, dataUrl }) => {
         setPastedImages(prev => [...prev, {
           data: base64,
-          mediaType,
-          name: `imagem-${Date.now()}.${ext}`,
+          mediaType: 'image/jpeg',
+          name: `imagem-${Date.now()}.jpg`,
           preview: dataUrl,
         }])
-      }
-      reader.readAsDataURL(blob)
+      }).catch(() => {
+        // Fallback: read as-is if canvas compression fails
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          const base64  = dataUrl.split(',')[1]
+          const mediaType = (item.type === 'image/jpeg' || item.type === 'image/gif' || item.type === 'image/webp')
+            ? item.type as 'image/jpeg'|'image/gif'|'image/webp'
+            : 'image/png' as const
+          const ext = mediaType.split('/')[1]
+          setPastedImages(prev => [...prev, {
+            data: base64,
+            mediaType,
+            name: `imagem-${Date.now()}.${ext}`,
+            preview: dataUrl,
+          }])
+        }
+        reader.readAsDataURL(blob)
+      })
     })
-  }, [])
+  }, [compressImage])
 
   const projectOptions = projects
     .filter(p => p.status === 'active' || p.status === 'paused' || p.status === 'negotiation')
@@ -1614,7 +1652,10 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   ): Promise<string> => {
     let full = ''
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal, body: JSON.stringify({ messages: history, systemPrompt, model, temperature }) })
-    if (!res.ok) throw new Error(`API error ${res.status}`)
+    if (!res.ok) {
+      if (res.status === 413) throw new Error('Payload muito grande. Tente enviar imagens menores ou remover imagens do histórico.')
+      throw new Error(`API error ${res.status}`)
+    }
     if (!res.body) throw new Error('No response body')
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -1743,18 +1784,32 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
     addMessage(agentType, { id: assistantId, role: 'assistant', content: '' })
     setStreaming(agentType, true)
 
-    const history = [...messages, userMsg].map(m => ({
-      role: m.role,
-      content: m.content,
-      ...(m.images?.length ? { images: m.images } : {}),
-    }))
+    // Build history. Strip images from all but the last 2 messages to stay
+    // well below Vercel's hard 4.5 MB function-payload limit.
+    const fullHistory = [...messages, userMsg]
+    const history = fullHistory.map((m, idx) => {
+      const keepImages = idx >= fullHistory.length - 2
+      return {
+        role:    m.role,
+        content: m.content,
+        ...(keepImages && m.images?.length ? { images: m.images } : {}),
+      }
+    })
+
+    // Hard safety-net: if the serialised payload is still > 3.5 MB, drop ALL
+    // image data so the text context is always preserved.
+    const payload = JSON.stringify({ messages: history, systemPrompt: buildSystemPrompt(agent), model: modelOverride })
+    const LIMIT_BYTES = 3.5 * 1024 * 1024
+    const safeHistory = payload.length > LIMIT_BYTES
+      ? history.map(m => ({ role: m.role, content: m.content }))
+      : history
 
     try {
       abortRef.current = new AbortController()
       const signal = abortRef.current.signal
 
       const mainContent = await runStream(
-        buildSystemPrompt(agent), history,
+        buildSystemPrompt(agent), safeHistory,
         modelOverride,
         effortLevel === 'baixo' ? 0.2 : effortLevel === 'alto' ? 0.95 : agent.temperature,
         (chunk) => appendToLast(agentType, chunk), signal,
@@ -1833,7 +1888,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
         )
         setConsultations(prev => prev.map(c => c.id === consultId ? { ...c, streaming: false } : c))
 
-        const synthesisHistory = [...history, { role: 'assistant', content: mainContent.replace(match[0], '').trim() }, { role: 'user', content: `[Resultado da consulta com ${toAgent.name}]: ${consultAnswer || '(sem resposta)'}` }]
+        const synthesisHistory = [...safeHistory, { role: 'assistant', content: mainContent.replace(match[0], '').trim() }, { role: 'user', content: `[Resultado da consulta com ${toAgent.name}]: ${consultAnswer || '(sem resposta)'}` }]
         addMessage(agentType, { id: `a-${Date.now()}`, role: 'assistant', content: '' })
         await runStream(buildSystemPrompt(agent), synthesisHistory, modelOverride, effortLevel === 'baixo' ? 0.2 : effortLevel === 'alto' ? 0.95 : agent.temperature, (chunk) => appendToLast(agentType, chunk), signal)
       }
