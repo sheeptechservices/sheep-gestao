@@ -50,6 +50,18 @@ const navItems = [
         label: 'Especialistas',
         icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h12M2 12l1.8-6 3.2 3 2.2-4.5L11.4 9l3.2-3L13 12"/><circle cx="8" cy="4.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="3.3" cy="7" r="0.75" fill="currentColor" stroke="none"/><circle cx="12.7" cy="7" r="0.75" fill="currentColor" stroke="none"/></svg>,
       },
+      {
+        href: '/team',
+        label: 'Equipe',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="5.5" cy="5" r="2"/>
+            <path d="M1 13c0-2.2 2-4 4.5-4s4.5 1.8 4.5 4"/>
+            <circle cx="12" cy="5.5" r="1.6"/>
+            <path d="M15 13c0-1.8-1.3-3.2-3-3.5"/>
+          </svg>
+        ),
+      },
     ],
   },
   {

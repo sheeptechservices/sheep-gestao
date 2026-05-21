@@ -17,6 +17,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     deadline:         row.deadline     as string | undefined,
     created_at:       row.created_at   as string,
     attachment_count: (row.attachment_count as number | undefined) ?? 0,
+    member_id:        row.member_id    as string | undefined,
   }
 }
 
@@ -59,14 +60,15 @@ export async function POST(req: NextRequest) {
     await db.execute({
       sql: `
         INSERT INTO tasks
-          (id, project_id, week_id, title, description, urgency, done, assigned_to, flags, flag_comment, deadline, is_draft, created_at)
+          (id, project_id, week_id, title, description, urgency, done, assigned_to, member_id, flags, flag_comment, deadline, is_draft, created_at)
         VALUES
-          (:id, :project_id, :week_id, :title, :description, :urgency, :done, :assigned_to, :flags, :flag_comment, :deadline, :is_draft, :created_at)
+          (:id, :project_id, :week_id, :title, :description, :urgency, :done, :assigned_to, :member_id, :flags, :flag_comment, :deadline, :is_draft, :created_at)
       `,
       args: {
         week_id:      body.week_id      ?? null,
         description:  body.description  ?? null,
         assigned_to:  body.assigned_to  ?? null,
+        member_id:    body.member_id    ?? null,
         id:           body.id,
         title:        body.title,
         created_at:   body.created_at   ?? new Date().toISOString(),

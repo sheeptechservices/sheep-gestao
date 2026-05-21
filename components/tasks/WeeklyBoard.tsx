@@ -15,6 +15,9 @@ import { useCreateStore } from '@/stores/createStore'
 import { stripHtml } from '@/lib/stripHtml'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useTeamStore } from '@/stores/teamStore'
+import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { MemberPicker } from '@/components/ui/MemberPicker'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +71,7 @@ const ALL_FLAGS = Object.keys(FLAG_CONFIG)
 
 export interface FormState {
   title: string; description: string; urgency: TaskUrgency | ''
-  done: boolean; assigned_to: string; week_id: string | null
+  done: boolean; assigned_to: string; member_id?: string; week_id: string | null
   project_id: string; flags: string[]; flag_comment: string; deadline: string
 }
 
@@ -169,6 +172,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
     urgency:      task?.urgency      ?? '',
     done:         task?.done         ?? false,
     assigned_to:  task?.assigned_to  ?? '',
+    member_id:    task?.member_id,
     week_id:      task?.week_id      ?? defaultWeekId ?? null,
     project_id:   task?.project_id   ?? defaultProjectId ?? '',
     flags:        task?.flags        ?? [],
@@ -384,9 +388,9 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Responsável</label>
-            <input value={form.assigned_to}
-              onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-              placeholder="Nome do responsável..." style={inputStyle}
+            <MemberPicker
+              value={form.member_id}
+              onChange={id => setForm(f => ({ ...f, member_id: id }))}
             />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -862,6 +866,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   const revisar    = task.flags?.includes('revisar')
   const atencao    = task.flags?.includes('atencao')
   const accentColor = bloqueado ? '#DC2626' : atencao ? '#7C3AED' : revisar ? '#D97706' : color
+  const members    = useTeamStore(s => s.members)
+  const assignedMember = task.member_id ? members.find(m => m.id === task.member_id) : undefined
 
   return (
     <div
@@ -986,11 +992,14 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
               background: URGENCY_CONFIG[task.urgency].bg,
             }}>{URGENCY_CONFIG[task.urgency].label}</span>
           )}
-          {task.assigned_to && (
-            <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
-              {task.assigned_to.split(' ')[0]}
-            </span>
-          )}
+          {assignedMember
+            ? <MemberAvatar member={assignedMember} size={16} />
+            : task.assigned_to && (
+                <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                  {task.assigned_to.split(' ')[0]}
+                </span>
+              )
+          }
           {(task.attachment_count ?? 0) > 0 && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -1439,6 +1448,7 @@ function FilterPill({ label, value, options, onChange }: {
 
 export function WeeklyBoard() {
   const { tasks, fetchTasks, updateTask, toggleDone, addTask, deleteTask, registerTask } = useTasksStore()
+  const fetchMembers = useTeamStore(s => s.fetchMembers)
   const [weeks,    setWeeks]    = useState<Week[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [weekIdx,  setWeekIdx]  = useState(0)
@@ -1503,6 +1513,7 @@ export function WeeklyBoard() {
 
   // Load data
   useEffect(() => {
+    fetchMembers()
     Promise.all([
       fetchTasks(),
       fetch('/api/weeks').then(r => r.json()),
@@ -1622,6 +1633,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         data.done,
         assigned_to:  data.assigned_to  || undefined,
+        member_id:    data.member_id    || undefined,
         week_id:      data.week_id      ?? undefined,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,
@@ -1637,6 +1649,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         data.done,
         assigned_to:  data.assigned_to  || undefined,
+        member_id:    data.member_id    || undefined,
         week_id:      data.week_id      ?? currentWeek?.id,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,
@@ -1656,6 +1669,7 @@ export function WeeklyBoard() {
         urgency:      data.urgency      || undefined,
         done:         false,
         assigned_to:  data.assigned_to  || undefined,
+        member_id:    data.member_id    || undefined,
         week_id:      data.week_id      ?? currentWeek?.id,
         project_id:   data.project_id   || undefined,
         flags:        data.flags.length ? data.flags : undefined,

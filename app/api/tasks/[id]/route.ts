@@ -12,6 +12,7 @@ function rowToTask(row: Record<string, unknown>): Task {
     urgency:      row.urgency      as TaskUrgency | undefined,
     done:         (row.done as number) === 1,
     assigned_to:  row.assigned_to  as string | undefined,
+    member_id:    row.member_id    as string | undefined,
     flags:        row.flags        ? JSON.parse(row.flags as string) : undefined,
     flag_comment: row.flag_comment as string | undefined,
     deadline:     row.deadline     as string | undefined,
@@ -28,7 +29,7 @@ export async function PUT(
     const db = await initDb()
 
     const allowed: (keyof Task)[] = [
-      'project_id', 'week_id', 'title', 'description', 'urgency', 'done', 'assigned_to', 'flags', 'flag_comment', 'deadline', 'is_draft',
+      'project_id', 'week_id', 'title', 'description', 'urgency', 'done', 'assigned_to', 'member_id', 'flags', 'flag_comment', 'deadline', 'is_draft',
     ]
     const updates = allowed.filter(k => k in body)
     if (updates.length === 0) return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
@@ -41,6 +42,7 @@ export async function PUT(
     if ('urgency'      in body) payload.urgency      = body.urgency      || null
     if ('description'  in body) payload.description  = body.description  || null
     if ('assigned_to'  in body) payload.assigned_to  = body.assigned_to  || null
+    if ('member_id'    in body) payload.member_id    = body.member_id    || null
     if ('week_id'      in body) payload.week_id      = body.week_id      || null
     if ('project_id'   in body) payload.project_id   = body.project_id   || null
     if ('deadline'     in body) payload.deadline     = body.deadline     || null

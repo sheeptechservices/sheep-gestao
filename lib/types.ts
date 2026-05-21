@@ -4,6 +4,20 @@ export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales"
 
 export type ClientStatus = 'active' | 'inactive' | 'paused' | 'cancelled'
 
+export type MemberStatus = 'active' | 'inactive' | 'vacation'
+
+export interface TeamMember {
+  id: string
+  name: string
+  cargo: string
+  email?: string
+  photo_url?: string   // /api/team/[id]/photo
+  joined_at?: string   // YYYY-MM-DD
+  status: MemberStatus
+  color_hex: string
+  created_at: string
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -67,6 +81,7 @@ export interface Task {
   urgency?: TaskUrgency;
   done: boolean;
   assigned_to?: string;
+  member_id?: string;
   flags?: string[];
   flag_comment?: string;
   deadline?: string;          // ISO date 'YYYY-MM-DD' — previsão de entrega

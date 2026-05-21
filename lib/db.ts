@@ -159,6 +159,20 @@ async function createTables(db: Client) {
       enabled    INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS team_members (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      cargo      TEXT NOT NULL DEFAULT '',
+      email      TEXT,
+      photo_data TEXT,
+      joined_at  TEXT,
+      status     TEXT NOT NULL DEFAULT 'active',
+      color_hex  TEXT NOT NULL DEFAULT '#84CC16',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_team_members_status ON team_members(status);
   `)
 }
 
@@ -198,6 +212,7 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN urgency      TEXT`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN deadline     TEXT`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN is_draft     INTEGER NOT NULL DEFAULT 0`),
+    tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_id    TEXT REFERENCES team_members(id)`),
   ])
 
   // Limpa rascunhos órfãos:
