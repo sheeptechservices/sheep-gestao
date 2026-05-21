@@ -301,10 +301,15 @@ function DeleteModal({ member, onConfirm, onClose }: { member: TeamMember; onCon
 
 // ── Table ─────────────────────────────────────────────────────────────────────
 
-function TeamTable({ members, onEdit, onDelete }: {
+const STATUS_OPTIONS = Object.entries(STATUS_CONFIG).map(([k, s]) => ({
+  value: k, label: s.label, color: s.color, bg: s.bg, border: s.border,
+}))
+
+function TeamTable({ members, onEdit, onDelete, onStatusChange }: {
   members: TeamMember[]
   onEdit: (m: TeamMember) => void
   onDelete: (m: TeamMember) => void
+  onStatusChange: (id: string, status: MemberStatus) => void
 }) {
   const [hovRow, setHovRow] = useState<string | null>(null)
 
@@ -337,7 +342,6 @@ function TeamTable({ members, onEdit, onDelete }: {
         {/* Rows */}
         {members.map((m, i) => {
           const isHov = hovRow === m.id
-          const s = STATUS_CONFIG[m.status]
           return (
             <div
               key={m.id}
@@ -362,11 +366,15 @@ function TeamTable({ members, onEdit, onDelete }: {
                 </span>
               </div>
 
-              {/* Status badge */}
+              {/* Status — inline picker */}
               <div style={{ width: 110, flexShrink: 0, padding: '0 10px 0 0' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 100, color: s.color, background: s.bg, border: `1px solid ${s.border}` }}>
-                  {s.label}
-                </span>
+                <AppSelect
+                  value={m.status}
+                  onChange={v => onStatusChange(m.id, v as MemberStatus)}
+                  options={STATUS_OPTIONS}
+                  mode="badge"
+                  onClick={e => e.stopPropagation()}
+                />
               </div>
 
               {/* Cargo */}
@@ -425,7 +433,7 @@ function TeamTable({ members, onEdit, onDelete }: {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TeamPage() {
-  const { members, loading, fetchMembers, deleteMember } = useTeamStore()
+  const { members, loading, fetchMembers, deleteMember, updateMember } = useTeamStore()
   const [drawerMember, setDrawerMember] = useState<TeamMember | 'new' | null>(null)
   const [toDelete,     setToDelete]     = useState<TeamMember | null>(null)
   const [filterStatus, setFilterStatus] = useState<MemberStatus | 'all'>('all')
@@ -495,6 +503,7 @@ export default function TeamPage() {
           members={filtered}
           onEdit={m => setDrawerMember(m)}
           onDelete={m => setToDelete(m)}
+          onStatusChange={(id, status) => updateMember(id, { status })}
         />
       )}
 
