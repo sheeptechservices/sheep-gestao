@@ -11,6 +11,8 @@ interface TeamState {
   deleteMember:  (id: string) => Promise<void>
   uploadPhoto:   (id: string, file: File) => Promise<void>
   deletePhoto:   (id: string) => Promise<void>
+  uploadCv:      (id: string, file: File) => Promise<void>
+  deleteCv:      (id: string) => Promise<void>
 }
 
 export const useTeamStore = create<TeamState>((set, get) => ({
@@ -107,6 +109,30 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       toast.success('Foto removida', '')
     } catch {
       toast.error('Erro', 'Não foi possível remover a foto')
+    }
+  },
+
+  uploadCv: async (id, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    try {
+      const res = await fetch(`/api/team/${id}/cv`, { method: 'POST', body: form })
+      if (!res.ok) { toast.error('Erro', 'Currículo não pôde ser salvo'); return }
+      const { curriculo_url } = await res.json()
+      set(s => ({ members: s.members.map(m => m.id === id ? { ...m, curriculo_url } : m) }))
+      toast.success('Currículo enviado', file.name)
+    } catch {
+      toast.error('Erro', 'Currículo não pôde ser salvo')
+    }
+  },
+
+  deleteCv: async (id) => {
+    try {
+      await fetch(`/api/team/${id}/cv`, { method: 'DELETE' })
+      set(s => ({ members: s.members.map(m => m.id === id ? { ...m, curriculo_url: undefined } : m) }))
+      toast.success('Currículo removido', '')
+    } catch {
+      toast.error('Erro', 'Não foi possível remover o currículo')
     }
   },
 }))

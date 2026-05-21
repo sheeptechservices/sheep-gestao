@@ -4,18 +4,55 @@ export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales"
 
 export type ClientStatus = 'active' | 'inactive' | 'paused' | 'cancelled'
 
-export type MemberStatus = 'active' | 'inactive' | 'vacation'
+export type MemberStatus   = 'active' | 'inactive' | 'vacation'
+export type MemberSexo     = 'masculino' | 'feminino' | 'outro' | 'nao_informado'
+export type MemberSenior   = 'junior' | 'pleno' | 'senior' | 'especialista' | 'lideranca'
+export type MemberIngles   = 'nenhum' | 'basico' | 'intermediario' | 'avancado' | 'fluente'
+export type MemberRegime   = 'mei' | 'me' | 'simples' | 'lucro_presumido' | 'outro'
+export type MemberExp      = 'menos1' | '1a2' | '3a5' | '5a10' | 'mais10'
 
 export interface TeamMember {
   id: string
   name: string
   cargo: string
   email?: string
-  photo_url?: string   // /api/team/[id]/photo
-  joined_at?: string   // YYYY-MM-DD
+  photo_url?: string      // /api/team/[id]/photo
+  joined_at?: string      // YYYY-MM-DD
   status: MemberStatus
   color_hex: string
   created_at: string
+
+  // Identificação & Contato
+  sexo?: MemberSexo
+  data_nascimento?: string  // YYYY-MM-DD
+  whatsapp?: string
+  linkedin?: string
+  github?: string
+  indicacao_nome?: string
+  indicacao_email?: string
+
+  // Localização
+  estado?: string
+  cidade?: string
+
+  // Perfil Profissional
+  resumo_profissional?: string
+  papel_principal?: string
+  senioridade?: MemberSenior
+  tempo_experiencia?: MemberExp
+  nivel_ingles?: MemberIngles
+  outro_idioma?: string
+
+  // Situação Fiscal
+  possui_cnpj?: boolean
+  regime_fiscal?: MemberRegime
+
+  // Documentos
+  curriculo_url?: string   // /api/team/[id]/cv
+
+  // LGPD
+  lgpd_consent?: boolean
+  newsletter_consent?: boolean
 }
 
 export interface Client {

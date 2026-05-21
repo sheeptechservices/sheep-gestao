@@ -24,6 +24,57 @@ const CARGOS = [
   'Comercial', 'Marketing', 'Jurídico', 'Secretaria', 'Outro',
 ]
 
+const PAPEIS = [
+  'Dev Full Stack', 'Dev Front-end', 'Dev Back-end', 'Dev Mobile',
+  'Designer UI/UX', 'Designer Gráfico', 'PO / PM', 'QA / Tester',
+  'DevOps / Cloud', 'Data Analyst', 'Data Scientist', 'AI Engineer',
+  'Comercial', 'Marketing', 'Jurídico', 'Secretaria', 'Outro',
+]
+
+const SENIORIDADE_OPTS = [
+  { value: 'junior',      label: 'Júnior'      },
+  { value: 'pleno',       label: 'Pleno'        },
+  { value: 'senior',      label: 'Sênior'       },
+  { value: 'especialista',label: 'Especialista' },
+  { value: 'lideranca',   label: 'Liderança'    },
+]
+
+const EXP_OPTS = [
+  { value: 'menos1', label: '< 1 ano'    },
+  { value: '1a2',    label: '1 – 2 anos' },
+  { value: '3a5',    label: '3 – 5 anos' },
+  { value: '5a10',   label: '5 – 10 anos'},
+  { value: 'mais10', label: '10+ anos'   },
+]
+
+const INGLES_OPTS = [
+  { value: 'nenhum',        label: 'Nenhum'       },
+  { value: 'basico',        label: 'Básico'        },
+  { value: 'intermediario', label: 'Intermediário' },
+  { value: 'avancado',      label: 'Avançado'      },
+  { value: 'fluente',       label: 'Fluente'       },
+]
+
+const REGIME_OPTS = [
+  { value: 'mei',            label: 'MEI'               },
+  { value: 'me',             label: 'ME'                },
+  { value: 'simples',        label: 'Simples Nacional'  },
+  { value: 'lucro_presumido',label: 'Lucro Presumido'   },
+  { value: 'outro',          label: 'Outro'             },
+]
+
+const SEXO_OPTS = [
+  { value: 'masculino',    label: 'Masculino'            },
+  { value: 'feminino',     label: 'Feminino'             },
+  { value: 'outro',        label: 'Outro'                },
+  { value: 'nao_informado',label: 'Prefiro não informar' },
+]
+
+const ESTADOS_BR = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+]
+
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
@@ -53,13 +104,25 @@ const CELL: React.CSSProperties = {
   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, span }: { label: string; children: React.ReactNode; span?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: span ? '1 / -1' : undefined }}>
       <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         {label}
       </label>
       {children}
+    </div>
+  )
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <div style={{
+      fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase',
+      letterSpacing: '0.09em', paddingBottom: 8, marginTop: 4,
+      borderBottom: '1px solid var(--gray3)', gridColumn: '1 / -1',
+    }}>
+      {title}
     </div>
   )
 }
@@ -90,6 +153,90 @@ function PhotoUpload({ member, onUpload }: { member: TeamMember; onUpload: (f: F
   )
 }
 
+// ── CV Upload ─────────────────────────────────────────────────────────────────
+
+function CvUpload({ memberId, curriculo_url }: { memberId: string; curriculo_url?: string }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { uploadCv, deleteCv } = useTeamStore()
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <button type="button" onClick={() => inputRef.current?.click()}
+        style={{ padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, border: '1px solid var(--gray3)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--black)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <svg width={12} height={12} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M6 8V2M3 5l3-3 3 3" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M1 9v1.5a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V9" strokeLinecap="round"/>
+        </svg>
+        {curriculo_url ? 'Substituir currículo' : 'Enviar currículo'}
+      </button>
+      {curriculo_url && (
+        <>
+          <a href={curriculo_url} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: 'var(--primary-text)', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width={11} height={11} viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <path d="M2 9l7-7M4 2h5v5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Ver arquivo
+          </a>
+          <button type="button" onClick={() => deleteCv(memberId)}
+            style={{ fontSize: 12, fontWeight: 600, border: 'none', background: 'transparent', cursor: 'pointer', color: '#D93025', padding: 0 }}>
+            Remover
+          </button>
+        </>
+      )}
+      <input ref={inputRef} type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) uploadCv(memberId, f); e.target.value = '' }} />
+    </div>
+  )
+}
+
+// ── Toggle / Checkbox ─────────────────────────────────────────────────────────
+
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+      <div
+        onClick={() => onChange(!checked)}
+        style={{
+          width: 36, height: 20, borderRadius: 10, flexShrink: 0,
+          background: checked ? 'var(--primary)' : 'var(--gray3)',
+          position: 'relative', transition: 'background 0.2s', cursor: 'pointer',
+        }}
+      >
+        <div style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 16, height: 16, borderRadius: '50%', background: 'var(--white)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'left 0.2s',
+        }} />
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--black)', fontWeight: 500 }}>{label}</span>
+    </label>
+  )
+}
+
+function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+      <div
+        onClick={() => onChange(!checked)}
+        style={{
+          width: 17, height: 17, borderRadius: 4, flexShrink: 0, marginTop: 1,
+          border: checked ? '2px solid var(--primary-text)' : '1.5px solid var(--gray2)',
+          background: checked ? 'var(--primary-text)' : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.12s', cursor: 'pointer',
+        }}
+      >
+        {checked && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M1.5 5l2.5 2.5L8.5 2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      <span style={{ fontSize: 12, color: 'var(--gray)', lineHeight: 1.5 }}>{label}</span>
+    </label>
+  )
+}
+
 // ── Edit Drawer ───────────────────────────────────────────────────────────────
 
 function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose: () => void }) {
@@ -97,6 +244,7 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
   const [form, setForm] = useState<Partial<TeamMember>>(member ?? {
     name: '', cargo: '', email: '', joined_at: new Date().toISOString().split('T')[0],
     status: 'active', color_hex: '#84CC16',
+    lgpd_consent: false, newsletter_consent: false, possui_cnpj: false,
   })
   const [focused, setFocused] = useState<string | null>(null)
   const [saving,  setSaving]  = useState(false)
@@ -116,9 +264,20 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
     if (!form.name?.trim()) return
     setSaving(true)
     if (isNew) {
-      await addMember({ name: form.name!, cargo: form.cargo ?? '', email: form.email,
+      await addMember({
+        name: form.name!, cargo: form.cargo ?? '', email: form.email,
         joined_at: form.joined_at, status: form.status ?? 'active',
-        color_hex: form.color_hex ?? '#84CC16', photo_url: undefined })
+        color_hex: form.color_hex ?? '#84CC16', photo_url: undefined,
+        sexo: form.sexo, data_nascimento: form.data_nascimento,
+        whatsapp: form.whatsapp, linkedin: form.linkedin, github: form.github,
+        indicacao_nome: form.indicacao_nome, indicacao_email: form.indicacao_email,
+        estado: form.estado, cidade: form.cidade,
+        resumo_profissional: form.resumo_profissional, papel_principal: form.papel_principal,
+        senioridade: form.senioridade, tempo_experiencia: form.tempo_experiencia,
+        nivel_ingles: form.nivel_ingles, outro_idioma: form.outro_idioma,
+        possui_cnpj: form.possui_cnpj, regime_fiscal: form.regime_fiscal,
+        lgpd_consent: form.lgpd_consent, newsletter_consent: form.newsletter_consent,
+      })
     } else {
       await updateMember(member.id, form)
     }
@@ -131,13 +290,13 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(18,19,22,0.22)', backdropFilter: 'blur(2px)', animation: 'fadeIn 0.18s ease both' }} />
       <aside style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 3001,
-        width: 440, maxWidth: '100vw', background: 'var(--white)',
+        width: 480, maxWidth: '100vw', background: 'var(--white)',
         borderLeft: '1px solid var(--gray3)', display: 'flex', flexDirection: 'column',
         boxShadow: '-8px 0 40px rgba(0,0,0,0.14)', animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
       }}>
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <MemberAvatar member={{ name: form.name || '?', color_hex: form.color_hex ?? '#84CC16', photo_url: member?.photo_url }} size={36} />
+          <MemberAvatar member={{ name: form.name || '?', color_hex: form.color_hex ?? '#84CC16', photo_url: member?.photo_url } as TeamMember} size={36} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray2)', marginBottom: 2 }}>
               {isNew ? 'Novo membro' : 'Editar membro'}
@@ -159,17 +318,20 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+
+          {/* ── IDENTIFICAÇÃO & CONTATO ─────────────────────────────────────── */}
+          <SectionHeader title="Identificação & Contato" />
 
           {/* Foto — só ao editar */}
           {!isNew && member && (
-            <Field label="Foto">
+            <Field label="Foto" span>
               <PhotoUpload member={{ ...member, ...form } as TeamMember} onUpload={f => uploadPhoto(member.id, f)} />
             </Field>
           )}
 
           {/* Cor */}
-          <Field label="Cor">
+          <Field label="Cor" span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {COLOR_PRESETS.map(c => (
                 <button key={c} type="button" onClick={() => set('color_hex', c)} style={{
@@ -187,7 +349,7 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
           </Field>
 
           {/* Nome */}
-          <Field label="Nome *">
+          <Field label="Nome *" span>
             <input
               value={form.name ?? ''}
               onChange={e => set('name', e.target.value)}
@@ -198,31 +360,40 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
             />
           </Field>
 
-          {/* Cargo + Status lado a lado */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Cargo">
-              <AppSelect
-                value={form.cargo ?? ''}
-                onChange={v => set('cargo', v)}
-                options={[
-                  { value: '', label: '— Selecione —' },
-                  ...CARGOS.map(c => ({ value: c, label: c })),
-                ]}
-              />
-            </Field>
-            <Field label="Status">
-              <AppSelect
-                value={form.status ?? 'active'}
-                onChange={v => set('status', v as MemberStatus)}
-                options={Object.entries(STATUS_CONFIG).map(([k, s]) => ({
-                  value: k, label: s.label, color: s.color, bg: s.bg, border: s.border,
-                }))}
-              />
-            </Field>
-          </div>
+          {/* Sexo */}
+          <Field label="Gênero">
+            <AppSelect
+              value={form.sexo ?? ''}
+              onChange={v => set('sexo', v as TeamMember['sexo'])}
+              options={[{ value: '', label: '— Selecione —' }, ...SEXO_OPTS]}
+            />
+          </Field>
+
+          {/* Data de nascimento */}
+          <Field label="Data de nascimento">
+            <AppDatePicker value={form.data_nascimento ?? ''} onChange={v => set('data_nascimento', v)} />
+          </Field>
+
+          {/* Cargo + Status */}
+          <Field label="Cargo">
+            <AppSelect
+              value={form.cargo ?? ''}
+              onChange={v => set('cargo', v)}
+              options={[{ value: '', label: '— Selecione —' }, ...CARGOS.map(c => ({ value: c, label: c }))]}
+            />
+          </Field>
+          <Field label="Status">
+            <AppSelect
+              value={form.status ?? 'active'}
+              onChange={v => set('status', v as MemberStatus)}
+              options={Object.entries(STATUS_CONFIG).map(([k, s]) => ({
+                value: k, label: s.label, color: s.color, bg: s.bg, border: s.border,
+              }))}
+            />
+          </Field>
 
           {/* E-mail */}
-          <Field label="E-mail">
+          <Field label="E-mail" span>
             <input
               type="email"
               value={form.email ?? ''}
@@ -234,13 +405,198 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
             />
           </Field>
 
-          {/* Entrada na equipe */}
-          <Field label="Entrada na equipe">
-            <AppDatePicker
-              value={form.joined_at ?? ''}
-              onChange={v => set('joined_at', v)}
+          {/* WhatsApp */}
+          <Field label="WhatsApp" span>
+            <input
+              value={form.whatsapp ?? ''}
+              onChange={e => set('whatsapp', e.target.value)}
+              onFocus={() => setFocused('whatsapp')}
+              onBlur={() => setFocused(null)}
+              placeholder="+55 (11) 9 0000-0000"
+              style={focusStyle(focused, 'whatsapp')}
             />
           </Field>
+
+          {/* LinkedIn */}
+          <Field label="LinkedIn">
+            <input
+              value={form.linkedin ?? ''}
+              onChange={e => set('linkedin', e.target.value)}
+              onFocus={() => setFocused('linkedin')}
+              onBlur={() => setFocused(null)}
+              placeholder="linkedin.com/in/..."
+              style={focusStyle(focused, 'linkedin')}
+            />
+          </Field>
+
+          {/* GitHub */}
+          <Field label="GitHub">
+            <input
+              value={form.github ?? ''}
+              onChange={e => set('github', e.target.value)}
+              onFocus={() => setFocused('github')}
+              onBlur={() => setFocused(null)}
+              placeholder="github.com/..."
+              style={focusStyle(focused, 'github')}
+            />
+          </Field>
+
+          {/* Indicação */}
+          <Field label="Indicado por (nome)">
+            <input
+              value={form.indicacao_nome ?? ''}
+              onChange={e => set('indicacao_nome', e.target.value)}
+              onFocus={() => setFocused('indicacao_nome')}
+              onBlur={() => setFocused(null)}
+              placeholder="Nome do indicador"
+              style={focusStyle(focused, 'indicacao_nome')}
+            />
+          </Field>
+          <Field label="Indicado por (e-mail)">
+            <input
+              value={form.indicacao_email ?? ''}
+              onChange={e => set('indicacao_email', e.target.value)}
+              onFocus={() => setFocused('indicacao_email')}
+              onBlur={() => setFocused(null)}
+              placeholder="email@indicador.com"
+              style={focusStyle(focused, 'indicacao_email')}
+            />
+          </Field>
+
+          {/* Entrada */}
+          <Field label="Na equipe desde">
+            <AppDatePicker value={form.joined_at ?? ''} onChange={v => set('joined_at', v)} />
+          </Field>
+
+          {/* ── LOCALIZAÇÃO ──────────────────────────────────────────────────── */}
+          <SectionHeader title="Localização" />
+
+          <Field label="Estado">
+            <AppSelect
+              value={form.estado ?? ''}
+              onChange={v => set('estado', v)}
+              options={[{ value: '', label: '— UF —' }, ...ESTADOS_BR.map(uf => ({ value: uf, label: uf }))]}
+            />
+          </Field>
+
+          <Field label="Cidade">
+            <input
+              value={form.cidade ?? ''}
+              onChange={e => set('cidade', e.target.value)}
+              onFocus={() => setFocused('cidade')}
+              onBlur={() => setFocused(null)}
+              placeholder="Cidade"
+              style={focusStyle(focused, 'cidade')}
+            />
+          </Field>
+
+          {/* ── PERFIL PROFISSIONAL ───────────────────────────────────────────── */}
+          <SectionHeader title="Perfil Profissional" />
+
+          <Field label="Resumo profissional" span>
+            <textarea
+              value={form.resumo_profissional ?? ''}
+              onChange={e => set('resumo_profissional', e.target.value)}
+              onFocus={() => setFocused('resumo')}
+              onBlur={() => setFocused(null)}
+              placeholder="Descreva brevemente o perfil e as principais habilidades..."
+              rows={3}
+              style={{
+                ...focusStyle(focused, 'resumo'),
+                resize: 'vertical', minHeight: 72,
+              }}
+            />
+          </Field>
+
+          <Field label="Papel principal">
+            <AppSelect
+              value={form.papel_principal ?? ''}
+              onChange={v => set('papel_principal', v)}
+              options={[{ value: '', label: '— Selecione —' }, ...PAPEIS.map(p => ({ value: p, label: p }))]}
+            />
+          </Field>
+
+          <Field label="Senioridade">
+            <AppSelect
+              value={form.senioridade ?? ''}
+              onChange={v => set('senioridade', v as TeamMember['senioridade'])}
+              options={[{ value: '', label: '— Selecione —' }, ...SENIORIDADE_OPTS]}
+            />
+          </Field>
+
+          <Field label="Tempo de experiência">
+            <AppSelect
+              value={form.tempo_experiencia ?? ''}
+              onChange={v => set('tempo_experiencia', v as TeamMember['tempo_experiencia'])}
+              options={[{ value: '', label: '— Selecione —' }, ...EXP_OPTS]}
+            />
+          </Field>
+
+          <Field label="Inglês">
+            <AppSelect
+              value={form.nivel_ingles ?? ''}
+              onChange={v => set('nivel_ingles', v as TeamMember['nivel_ingles'])}
+              options={[{ value: '', label: '— Selecione —' }, ...INGLES_OPTS]}
+            />
+          </Field>
+
+          <Field label="Outros idiomas" span>
+            <input
+              value={form.outro_idioma ?? ''}
+              onChange={e => set('outro_idioma', e.target.value)}
+              onFocus={() => setFocused('outro_idioma')}
+              onBlur={() => setFocused(null)}
+              placeholder="Ex: Espanhol (intermediário), Francês (básico)"
+              style={focusStyle(focused, 'outro_idioma')}
+            />
+          </Field>
+
+          {/* ── SITUAÇÃO FISCAL ────────────────────────────────────────────────── */}
+          <SectionHeader title="Situação Fiscal" />
+
+          <Field label="Possui CNPJ?" span>
+            <Toggle
+              checked={!!form.possui_cnpj}
+              onChange={v => set('possui_cnpj', v)}
+              label={form.possui_cnpj ? 'Sim' : 'Não'}
+            />
+          </Field>
+
+          {form.possui_cnpj && (
+            <Field label="Regime fiscal" span>
+              <AppSelect
+                value={form.regime_fiscal ?? ''}
+                onChange={v => set('regime_fiscal', v as TeamMember['regime_fiscal'])}
+                options={[{ value: '', label: '— Selecione —' }, ...REGIME_OPTS]}
+              />
+            </Field>
+          )}
+
+          {/* ── DOCUMENTOS & LGPD ──────────────────────────────────────────────── */}
+          <SectionHeader title="Documentos & LGPD" />
+
+          {/* CV — só no modo edição (precisa de ID) */}
+          {!isNew && member && (
+            <Field label="Currículo (PDF / DOC / DOCX, máx. 5 MB)" span>
+              <CvUpload memberId={member.id} curriculo_url={member.curriculo_url} />
+            </Field>
+          )}
+
+          <Field label="Consentimentos" span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Checkbox
+                checked={!!form.lgpd_consent}
+                onChange={v => set('lgpd_consent', v)}
+                label="Declaro que li e aceito a Política de Privacidade e autorizo o tratamento dos meus dados pessoais conforme a LGPD."
+              />
+              <Checkbox
+                checked={!!form.newsletter_consent}
+                onChange={v => set('newsletter_consent', v)}
+                label="Aceito receber comunicações, novidades e atualizações da Sheep por e-mail."
+              />
+            </div>
+          </Field>
+
         </div>
 
         {/* Footer */}
