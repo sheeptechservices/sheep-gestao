@@ -11,7 +11,10 @@ interface Props {
 }
 
 export function MemberPicker({ value, onChange, placeholder = '— Selecionar —' }: Props) {
-  const { members } = useTeamStore()
+  const { members, fetchMembers } = useTeamStore()
+
+  // Garante que os membros estejam carregados independentemente da página visitada
+  useEffect(() => { if (members.length === 0) fetchMembers() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [mounted, setMounted] = useState(false)
   const [open,    setOpen]    = useState(false)
