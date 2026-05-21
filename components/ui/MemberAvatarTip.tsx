@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import type { TeamMember } from '@/lib/types'
 import { MemberAvatar } from './MemberAvatar'
@@ -21,74 +21,85 @@ const SENIOR_LABEL: Record<string, string> = {
   director: 'Diretor',
 }
 
+// gap between avatar top-edge and tooltip bottom-edge
+const GAP = 6
+
 export function MemberAvatarTip({ member, size = 26 }: Props) {
   const [hov,     setHov]     = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [pos,     setPos]     = useState<{ top: number; left: number } | null>(null)
-  const ref     = useRef<HTMLDivElement>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // anchorX = horizontal center of the avatar (viewport px)
+  // anchorY = top of the avatar (viewport px)
+  const [anchor,  setAnchor]  = useState<{ x: number; y: number } | null>(null)
+  const avatarRef  = useRef<HTMLDivElement>(null)
+  const hideTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
-  function show() {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    if (ref.current) {
-      const r = ref.current.getBoundingClientRect()
-      // prefer showing above, fallback below
-      setPos({ top: r.top - 8, left: r.left + r.width / 2 })
+  const clearHide = () => { if (hideTimer.current) clearTimeout(hideTimer.current) }
+
+  const show = useCallback(() => {
+    clearHide()
+    if (avatarRef.current) {
+      const r = avatarRef.current.getBoundingClientRect()
+      setAnchor({ x: r.left + r.width / 2, y: r.top })
     }
     setHov(true)
-  }
+  }, [])
 
-  function hide() {
-    timerRef.current = setTimeout(() => setHov(false), 80)
-  }
+  const hide = useCallback(() => {
+    hideTimer.current = setTimeout(() => setHov(false), 80)
+  }, [])
 
-  const tooltip = mounted && hov && pos ? createPortal(
+  // ── Tooltip ────────────────────────────────────────────────────────────────
+  const tooltip = mounted && hov && anchor ? createPortal(
     <div
-      onMouseEnter={() => { if (timerRef.current) clearTimeout(timerRef.current) }}
+      onMouseEnter={clearHide}
       onMouseLeave={hide}
       style={{
-        position: 'fixed',
-        // place the tip above the avatar, centred horizontally
-        top: pos.top,
-        left: pos.left,
-        transform: 'translate(-50%, -100%)',
-        zIndex: 99999,
+        position:   'fixed',
+        // Place the tooltip so its bottom sits GAP px above the avatar top.
+        // We don't know height at render time, so we set top=anchorY and
+        // shift up 100% + GAP using calc.
+        top:        anchor.y,
+        left:       anchor.x,
+        transform:  `translate(-50%, calc(-100% - ${GAP}px))`,
+        zIndex:     99999,
         background: 'var(--white)',
-        border: '1px solid var(--gray3)',
+        border:     '1px solid var(--gray3)',
         borderRadius: 12,
-        boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
-        padding: '10px 14px 10px 10px',
-        display: 'flex',
+        boxShadow:  '0 6px 24px rgba(0,0,0,0.13)',
+        padding:    '10px 14px 10px 10px',
+        display:    'flex',
         alignItems: 'center',
-        gap: 10,
+        gap:        10,
         pointerEvents: 'auto',
-        animation: 'panelUp 0.16s ease both',
+        animation:  'panelUp 0.16s ease both',
         whiteSpace: 'nowrap',
-        minWidth: 160,
+        minWidth:   140,
       }}
     >
-      {/* Caret */}
+      {/* Down-pointing caret — centred on anchor.x */}
+      {/* Two triangles: outer (border color) + inner (white) */}
+      <div style={{
+        position: 'absolute',
+        bottom: -7,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 0, height: 0,
+        borderLeft:  '7px solid transparent',
+        borderRight: '7px solid transparent',
+        borderTop:   '7px solid var(--gray3)',
+      }} />
       <div style={{
         position: 'absolute',
         bottom: -6,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 10,
-        height: 6,
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          width: 10,
-          height: 10,
-          background: 'var(--white)',
-          border: '1px solid var(--gray3)',
-          transform: 'rotate(45deg) translateY(-6px)',
-          transformOrigin: 'center',
-          boxShadow: '1px 1px 3px rgba(0,0,0,0.07)',
-        }} />
-      </div>
+        width: 0, height: 0,
+        borderLeft:  '6px solid transparent',
+        borderRight: '6px solid transparent',
+        borderTop:   '6px solid var(--white)',
+      }} />
 
       {/* Avatar grande */}
       <div style={{
@@ -96,7 +107,7 @@ export function MemberAvatarTip({ member, size = 26 }: Props) {
         background: member.color_hex,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 14, fontWeight: 700, color: '#fff',
-        boxShadow: `0 0 0 2px ${member.color_hex}40`,
+        boxShadow: `0 0 0 2px ${member.color_hex}45`,
       }}>
         {member.photo_url
           // eslint-disable-next-line @next/next/no-img-element
@@ -131,22 +142,23 @@ export function MemberAvatarTip({ member, size = 26 }: Props) {
     document.body,
   ) : null
 
+  // ── Avatar + ring ──────────────────────────────────────────────────────────
   return (
     <>
       <div
-        ref={ref}
+        ref={avatarRef}
         onMouseEnter={show}
         onMouseLeave={hide}
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display:      'flex',
+          alignItems:   'center',
           borderRadius: '50%',
-          transition: 'box-shadow 0.15s, transform 0.15s',
-          boxShadow: hov ? `0 0 0 3px ${member.color_hex}55, 0 2px 8px rgba(0,0,0,0.15)` : 'none',
-          transform: hov ? 'scale(1.15)' : 'scale(1)',
-          cursor: 'default',
-          zIndex: hov ? 10 : 'auto',
-          position: 'relative',
+          transition:   'box-shadow 0.15s, transform 0.15s',
+          boxShadow:    hov ? `0 0 0 3px ${member.color_hex}55, 0 2px 8px rgba(0,0,0,0.15)` : 'none',
+          transform:    hov ? 'scale(1.15)' : 'scale(1)',
+          cursor:       'default',
+          position:     'relative',
+          zIndex:       hov ? 10 : undefined,
         }}
       >
         <MemberAvatar member={member} size={size} />
