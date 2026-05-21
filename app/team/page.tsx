@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { AppSelect } from '@/components/ui/AppSelect'
+import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import type { TeamMember, MemberStatus } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -28,13 +30,15 @@ const inputStyle: React.CSSProperties = {
   width: '100%', padding: '8px 11px', borderRadius: 8,
   border: '1px solid var(--gray3)', background: 'var(--bg)',
   fontSize: 13, color: 'var(--black)', fontFamily: 'inherit',
-  outline: 'none', boxSizing: 'border-box',
+  outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 }
 
-const selectStyle: React.CSSProperties = {
-  ...inputStyle, cursor: 'pointer', appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%23999' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', paddingRight: 28,
+function focusStyle(focused: string | null, field: string): React.CSSProperties {
+  return {
+    ...inputStyle,
+    borderColor: focused === field ? 'var(--primary)' : 'var(--gray3)',
+    boxShadow:   focused === field ? '0 0 0 3px var(--primary-dim)' : 'none',
+  }
 }
 
 const COL: React.CSSProperties = {
@@ -94,8 +98,15 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
     name: '', cargo: '', email: '', joined_at: new Date().toISOString().split('T')[0],
     status: 'active', color_hex: '#84CC16',
   })
-  const [saving, setSaving] = useState(false)
+  const [focused, setFocused] = useState<string | null>(null)
+  const [saving,  setSaving]  = useState(false)
   const isNew = !member
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onClose])
 
   function set<K extends keyof TeamMember>(k: K, v: TeamMember[K]) {
     setForm(f => ({ ...f, [k]: v }))
@@ -120,79 +131,125 @@ function MemberDrawer({ member, onClose }: { member: TeamMember | null; onClose:
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(18,19,22,0.22)', backdropFilter: 'blur(2px)', animation: 'fadeIn 0.18s ease both' }} />
       <aside style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 3001,
-        width: 400, maxWidth: '100vw', background: 'var(--white)',
+        width: 440, maxWidth: '100vw', background: 'var(--white)',
         borderLeft: '1px solid var(--gray3)', display: 'flex', flexDirection: 'column',
         boxShadow: '-8px 0 40px rgba(0,0,0,0.14)', animation: 'panelSlide 0.28s cubic-bezier(0.34,1.1,0.64,1) both',
       }}>
         {/* Header */}
-        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--black)' }}>
-            {isNew ? 'Novo membro' : 'Editar membro'}
-          </h2>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray2)', padding: 4 }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round"/>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <MemberAvatar member={{ name: form.name || '?', color_hex: form.color_hex ?? '#84CC16', photo_url: member?.photo_url }} size={36} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray2)', marginBottom: 2 }}>
+              {isNew ? 'Novo membro' : 'Editar membro'}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {form.name || 'Sem nome'}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.08)'; e.currentTarget.style.borderColor = '#D93025'; e.currentTarget.style.color = '#D93025' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+          >
+            <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
             </svg>
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Foto — só ao editar */}
           {!isNew && member && (
             <Field label="Foto">
               <PhotoUpload member={{ ...member, ...form } as TeamMember} onUpload={f => uploadPhoto(member.id, f)} />
             </Field>
           )}
 
+          {/* Cor */}
           <Field label="Cor">
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {COLOR_PRESETS.map(c => (
                 <button key={c} type="button" onClick={() => set('color_hex', c)} style={{
-                  width: 26, height: 26, borderRadius: '50%', background: c,
-                  border: form.color_hex === c ? '3px solid var(--black)' : '2px solid transparent',
-                  cursor: 'pointer', boxSizing: 'border-box',
+                  width: 26, height: 26, borderRadius: 8, border: 'none',
+                  background: c, cursor: 'pointer', flexShrink: 0,
+                  boxShadow: form.color_hex === c
+                    ? `0 0 0 2px var(--white), 0 0 0 4px ${c}`
+                    : 'inset 0 0 0 1px rgba(0,0,0,0.12)',
+                  transition: 'box-shadow 0.15s',
                 }} />
               ))}
               <input type="color" value={form.color_hex ?? '#84CC16'} onChange={e => set('color_hex', e.target.value)}
-                style={{ width: 26, height: 26, padding: 0, border: '2px solid var(--gray3)', borderRadius: '50%', cursor: 'pointer', background: 'none' }} />
+                style={{ width: 26, height: 26, borderRadius: 8, border: '1px solid var(--gray3)', background: 'var(--bg)', padding: 2, cursor: 'pointer', flexShrink: 0 }} />
             </div>
           </Field>
 
+          {/* Nome */}
           <Field label="Nome *">
-            <input style={inputStyle} value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Nome completo" />
+            <input
+              value={form.name ?? ''}
+              onChange={e => set('name', e.target.value)}
+              onFocus={() => setFocused('name')}
+              onBlur={() => setFocused(null)}
+              placeholder="Nome completo"
+              style={focusStyle(focused, 'name')}
+            />
           </Field>
 
-          <Field label="Cargo">
-            <select style={selectStyle} value={form.cargo ?? ''} onChange={e => set('cargo', e.target.value)}>
-              <option value="">— Selecione —</option>
-              {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </Field>
+          {/* Cargo + Status lado a lado */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Cargo">
+              <AppSelect
+                value={form.cargo ?? ''}
+                onChange={v => set('cargo', v)}
+                options={[
+                  { value: '', label: '— Selecione —' },
+                  ...CARGOS.map(c => ({ value: c, label: c })),
+                ]}
+              />
+            </Field>
+            <Field label="Status">
+              <AppSelect
+                value={form.status ?? 'active'}
+                onChange={v => set('status', v as MemberStatus)}
+                options={Object.entries(STATUS_CONFIG).map(([k, s]) => ({
+                  value: k, label: s.label, color: s.color, bg: s.bg, border: s.border,
+                }))}
+              />
+            </Field>
+          </div>
 
+          {/* E-mail */}
           <Field label="E-mail">
-            <input style={inputStyle} type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} placeholder="email@empresa.com" />
+            <input
+              type="email"
+              value={form.email ?? ''}
+              onChange={e => set('email', e.target.value)}
+              onFocus={() => setFocused('email')}
+              onBlur={() => setFocused(null)}
+              placeholder="email@empresa.com"
+              style={focusStyle(focused, 'email')}
+            />
           </Field>
 
+          {/* Entrada na equipe */}
           <Field label="Entrada na equipe">
-            <input style={inputStyle} type="date" value={form.joined_at ?? ''} onChange={e => set('joined_at', e.target.value)} />
-          </Field>
-
-          <Field label="Status">
-            <select style={selectStyle} value={form.status ?? 'active'} onChange={e => set('status', e.target.value as MemberStatus)}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
-              <option value="vacation">Férias</option>
-            </select>
+            <AppDatePicker
+              value={form.joined_at ?? ''}
+              onChange={v => set('joined_at', v)}
+            />
           </Field>
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--gray3)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--gray3)', display: 'flex', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
           <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', color: 'var(--black)' }}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.name?.trim()} style={{
-            padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+            padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700,
             border: 'none', background: 'var(--primary)', color: 'var(--primary-text)',
             cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || !form.name?.trim() ? 0.6 : 1,
           }}>
