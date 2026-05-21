@@ -89,7 +89,7 @@ export function MemberPicker({ value, onChange, placeholder = 'â€” Selecionar â€
         left:         rect.left,
         minWidth:     Math.max(rect.width, 220),
         maxHeight:    rect.maxHeight,
-        zIndex:       4000,
+        zIndex:       10000,
         background:   'var(--white)',
         border:       '1px solid var(--gray3)',
         borderRadius: 10,
