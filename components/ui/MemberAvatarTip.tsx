@@ -150,9 +150,13 @@ export function MemberAvatarTip({ member, size = 26 }: Props) {
         onMouseEnter={show}
         onMouseLeave={hide}
         style={{
-          display:      'flex',
+          display:      'inline-flex',
           alignItems:   'center',
+          justifyContent: 'center',
+          width:        size,
+          height:       size,
           borderRadius: '50%',
+          flexShrink:   0,
           transition:   'box-shadow 0.15s, transform 0.15s',
           boxShadow:    hov ? `0 0 0 3px ${member.color_hex}55, 0 2px 8px rgba(0,0,0,0.15)` : 'none',
           transform:    hov ? 'scale(1.15)' : 'scale(1)',
