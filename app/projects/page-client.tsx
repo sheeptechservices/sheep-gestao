@@ -8,6 +8,8 @@ import { calcProgress } from '@/lib/utils'
 import { toast } from '@/stores/toastStore'
 import { useCreateStore } from '@/stores/createStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useTeamStore } from '@/stores/teamStore'
+import { MemberAvatar } from '@/components/ui/MemberAvatar'
 import {
   EditProjectDrawer,
   STATUS_CONFIG,
@@ -131,6 +133,8 @@ function DeleteProjectModal({ project, onConfirm, onClose }: {
 function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onEdit: (p: Project) => void; onDelete: (p: Project) => void }) {
   const { isMobile } = useBreakpoint()
   const [hovRow, setHovRow] = useState<string | null>(null)
+  const { members: teamMembers, fetchMembers } = useTeamStore()
+  useEffect(() => { if (teamMembers.length === 0) fetchMembers() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (projects.length === 0) return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 14, padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--gray2)', boxShadow: 'var(--shadow)' }}>
@@ -230,14 +234,14 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
 
   // ── Desktop: table layout ─────────────────────────────────────────────────
   const COLS = [
-    { key: 'name',       label: 'Projeto',   w: '22%' },
-    { key: 'client',     label: 'Cliente',   w: '14%' },
-    { key: 'type',       label: 'Tipo',      w: '9%'  },
-    { key: 'status',     label: 'Status',    w: '10%' },
-    { key: 'gestor',     label: 'Gestor',    w: '10%' },
-    { key: 'start_date', label: 'Início',    w: '8%'  },
-    { key: 'end_date',   label: 'Fim prev.', w: '8%'  },
-    { key: 'progress',   label: 'Progresso', w: '9%'  },
+    { key: 'name',     label: 'Projeto',   w: '22%' },
+    { key: 'client',   label: 'Cliente',   w: '13%' },
+    { key: 'type',     label: 'Tipo',      w: '8%'  },
+    { key: 'status',   label: 'Status',    w: '10%' },
+    { key: 'gestor',   label: 'Gestor',    w: '9%'  },
+    { key: 'team',     label: 'Equipe',    w: '12%' },
+    { key: 'end_date', label: 'Fim prev.', w: '8%'  },
+    { key: 'progress', label: 'Progresso', w: '10%' },
   ]
 
   return (
@@ -290,10 +294,37 @@ function ProjectTable({ projects, onEdit, onDelete }: { projects: Project[]; onE
                 {s.label}
               </span>
             </div>
-            <div style={{ width: '10%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ width: '9%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {p.gestor ? p.gestor.split(' ')[0] : '—'}
             </div>
-            <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>{fmt(p.start_date)}</div>
+            {/* Equipe técnica — avatares */}
+            <div style={{ width: '12%', flexShrink: 0, padding: '0 8px 0 0', display: 'flex', alignItems: 'center' }}>
+              {(() => {
+                const members = (p.project_member_ids ?? [])
+                  .map(id => teamMembers.find(m => m.id === id))
+                  .filter(Boolean) as typeof teamMembers
+                if (members.length === 0) return <span style={{ fontSize: 12, color: 'var(--gray3)' }}>—</span>
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {members.slice(0, 5).map((m, idx) => (
+                      <div key={m.id} title={m.name} style={{ marginLeft: idx === 0 ? 0 : -6, zIndex: members.length - idx, position: 'relative' }}>
+                        <MemberAvatar member={m} size={26} />
+                      </div>
+                    ))}
+                    {members.length > 5 && (
+                      <div style={{
+                        width: 26, height: 26, borderRadius: '50%', marginLeft: -6,
+                        background: 'var(--gray3)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 9, fontWeight: 800, color: 'var(--gray2)',
+                        border: '2px solid var(--white)', zIndex: 0, position: 'relative',
+                      }}>
+                        +{members.length - 5}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
             <div style={{ width: '8%', flexShrink: 0, padding: '0 8px 0 0', fontSize: 12, color: 'var(--gray)', fontWeight: 500 }}>{fmt(p.end_date)}</div>
             {(() => {
               const prog = calcProgress(p.start_date, p.end_date)
