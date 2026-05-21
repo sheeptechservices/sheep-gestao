@@ -477,7 +477,7 @@ export default function TeamPage() {
     .filter(m => !query || m.name.toLowerCase().includes(query.toLowerCase()) || m.cargo?.toLowerCase().includes(query.toLowerCase()))
 
   return (
-    <div style={{ padding: '32px 28px', maxWidth: 900, margin: '0 auto' }}>
+    <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
