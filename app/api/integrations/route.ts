@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDb } from '@/lib/db'
 
-const DEFAULT_IDS = ['anthropic', 'openai', 'replicate', 'google', 'github_token', 'slack']
+const DEFAULT_IDS = ['anthropic', 'openai', 'replicate', 'google', 'github_token', 'slack', 'fireflies']
 
 /** GET /api/integrations — returns all integration rows (api_key masked) */
 export async function GET() {

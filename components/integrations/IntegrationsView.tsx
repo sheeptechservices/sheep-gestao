@@ -64,6 +64,19 @@ const LOGOS: Record<string, React.ReactNode> = {
       <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
     </svg>
   ),
+  fireflies: (
+    <svg viewBox="0 0 28 28" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="28" height="28" rx="7" fill="#7B5EA7"/>
+      {/* Upper wings */}
+      <ellipse cx="9.5" cy="10" rx="5.5" ry="4.5" fill="rgba(255,255,255,0.88)" transform="rotate(-18 9.5 10)"/>
+      <ellipse cx="18.5" cy="10" rx="5.5" ry="4.5" fill="rgba(255,255,255,0.88)" transform="rotate(18 18.5 10)"/>
+      {/* Lower wings */}
+      <ellipse cx="9.5" cy="19.5" rx="3.8" ry="3" fill="rgba(255,255,255,0.6)" transform="rotate(22 9.5 19.5)"/>
+      <ellipse cx="18.5" cy="19.5" rx="3.8" ry="3" fill="rgba(255,255,255,0.6)" transform="rotate(-22 18.5 19.5)"/>
+      {/* Body */}
+      <ellipse cx="14" cy="14" rx="1.4" ry="5.5" fill="white"/>
+    </svg>
+  ),
 }
 
 // ── Integration catalogue ─────────────────────────────────────────────────────
@@ -78,6 +91,7 @@ interface IntegrationMeta {
   keyPlaceholder: string
   keyHint: string
   docsUrl: string
+  webhookPath?: string   // if set, shows a read-only webhook URL field in the expanded form
   comingSoon?: boolean
 }
 
@@ -150,9 +164,21 @@ const CATALOGUE: IntegrationMeta[] = [
     docsUrl: 'https://api.slack.com/authentication/basics',
     comingSoon: true,
   },
+  {
+    id: 'fireflies',
+    name: 'Fireflies.ai',
+    description: 'Transcrição automática de reuniões via webhook. Vincula resumos, action items e transcrições completas aos projetos automaticamente.',
+    category: 'Reuniões',
+    color: '#7B5EA7',
+    keyLabel: 'API Key',
+    keyPlaceholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    keyHint: 'Obtenha sua chave em app.fireflies.ai → Integrações → API. Guarde também em FIREFLIES_API_KEY no arquivo .env.local para uso pelo servidor.',
+    docsUrl: 'https://docs.fireflies.ai/getting-started/api-usage',
+    webhookPath: '/api/webhooks/fireflies',
+  },
 ]
 
-const CATEGORIES = ['IA Generativa', 'Desenvolvimento', 'Produtividade', 'Comunicação']
+const CATEGORIES = ['IA Generativa', 'Reuniões', 'Desenvolvimento', 'Produtividade', 'Comunicação']
 
 // ── Shimmer skeleton ──────────────────────────────────────────────────────────
 
@@ -369,6 +395,47 @@ function IntegrationCard({ meta, data, onSave }: {
             </div>
             <p style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 6, lineHeight: 1.5 }}>{meta.keyHint}</p>
           </div>
+
+          {meta.webhookPath && (
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 6 }}>
+                URL do Webhook
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  readOnly
+                  value={typeof window !== 'undefined' ? `${window.location.origin}${meta.webhookPath}` : meta.webhookPath}
+                  style={{
+                    flex: 1, padding: '8px 12px', fontSize: 12, fontWeight: 500,
+                    border: `1px solid ${meta.color}30`, borderRadius: 8,
+                    background: 'var(--bg)', color: 'var(--gray)',
+                    fontFamily: 'monospace', boxSizing: 'border-box' as const,
+                    outline: 'none', cursor: 'default',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}${meta.webhookPath!}`
+                    navigator.clipboard.writeText(url).then(() => toast.success('URL copiada!')).catch(() => {})
+                  }}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: `1px solid ${meta.color}35`,
+                    background: meta.color + '10', color: meta.color,
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = meta.color + '22' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = meta.color + '10' }}
+                >
+                  Copiar
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 6, lineHeight: 1.55 }}>
+                Cole esta URL em <strong style={{ color: 'var(--gray)' }}>app.fireflies.ai → Settings → Webhooks</strong>. O Fireflies enviará cada nova reunião automaticamente para a plataforma.
+              </p>
+            </div>
+          )}
 
           {hasKey && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
