@@ -48,15 +48,16 @@ const TRANSCRIPT_QUERY = `
 
 export async function fetchFirefliesTranscript(
   transcriptId: string,
+  apiKey?: string,
 ): Promise<FirefliesTranscript | null> {
-  const apiKey = process.env.FIREFLIES_API_KEY
-  if (!apiKey) throw new Error('FIREFLIES_API_KEY não configurado')
+  const key = apiKey ?? process.env.FIREFLIES_API_KEY
+  if (!key) throw new Error('FIREFLIES_API_KEY não configurado')
 
   const res = await fetch(ENDPOINT, {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${key}`,
     },
     body: JSON.stringify({ query: TRANSCRIPT_QUERY, variables: { transcriptId } }),
   })

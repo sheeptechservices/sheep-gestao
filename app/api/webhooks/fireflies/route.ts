@@ -51,6 +51,21 @@ export async function POST(req: NextRequest) {
 
     const db = await initDb()
 
+    // Resolve API key: banco tem prioridade, env é fallback
+    const keyRow = await db.execute({
+      sql:  `SELECT api_key FROM integrations WHERE id = 'fireflies' AND api_key != '' LIMIT 1`,
+      args: [],
+    })
+    const apiKey: string | undefined =
+      (keyRow.rows[0]?.api_key as string | undefined) ?? process.env.FIREFLIES_API_KEY
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Fireflies API key não configurada. Adicione em Integrações ou no .env.local.' },
+        { status: 500 },
+      )
+    }
+
     // Evita processar o mesmo meeting duas vezes
     const existing = await db.execute({
       sql:  `SELECT id FROM meetings WHERE fireflies_id = ? LIMIT 1`,
@@ -61,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Busca transcrição na API do Fireflies
-    const transcript = await fetchFirefliesTranscript(meetingId)
+    const transcript = await fetchFirefliesTranscript(meetingId, apiKey)
     if (!transcript) {
       return NextResponse.json({ error: 'Transcrição não encontrada' }, { status: 404 })
     }
