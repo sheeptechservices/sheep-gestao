@@ -7,6 +7,7 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { MemberPicker } from '@/components/ui/MemberPicker'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useTeamStore } from '@/stores/teamStore'
+import { MeetingsTab } from '@/components/ui/MeetingsTab'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -551,6 +552,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
 }) {
   const [form, setForm] = useState<Project>({ ...project })
   const [focusedField, setFocusedField] = useState<string | null>(null)
+  const [tab, setTab] = useState<'form' | 'meetings'>('form')
   const { isMobile } = useBreakpoint()
   const { fetchMembers } = useTeamStore()
 
@@ -643,8 +645,45 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
           </button>
         </div>
 
+        {/* Tab bar — só para projetos existentes */}
+        {!isNew && (
+          <div style={{
+            display: 'flex', borderBottom: '1px solid var(--gray3)',
+            padding: '0 24px', gap: 4, flexShrink: 0,
+          }}>
+            {(['form', 'meetings'] as const).map(t => {
+              const label = t === 'form' ? 'Editar' : 'Reuniões'
+              const active = tab === t
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  style={{
+                    padding: '10px 4px', fontSize: 12, fontWeight: 700,
+                    color: active ? 'var(--primary)' : 'var(--gray2)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    borderBottom: `2px solid ${active ? 'var(--primary)' : 'transparent'}`,
+                    marginBottom: -1, transition: 'all 0.15s',
+                    marginRight: 16,
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Form body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: tab === 'meetings' ? '16px 24px' : '24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* ── Aba Reuniões ── */}
+          {tab === 'meetings' && (
+            <MeetingsTab projectId={project.id} projectColor={form.color_hex} />
+          )}
+
+          {/* ── Aba Editar ── */}
+          {tab === 'form' && <>
 
           {/* Nome */}
           <Field label="Nome do projeto *">
@@ -871,10 +910,12 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
               <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 3 }}>Salve o projeto primeiro para adicionar arquivos de referência para o agente.</div>
             </div>
           )}
+
+          </> /* fim aba Editar */}
         </div>
 
-        {/* Footer */}
-        <div style={{
+        {/* Footer — só na aba de edição */}
+        {tab === 'form' && <div style={{
           padding: '14px 24px', borderTop: '1px solid var(--gray3)',
           display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', flexShrink: 0,
           background: 'var(--white)',
@@ -926,7 +967,7 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
               {isNew ? 'Criar projeto' : 'Salvar alterações'}
             </button>
           </div>
-        </div>
+        </div>} {/* fim footer */}
       </div>
     </>
   )
