@@ -8,6 +8,7 @@ import { useSettings, hotkeyLabel } from '@/stores/settingsStore'
 import type { ColorMode } from '@/stores/settingsStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { NotificationBell } from '@/components/ui/NotificationBell'
 
 export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -130,6 +131,9 @@ export function Topbar() {
             </svg>
           </button>
         )}
+
+        {/* Notification bell */}
+        <NotificationBell />
 
         {/* Light / Dark toggle */}
         <button

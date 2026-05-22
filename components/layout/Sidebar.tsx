@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
-import { NotificationBell } from '@/components/ui/NotificationBell'
 
 const navItems = [
   {
@@ -117,13 +116,7 @@ export function Sidebar() {
         transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
       }),
     }}>
-      {/* Notificações */}
-      <div style={{ padding: '0 16px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <NotificationBell />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray)' }}>Notificações</span>
-      </div>
-
-      {navItems.map((group) => (
+{navItems.map((group) => (
         <div key={group.section}>
           <div style={{
             fontSize: 10, fontWeight: 800, textTransform: 'uppercase',
