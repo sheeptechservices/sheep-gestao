@@ -149,6 +149,30 @@ export interface Artifact {
   created_at: string;
 }
 
+export interface Meeting {
+  id: string
+  fireflies_id: string
+  title: string
+  date?: string
+  duration?: number        // minutos
+  summary?: string
+  transcript?: string
+  action_items?: string    // texto bruto do Fireflies
+  participants?: string[]
+  project_id?: string
+  project?: Project
+  auto_matched?: boolean
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  type: 'unlinked_meeting'
+  payload: { meeting_id: string; title: string; date?: string }
+  read: boolean
+  created_at: string
+}
+
 export interface AgentConfig {
   type: AgentType;
   name: string;

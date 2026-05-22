@@ -173,6 +173,33 @@ async function createTables(db: Client) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_team_members_status ON team_members(status);
+
+    CREATE TABLE IF NOT EXISTS meetings (
+      id           TEXT PRIMARY KEY,
+      fireflies_id TEXT UNIQUE NOT NULL,
+      title        TEXT NOT NULL,
+      date         TEXT,
+      duration     INTEGER,
+      summary      TEXT,
+      transcript   TEXT,
+      action_items TEXT,
+      participants TEXT,
+      project_id   TEXT REFERENCES projects(id),
+      auto_matched INTEGER NOT NULL DEFAULT 0,
+      created_at   TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id         TEXT PRIMARY KEY,
+      type       TEXT NOT NULL,
+      payload    TEXT NOT NULL DEFAULT '{}',
+      read       INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
+    CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(read);
   `)
 }
 

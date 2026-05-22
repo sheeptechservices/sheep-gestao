@@ -1,9 +1,12 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import type { Project, ProjectStatus, ProjectType } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
+import { MeetingsTab } from './MeetingsTab'
+
+type DrawerTab = 'info' | 'meetings'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +60,7 @@ export function ProjectDetailDrawer({ project, onClose }: {
   onClose: () => void
 }) {
   const router    = useRouter()
+  const [tab, setTab] = useState<DrawerTab>('info')
   const status    = STATUS_CONFIG[project.status] ?? STATUS_CONFIG['active']
   const prog      = calcProgress(project.start_date, project.end_date)
   const remaining = timeRemainingBadge(project.end_date)
@@ -141,8 +145,42 @@ export function ProjectDetailDrawer({ project, onClose }: {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div style={{
+          display: 'flex', gap: 0,
+          borderBottom: '1px solid var(--gray3)',
+          padding: '0 20px',
+          flexShrink: 0,
+        }}>
+          {(['info', 'meetings'] as DrawerTab[]).map(t => {
+            const labels: Record<DrawerTab, string> = { info: 'Informações', meetings: 'Reuniões' }
+            const active = tab === t
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: '10px 14px',
+                  fontSize: 12, fontWeight: 700,
+                  color: active ? 'var(--primary-text)' : 'var(--gray2)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: `2px solid ${active ? 'var(--primary)' : 'transparent'}`,
+                  marginBottom: -1,
+                  transition: 'color 0.15s',
+                }}
+              >
+                {labels[t]}
+              </button>
+            )
+          })}
+        </div>
+
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        {tab === 'meetings' && (
+          <MeetingsTab projectId={project.id} projectColor={project.color_hex} />
+        )}
+        {tab === 'info' && (<>
 
           {/* Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
@@ -249,6 +287,7 @@ export function ProjectDetailDrawer({ project, onClose }: {
               </a>
             </div>
           )}
+          </>)}
         </div>
 
         {/* Footer */}
