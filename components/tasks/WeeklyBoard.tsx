@@ -1573,34 +1573,39 @@ export function WeeklyBoard() {
   })()
 
 
-  // Filtered tasks (with urgency sort)
-  const weekTasks = weekTasksAll.filter(t => {
-    if (filterDevIds.length > 0) {
-      // match any of the selected IDs against member_ids array or legacy member_id
-      const taskIds = t.member_ids?.length ? t.member_ids : t.member_id ? [t.member_id] : []
-      if (!filterDevIds.some(id => taskIds.includes(id))) return false
-    }
-    if (filterClient) {
-      const proj = projects.find(p => p.id === t.project_id)
-      const cid  = proj?.client?.id ?? proj?.client_id
-      if (cid !== filterClient) return false
-    }
-    return true
-  })
+  // Helper: apply active dev/client filters to any task list
+  function applyFilters(list: Task[]) {
+    return list.filter(t => {
+      if (filterDevIds.length > 0) {
+        const taskIds = t.member_ids?.length ? t.member_ids : t.member_id ? [t.member_id] : []
+        if (!filterDevIds.some(id => taskIds.includes(id))) return false
+      }
+      if (filterClient) {
+        const proj = projects.find(p => p.id === t.project_id)
+        const cid  = proj?.client?.id ?? proj?.client_id
+        if (cid !== filterClient) return false
+      }
+      return true
+    })
+  }
 
-  // Group tasks by day (sorted by urgency)
+  // Filtered tasks for the current week (used for day-column placement)
+  const weekTasks = applyFilters(weekTasksAll)
+
+  // Day-column grouping — only tasks in the current week that have a specific deadline day
   const tasksByDay: Record<string, Task[]> = {}
-  const noDateTasks: Task[] = []
   for (const task of weekTasks) {
     if (task.deadline && days.includes(task.deadline)) {
       if (!tasksByDay[task.deadline]) tasksByDay[task.deadline] = []
       tasksByDay[task.deadline].push(task)
-    } else {
-      noDateTasks.push(task)
     }
   }
   for (const key of Object.keys(tasksByDay)) tasksByDay[key].sort(byUrgency)
-  noDateTasks.sort(byUrgency)
+
+  // "Sem data definida" — ALL tasks with no day-level deadline, shown persistently across weeks
+  const noDateTasks: Task[] = applyFilters(
+    tasks.filter(t => !t.deadline || !days.includes(t.deadline))
+  ).sort(byUrgency)
 
   // Drag-and-drop helpers
   function handleDrop(zone: string) {

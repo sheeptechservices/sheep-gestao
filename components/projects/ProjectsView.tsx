@@ -82,6 +82,30 @@ function DeleteBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
   )
 }
 
+function DuplicateBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      title="Duplicar"
+      style={{
+        width: 26, height: 26, borderRadius: 7,
+        border: `1px solid ${hov ? '#94a3b8' : 'var(--gray3)'}`,
+        background: hov ? '#f1f5f9' : 'var(--white)',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.15s ease', transform: hov ? 'scale(1.1)' : 'scale(1)',
+      }}
+    >
+      <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+        <rect x="4" y="4" width="7" height="7" rx="1.5" stroke={hov ? '#475569' : 'var(--gray)'} strokeWidth={1.3} style={{ transition: 'stroke 0.15s' }}/>
+        <path d="M2.5 8V2.5A1.5 1.5 0 014 1h5.5" stroke={hov ? '#475569' : 'var(--gray)'} strokeWidth={1.3} strokeLinecap="round" style={{ transition: 'stroke 0.15s' }}/>
+      </svg>
+    </button>
+  )
+}
+
 // ── Delete Confirm Modal ──────────────────────────────────────────────────────
 function DeleteConfirmModal({ taskTitle, onConfirm, onClose }: {
   taskTitle: string
@@ -330,6 +354,7 @@ function KanbanCard({ task, dragging, color, project, onEdit, onDelete, onDragSt
 }) {
   const [hov, setHov]               = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const duplicateTask = useTasksStore(s => s.duplicateTask)
 
   return (
     <>
@@ -400,6 +425,7 @@ function KanbanCard({ task, dragging, color, project, onEdit, onDelete, onDragSt
         {hov && !dragging && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4, animation: 'fadeIn 0.12s ease both' }}>
             <ConsultAgentButton task={task} project={project} variant="icon" direction="down" />
+            <DuplicateBtn onClick={async e => { e.stopPropagation(); const t = await duplicateTask(task.id); if (t) toast.success('Entregável duplicado', t.title) }} />
             <DeleteBtn onClick={e => { e.stopPropagation(); setConfirming(true) }} />
           </div>
         )}
@@ -509,6 +535,7 @@ function ListView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
 }) {
   const [hovId,       setHovId]       = useState<string | null>(null)
   const [confirmTask, setConfirmTask] = useState<Task | null>(null)
+  const duplicateTask = useTasksStore(s => s.duplicateTask)
   return (
     <>
     {confirmTask && (
@@ -611,6 +638,7 @@ function ListView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
             {/* Actions */}
             <div style={{ display: 'flex', gap: 4, opacity: isH ? 1 : 0, transition: 'opacity 0.15s', justifyContent: 'flex-end' }}>
               <ConsultAgentButton task={task} project={project} variant="icon" direction="up" />
+              <DuplicateBtn onClick={async e => { e.stopPropagation(); const t = await duplicateTask(task.id); if (t) toast.success('Entregável duplicado', t.title) }} />
               <DeleteBtn onClick={e => { e.stopPropagation(); setConfirmTask(task) }} />
             </div>
           </div>
@@ -1372,6 +1400,7 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
   const [pop, setPop]               = useState(false)
   const [hov, setHov]               = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const duplicateTask = useTasksStore(s => s.duplicateTask)
   return (
     <>
       {confirming && (
@@ -1478,6 +1507,24 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
             animation: 'fadeIn 0.12s ease both',
           }}>
             <ConsultAgentButton task={task} project={project} variant="icon" direction={compact ? 'up' : 'down'} />
+            <div
+              onClick={async e => { e.stopPropagation(); const t = await duplicateTask(task.id); if (t) toast.success('Entregável duplicado', t.title) }}
+              title="Duplicar"
+              style={{
+                width: 20, height: 20, borderRadius: 5,
+                background: 'var(--white)', border: '1px solid var(--gray3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer',
+                transition: 'background 0.12s, border-color 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--gray3)' }}
+            >
+              <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+                <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="var(--gray)" strokeWidth={1.3}/>
+                <path d="M2.5 8V2.5A1.5 1.5 0 014 1h5.5" stroke="var(--gray)" strokeWidth={1.3} strokeLinecap="round"/>
+              </svg>
+            </div>
             {onDelete && (
               <div
                 onClick={e => { e.stopPropagation(); setConfirming(true) }}

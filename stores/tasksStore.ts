@@ -10,6 +10,7 @@ interface TasksState {
   registerTask:         (task: Task) => void          // adiciona ao store sem chamar a API (draft já está no banco)
   updateTask:           (id: string, data: Partial<Task>) => Promise<void>
   deleteTask:           (id: string) => Promise<void>
+  duplicateTask:        (id: string) => Promise<Task | null>
   toggleDone:           (id: string, done: boolean) => Promise<void>
   bumpAttachmentCount:  (taskId: string, delta: 1 | -1) => void
 }
@@ -74,6 +75,24 @@ export const useTasksStore = create<TasksState>((set, get) => ({
 
   registerTask: (task: Task) => {
     set(s => ({ tasks: [...s.tasks, task] }))
+  },
+
+  duplicateTask: async (id: string) => {
+    try {
+      const res = await fetch(`/api/tasks/${id}/duplicate`, { method: 'POST' })
+      if (!res.ok) return null
+      const newTask: Task = await res.json()
+      set(s => {
+        // Insert the duplicate right after the original in the list
+        const idx = s.tasks.findIndex(t => t.id === id)
+        const next = [...s.tasks]
+        next.splice(idx + 1, 0, newTask)
+        return { tasks: next }
+      })
+      return newTask
+    } catch {
+      return null
+    }
   },
 
   bumpAttachmentCount: (taskId: string, delta: 1 | -1) => {

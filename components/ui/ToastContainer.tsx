@@ -158,8 +158,7 @@ export function ToastContainer() {
     <div style={{
       position: 'fixed',
       bottom: 24,
-      // Keep clear of the FloatingAgents FAB (52px wide, right:32 → ~90px from edge)
-      right: 96,
+      right: 24,
       zIndex: 100000,
       display: 'flex',
       flexDirection: 'column',
