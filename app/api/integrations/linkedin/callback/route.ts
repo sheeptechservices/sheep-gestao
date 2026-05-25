@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { createClient } from '@libsql/client'
+
+/** Cria um cliente Turso fresh a cada invocação — evita singleton com URL errada */
+function freshDb() {
+  const url = process.env.TURSO_DATABASE_URL
+  if (!url) throw new Error('TURSO_DATABASE_URL não configurada no ambiente Vercel')
+  return createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN })
+}
 
 /** GET /api/integrations/linkedin/callback — handle OAuth callback */
 export async function GET(req: NextRequest) {
-  // Derive app URL from request — no env var needed
   const reqUrl = new URL(req.url)
   const appUrl = `${reqUrl.protocol}//${reqUrl.host}`
 
@@ -20,8 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=no_code`)
     }
 
-    const db = getDb()
-
+    const db  = freshDb()
     const row = await db.execute({
       sql:  `SELECT api_key, extra FROM integrations WHERE id = 'linkedin' LIMIT 1`,
       args: [],
@@ -40,7 +45,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=invalid_state`)
     }
 
-    // Read client_secret from DB — no env var needed
     const clientSecret = extra.client_secret as string | undefined
     if (!clientSecret) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=client_secret_missing`)
@@ -84,13 +88,8 @@ export async function GET(req: NextRequest) {
     }
 
     await db.execute({
-      sql: `INSERT INTO integrations (id, api_key, extra, enabled, updated_at)
-            VALUES ('linkedin', ?, ?, 1, ?)
-            ON CONFLICT(id) DO UPDATE SET
-              extra      = excluded.extra,
-              enabled    = 1,
-              updated_at = excluded.updated_at`,
-      args: [clientId, JSON.stringify(newExtra), new Date().toISOString()],
+      sql: `UPDATE integrations SET extra = ?, enabled = 1, updated_at = ? WHERE id = 'linkedin'`,
+      args: [JSON.stringify(newExtra), new Date().toISOString()],
     })
 
     // Auto-fetch ad accounts so the UI can show a dropdown immediately
@@ -99,28 +98,25 @@ export async function GET(req: NextRequest) {
         'https://api.linkedin.com/rest/adAccounts?q=search&search.status.values[0]=ACTIVE&fields=id,name,status,currency&count=50',
         {
           headers: {
-            Authorization:      `Bearer ${tokenData.access_token}`,
-            'LinkedIn-Version': '202401',
-            'X-Restli-Protocol-Version': '2.0.0',
+            Authorization:                `Bearer ${tokenData.access_token}`,
+            'LinkedIn-Version':           '202401',
+            'X-Restli-Protocol-Version':  '2.0.0',
           },
         }
       )
       if (acctRes.ok) {
-        const acctData = await acctRes.json() as {
-          elements?: Array<{ id: string | number; name?: string; status?: string; currency?: string }>
-        }
+        const acctData   = await acctRes.json() as { elements?: Array<{ id: string | number; name?: string }> }
         const adAccounts = (acctData.elements ?? []).map(el => ({
           id:   String(el.id),
           name: el.name ?? `Conta ${el.id}`,
         }))
-        // Store accounts in extra
         const finalExtra = { ...newExtra, ad_accounts: adAccounts }
         await db.execute({
-          sql: `UPDATE integrations SET extra = ?, updated_at = ? WHERE id = 'linkedin'`,
+          sql:  `UPDATE integrations SET extra = ?, updated_at = ? WHERE id = 'linkedin'`,
           args: [JSON.stringify(finalExtra), new Date().toISOString()],
         })
       }
-    } catch { /* non-fatal — user can refresh accounts manually */ }
+    } catch { /* non-fatal */ }
 
     return NextResponse.redirect(`${appUrl}/?linkedin_connected=1`)
   } catch (err) {
