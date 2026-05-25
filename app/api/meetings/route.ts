@@ -4,18 +4,19 @@ import type { Meeting } from '@/lib/types'
 
 function rowToMeeting(row: Record<string, unknown>): Meeting {
   return {
-    id:           row.id           as string,
-    fireflies_id: row.fireflies_id as string,
-    title:        row.title        as string,
-    date:         row.date         as string | undefined,
-    duration:     row.duration     as number | undefined,
-    summary:      row.summary      as string | undefined,
-    transcript:   row.transcript   as string | undefined,
-    action_items: row.action_items as string | undefined,
-    participants: row.participants ? JSON.parse(row.participants as string) : [],
-    project_id:   row.project_id   as string | undefined,
-    auto_matched: Boolean(row.auto_matched),
-    created_at:   row.created_at   as string,
+    id:                row.id           as string,
+    fireflies_id:      row.fireflies_id as string,
+    title:             row.title        as string,
+    date:              row.date         as string | undefined,
+    duration:          row.duration     as number | undefined,
+    summary:           row.summary      as string | undefined,
+    transcript:        row.transcript   as string | undefined,
+    action_items:      row.action_items as string | undefined,
+    participants:      row.participants      ? JSON.parse(row.participants      as string) : [],
+    meeting_attendees: row.meeting_attendees ? JSON.parse(row.meeting_attendees as string) : [],
+    project_id:        row.project_id   as string | undefined,
+    auto_matched:      Boolean(row.auto_matched),
+    created_at:        row.created_at   as string,
   }
 }
 

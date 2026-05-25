@@ -52,9 +52,34 @@ export async function POST(
     const summary     = row.summary      as string | null
     const actionItems = row.action_items as string | null
     const transcript  = row.transcript   as string | null
+
+    // Convidados (calendário) — lista de nomes/emails
     const participants: string[] = row.participants
       ? JSON.parse(row.participants as string)
       : []
+
+    // Quem realmente entrou na chamada
+    type Attendee = { displayName?: string; name?: string; email?: string }
+    const meetingAttendees: Attendee[] = row.meeting_attendees
+      ? JSON.parse(row.meeting_attendees as string)
+      : []
+
+    // Nomes legíveis dos presentes
+    const attendeeNames = meetingAttendees
+      .map(a => a.displayName || a.name || a.email || '')
+      .filter(Boolean)
+
+    // Quem foi convidado mas não aparece nos attendees → ausentes
+    const absentNames = participants.filter(p => {
+      const pLower = p.toLowerCase()
+      return !meetingAttendees.some(a =>
+        (a.displayName ?? '').toLowerCase().includes(pLower) ||
+        (a.name        ?? '').toLowerCase().includes(pLower) ||
+        (a.email       ?? '').toLowerCase().includes(pLower) ||
+        pLower.includes((a.displayName ?? '').toLowerCase().split(' ')[0]) ||
+        pLower.includes((a.name        ?? '').toLowerCase().split(' ')[0])
+      )
+    })
 
     // ── Prompt ───────────────────────────────────────────────────────────────
     const systemPrompt = `Você é um assistente especialista em produzir atas de reunião profissionais para a Sheep Tech, uma consultoria especializada em IA.
@@ -77,7 +102,15 @@ Gere a ata em Markdown, seguindo EXATAMENTE a estrutura abaixo. Preencha cada se
 
 ## PARTICIPANTES
 
-Liste os participantes identificados na transcrição, agrupados por empresa quando possível. Para cada participante, indique nome e papel/cargo se mencionado. Se não for possível distinguir as empresas, liste todos juntos.
+Se houver dados de presença, organize em dois grupos:
+
+### ✅ Presentes
+- Nome — Papel/Cargo (se identificado)
+
+### ❌ Ausentes
+- Nome — (convidado, não compareceu)
+
+Se não houver dados de presença, liste todos os participantes identificados na transcrição agrupados por empresa (Sheep Tech e cliente). Se não for possível distinguir as empresas, liste todos juntos.
 
 ## OBJETIVO DA REUNIÃO
 
@@ -121,7 +154,10 @@ Escreva 1 a 2 parágrafos descrevendo os próximos passos esperados após esta r
 **Cliente:** ${clientName || '—'}
 **Data:** ${fmtDateLong(date)} (${date ? new Date(date).toLocaleDateString('pt-BR') : '—'})
 **Horário:** ${fmtTime(date)}
-**Participantes listados:** ${participants.length > 0 ? participants.join(', ') : '—'}
+
+**Convidados (lista do calendário):** ${participants.length > 0 ? participants.join(', ') : '—'}
+**Presentes na chamada:** ${attendeeNames.length > 0 ? attendeeNames.join(', ') : '(não disponível — use os speakers da transcrição)'}
+**Ausentes:** ${absentNames.length > 0 ? absentNames.join(', ') : absentNames.length === 0 && attendeeNames.length > 0 ? 'Nenhum' : '(não disponível)'}
 
 **Resumo:**
 ${summary || '(não disponível)'}
@@ -133,7 +169,9 @@ ${actionItems || '(não disponível)'}
 ${transcript ? transcript.slice(0, 12000) : '(não disponível)'}
 
 ---
-Substitua os placeholders {{TITULO}}, {{CLIENTE}}, {{PROJETO}}, {{DATA_EXTENSO}}, {{DATA_CURTA}}, {{HORARIO}}, {{TITULO_UPPER}}, {{CLIENTE_UPPER}} pelos valores corretos. Produza uma ata completa, profissional e bem estruturada.`
+Substitua os placeholders {{TITULO}}, {{CLIENTE}}, {{PROJETO}}, {{DATA_EXTENSO}}, {{DATA_CURTA}}, {{HORARIO}}, {{TITULO_UPPER}}, {{CLIENTE_UPPER}} pelos valores corretos.
+Na seção PARTICIPANTES, organize em três grupos: "Presentes", "Ausentes" e (se não houver dados de presença) "Participantes".
+Produza uma ata completa, profissional e bem estruturada.`
 
     // ── Chamada à API ─────────────────────────────────────────────────────────
     const client   = await createAnthropicClient()

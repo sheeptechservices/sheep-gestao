@@ -242,6 +242,8 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN is_draft     INTEGER NOT NULL DEFAULT 0`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_id    TEXT REFERENCES team_members(id)`),
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_ids   TEXT`),
+    // meetings
+    tryAlter(db, `ALTER TABLE meetings ADD COLUMN meeting_attendees TEXT DEFAULT '[]'`),
     // team_members — expanded profile fields
     tryAlter(db, `ALTER TABLE team_members ADD COLUMN sexo               TEXT`),
     tryAlter(db, `ALTER TABLE team_members ADD COLUMN data_nascimento     TEXT`),

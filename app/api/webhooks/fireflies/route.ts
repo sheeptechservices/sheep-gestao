@@ -122,13 +122,14 @@ export async function POST(req: NextRequest) {
       sql: `
         INSERT OR IGNORE INTO meetings
           (id, fireflies_id, title, date, duration, summary, transcript,
-           action_items, participants, project_id, auto_matched, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           action_items, participants, meeting_attendees, project_id, auto_matched, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         id, meetingId, transcript.title, date, duration,
         summary, fullText, actionItems,
         JSON.stringify(transcript.participants ?? []),
+        JSON.stringify(transcript.meeting_attendees ?? []),
         null, 0, now,
       ],
     })

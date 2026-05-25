@@ -7,6 +7,13 @@ export interface FirefliesSentence {
   speaker_name?: string
 }
 
+export interface FirefliesMeetingAttendee {
+  displayName?: string
+  name?: string
+  email?: string
+  phoneNumber?: string
+}
+
 export interface FirefliesTranscript {
   id: string
   title: string
@@ -19,6 +26,7 @@ export interface FirefliesTranscript {
   }
   sentences?: FirefliesSentence[]
   participants?: string[]
+  meeting_attendees?: FirefliesMeetingAttendee[]
 }
 
 // ── Query GraphQL ─────────────────────────────────────────────────────────────
@@ -40,6 +48,12 @@ const TRANSCRIPT_QUERY = `
         speaker_name
       }
       participants
+      meeting_attendees {
+        displayName
+        name
+        email
+        phoneNumber
+      }
     }
   }
 `
@@ -94,6 +108,12 @@ const TRANSCRIPTS_LIST_QUERY = `
         speaker_name
       }
       participants
+      meeting_attendees {
+        displayName
+        name
+        email
+        phoneNumber
+      }
     }
   }
 `

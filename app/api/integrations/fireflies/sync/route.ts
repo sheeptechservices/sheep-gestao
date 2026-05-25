@@ -108,13 +108,14 @@ export async function POST() {
           sql: `
             INSERT OR IGNORE INTO meetings
               (id, fireflies_id, title, date, duration, summary, transcript,
-               action_items, participants, project_id, auto_matched, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               action_items, participants, meeting_attendees, project_id, auto_matched, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `,
           args: [
             id, t.id, t.title, date, duration,
             summary, fullText, actionItems,
             JSON.stringify(t.participants ?? []),
+            JSON.stringify(t.meeting_attendees ?? []),
             null, 0, now,
           ],
         })

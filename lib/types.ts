@@ -149,6 +149,13 @@ export interface Artifact {
   created_at: string;
 }
 
+export interface MeetingAttendee {
+  displayName?: string
+  name?: string
+  email?: string
+  phoneNumber?: string
+}
+
 export interface Meeting {
   id: string
   fireflies_id: string
@@ -158,7 +165,8 @@ export interface Meeting {
   summary?: string
   transcript?: string
   action_items?: string    // texto bruto do Fireflies
-  participants?: string[]
+  participants?: string[]             // convidados (calendário)
+  meeting_attendees?: MeetingAttendee[] // quem entrou de fato na chamada
   project_id?: string
   project?: Project
   auto_matched?: boolean
