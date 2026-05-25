@@ -21,20 +21,26 @@ function rowToMeeting(row: Record<string, unknown>): Meeting {
 
 export { rowToMeeting }
 
-// GET /api/meetings?project_id=xxx  →  meetings do projeto
-// GET /api/meetings                 →  todos os meetings
+// GET /api/meetings?project_id=xxx        →  meetings do projeto
+// GET /api/meetings?project_id=xxx&limit=3 →  últimas N reuniões
+// GET /api/meetings                        →  todos os meetings
 export async function GET(req: NextRequest) {
   try {
     const db        = await initDb()
     const projectId = req.nextUrl.searchParams.get('project_id')
+    const limitParam = req.nextUrl.searchParams.get('limit')
+    const limit      = limitParam ? parseInt(limitParam, 10) : null
+
+    const orderBy = `ORDER BY COALESCE(date, created_at) DESC`
+    const limitSql = limit ? ` LIMIT ${limit}` : ''
 
     const res = projectId
       ? await db.execute({
-          sql:  `SELECT * FROM meetings WHERE project_id = ? ORDER BY date DESC, created_at DESC`,
+          sql:  `SELECT * FROM meetings WHERE project_id = ? ${orderBy}${limitSql}`,
           args: [projectId],
         })
       : await db.execute({
-          sql:  `SELECT * FROM meetings ORDER BY date DESC, created_at DESC`,
+          sql:  `SELECT * FROM meetings ${orderBy}${limitSql}`,
           args: [],
         })
 

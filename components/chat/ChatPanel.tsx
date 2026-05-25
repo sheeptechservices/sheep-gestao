@@ -1376,7 +1376,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [voiceState, setVoiceState]         = useState<'idle' | 'listening' | 'speaking'>('idle')
   const [githubContext, setGithubContext]   = useState<string | null>(null)
   const [githubLoading, setGithubLoading]   = useState(false)
-  const [projectFiles, setProjectFiles]     = useState<{ filename: string; text_content: string }[]>([])
+  const [projectFiles,    setProjectFiles]    = useState<{ filename: string; text_content: string }[]>([])
+  const [projectMeetings, setProjectMeetings] = useState<{ title: string; date: string | null; summary: string | null; action_items: string | null }[]>([])
   const [cmdIndex, setCmdIndex]             = useState(0)
   const [activeSlashCmd, setActiveSlashCmd] = useState<typeof SLASH_COMMANDS[number] | null>(null)
   const recognitionRef   = useRef<unknown>(null)
@@ -1400,6 +1401,15 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       .then(r => r.ok ? r.json() : [])
       .then(data => setProjectFiles(Array.isArray(data) ? data : []))
       .catch(() => setProjectFiles([]))
+  }, [selectedProjectId])
+
+  // Fetch last 3 meetings (by actual meeting date) for the selected project
+  useEffect(() => {
+    if (!selectedProjectId) { setProjectMeetings([]); return }
+    fetch(`/api/meetings?project_id=${selectedProjectId}&limit=3`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setProjectMeetings(Array.isArray(data) ? data : []))
+      .catch(() => setProjectMeetings([]))
   }, [selectedProjectId])
 
   const messagesEndRef  = useRef<HTMLDivElement>(null)
@@ -1642,9 +1652,20 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
         })
         prompt += '\n--- FIM DOS ARQUIVOS ---'
       }
+      // Últimas 3 reuniões do projeto (resumo + action items, sem transcrição)
+      if (projectMeetings.length > 0) {
+        prompt += '\n\n--- REUNIÕES RECENTES DO PROJETO ---'
+        projectMeetings.forEach(m => {
+          const dateStr = m.date ? new Date(m.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'data desconhecida'
+          prompt += `\n\nReunião: ${m.title} (${dateStr})`
+          if (m.summary?.trim())      prompt += `\nResumo: ${m.summary.trim()}`
+          if (m.action_items?.trim()) prompt += `\nAction items:\n${m.action_items.trim()}`
+        })
+        prompt += '\n--- FIM DAS REUNIÕES ---'
+      }
     }
     return prompt
-  }, [selectedProject, projectTasks, selectedTask, githubContext, projectFiles])
+  }, [selectedProject, projectTasks, selectedTask, githubContext, projectFiles, projectMeetings])
 
   const runStream = useCallback(async (
     systemPrompt: string, history: { role: string; content: string; images?: { data: string; mediaType: string; name: string }[] }[],
