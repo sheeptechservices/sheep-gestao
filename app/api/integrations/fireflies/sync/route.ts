@@ -94,7 +94,7 @@ export async function POST() {
         const actionItems = t.summary?.action_items ?? ''
         const fullText    = t.sentences?.length ? buildTranscriptText(t.sentences) : ''
         const date        = t.date ? new Date(t.date).toISOString() : null
-        const duration    = t.duration ? Math.round(t.duration / 60) : null
+        const duration    = t.duration ? Math.round(t.duration) : null
 
         // Sugestão de projeto (sem vincular automaticamente)
         const context       = `${summary} ${fullText.slice(0, 1000)}`

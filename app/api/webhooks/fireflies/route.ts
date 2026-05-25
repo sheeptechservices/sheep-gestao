@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       ? buildTranscriptText(transcript.sentences)
       : ''
     const date        = transcript.date ? new Date(transcript.date).toISOString() : null
-    const duration    = transcript.duration ? Math.round(transcript.duration / 60) : null
+    const duration    = transcript.duration ? Math.round(transcript.duration) : null
 
     // Carrega projetos ativos para matching
     const projRes  = await db.execute({
