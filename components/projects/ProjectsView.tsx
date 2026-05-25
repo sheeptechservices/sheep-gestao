@@ -68,11 +68,11 @@ function DeleteBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
       onMouseLeave={() => setHov(false)}
       title="Excluir"
       style={{
-        width: 26, height: 26, borderRadius: 7,
+        width: 20, height: 20, borderRadius: 5,
         border: `1px solid ${hov ? '#f87171' : '#fca5a5'}`,
         background: hov ? '#fef2f2' : 'var(--white)',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.15s ease', transform: hov ? 'scale(1.1)' : 'scale(1)',
+        transition: 'all 0.15s ease',
       }}
     >
       <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -91,11 +91,11 @@ function DuplicateBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
       onMouseLeave={() => setHov(false)}
       title="Duplicar"
       style={{
-        width: 26, height: 26, borderRadius: 7,
+        width: 20, height: 20, borderRadius: 5,
         border: `1px solid ${hov ? '#94a3b8' : 'var(--gray3)'}`,
         background: hov ? '#f1f5f9' : 'var(--white)',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.15s ease', transform: hov ? 'scale(1.1)' : 'scale(1)',
+        transition: 'all 0.15s ease',
       }}
     >
       <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -546,7 +546,7 @@ function ListView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
       />
     )}
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 90px 100px 60px', padding: '0 10px 8px', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 90px 100px 76px', padding: '0 10px 8px', gap: 8 }}>
         {['', 'Entregável', 'Previsão', 'Responsável', ''].map((h, i) => (
           <span key={i} style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {h}
@@ -563,7 +563,7 @@ function ListView({ tasks, color, project, onEdit, onDelete, onStatusChange }: {
             onMouseEnter={() => setHovId(task.id)}
             onMouseLeave={() => setHovId(null)}
             style={{
-              display: 'grid', gridTemplateColumns: '28px 1fr 90px 100px 60px',
+              display: 'grid', gridTemplateColumns: '28px 1fr 90px 100px 76px',
               padding: '8px 10px', gap: 8, alignItems: 'center',
               borderTop: '1px solid var(--gray3)',
               background: isH ? 'var(--bg)' : 'transparent',
