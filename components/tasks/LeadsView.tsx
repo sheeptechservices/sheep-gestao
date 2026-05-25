@@ -992,21 +992,33 @@ export function LeadsView() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {/* View toggle */}
-          {(['kanban', 'table'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              style={{
-                padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
-                cursor: 'pointer',
-                border: `1px solid ${view === v ? 'var(--primary-mid)' : 'var(--gray3)'}`,
-                background: view === v ? 'var(--primary-dim)' : 'transparent',
-                color: view === v ? 'var(--primary-text)' : 'var(--gray2)',
-                transition: 'all 0.15s',
-              }}
-            >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
-          ))}
+          {/* View toggle — sliding pill */}
+          <div style={{ position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
+            <div style={{
+              position: 'absolute', top: 2, bottom: 2,
+              width: 'calc(50% - 2px)',
+              left: view === 'kanban' ? 2 : 'calc(50%)',
+              background: 'var(--white)', borderRadius: 6,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+              transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+              pointerEvents: 'none',
+            }} />
+            {(['kanban', 'table'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                style={{
+                  position: 'relative', zIndex: 1,
+                  width: 56, padding: '4px 0',
+                  borderRadius: 6, border: 'none', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, textAlign: 'center',
+                  background: 'transparent',
+                  color: view === v ? 'var(--black)' : 'var(--gray2)',
+                  transition: 'color 0.2s ease',
+                }}
+              >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
+            ))}
+          </div>
 
           {/* LinkedIn sync */}
           {linkedInConn && (
