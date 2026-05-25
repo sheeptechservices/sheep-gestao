@@ -927,19 +927,20 @@ function KanbanCard({
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? color + '12' : hov ? 'var(--card-hover-bg)' : 'var(--white)',
+        background: isDragging ? color + '12' : 'var(--white)',
         borderRadius: 10,
-        border: `1px solid ${isDragging ? color + '55' : hov ? color + '44' : 'var(--gray3)'}`,
+        border: `1px solid ${isDragging ? color + '55' : 'var(--gray3)'}`,
         borderLeft: `3px solid ${isDragging ? color : hov ? color : 'var(--gray3)'}`,
         boxShadow: isDragging
           ? `0 8px 24px ${color}44`
-          : hov ? `0 4px 14px rgba(0,0,0,0.09), 0 0 0 0px ${color}22`
-          : 'none',
+          : hov
+          ? `0 10px 28px rgba(0,0,0,0.10), inset 0 0 0 1px ${color}30`
+          : 'var(--shadow)',
         cursor: isDragging ? 'grabbing' : 'pointer',
-        transition: 'all 0.18s ease',
+        transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-left-color 0.22s ease',
         transform: isDragging
           ? 'rotate(2deg) scale(1.04) translateZ(0)'
-          : hov ? 'translateY(-2px) translateZ(0)' : 'translateZ(0)',
+          : hov ? 'translateY(-4px) scale(1.01) translateZ(0)' : 'translateZ(0)',
         opacity: isDragging ? 0.5 : 1,
         willChange: 'transform',
         backfaceVisibility: 'hidden',
@@ -1585,11 +1586,24 @@ export function LeadsView() {
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {KPIS.map(kpi => (
-              <div key={kpi.label} style={{
-                background: 'var(--white)', border: '1px solid var(--gray3)',
-                borderLeft: `4px solid ${kpi.color}`, borderRadius: 12,
-                padding: '16px 18px', boxShadow: 'var(--shadow)',
-              }}>
+              <div
+                key={kpi.label}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)'
+                  e.currentTarget.style.boxShadow = `0 10px 28px rgba(0,0,0,0.10), inset 0 0 0 1px ${kpi.color}30`
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)'
+                  e.currentTarget.style.boxShadow = 'var(--shadow)'
+                }}
+                style={{
+                  background: 'var(--white)', border: '1px solid var(--gray3)',
+                  borderLeft: `4px solid ${kpi.color}`, borderRadius: 12,
+                  padding: '16px 18px', boxShadow: 'var(--shadow)',
+                  transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                  cursor: 'default',
+                }}
+              >
                 <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.label}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: kpi.color, marginTop: 6 }}>{kpi.value}</div>
               </div>
