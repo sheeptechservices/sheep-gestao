@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
@@ -829,20 +829,6 @@ function LinkedInBanner({ onConnect }: { onConnect: () => void }) {
   )
 }
 
-// ── CSV parser ────────────────────────────────────────────────────────────────
-
-function parseCSV(text: string): Record<string, string>[] {
-  const lines  = text.trim().split(/\r?\n/)
-  if (lines.length < 2) return []
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-  return lines.slice(1).map(line => {
-    const vals: Record<string, string> = {}
-    const cells = line.split(',')
-    headers.forEach((h, i) => { vals[h] = (cells[i] ?? '').trim().replace(/^"|"$/g, '') })
-    return vals
-  })
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function LeadsView() {
@@ -854,7 +840,6 @@ export function LeadsView() {
   const [deletingLead,  setDeletingLead]  = useState<Lead | null>(null)
   const [linkedInConn,  setLinkedInConn]  = useState<boolean | null>(null)
   const [syncing,       setSyncing]       = useState(false)
-  const csvRef = useRef<HTMLInputElement>(null)
 
   // ── Load leads ──
   const loadLeads = useCallback(async () => {
@@ -971,35 +956,7 @@ export function LeadsView() {
     })
   }
 
-  // ── CSV import ──
-  const handleCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const text = await file.text()
-    const rows = parseCSV(text)
-    if (!rows.length) { toast.error('CSV vazio ou inválido'); return }
 
-    const mapped = rows.map(r => ({
-      name:               r['name'] ?? r['nome'] ?? r['Nome'] ?? '',
-      company:            r['company'] ?? r['empresa'] ?? r['Company'] ?? '',
-      email:              r['email'] ?? r['Email'] ?? '',
-      phone:              r['phone'] ?? r['telefone'] ?? r['Phone'] ?? '',
-      first_contact_date: r['first_contact_date'] ?? r['data'] ?? '',
-      linkedin_id:        r['linkedin_id'] ?? '',
-      commercial_origin:  r['commercial_origin'] ?? r['origem'] ?? '',
-    }))
-
-    const res = await fetch('/api/leads/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leads: mapped }),
-    })
-    const data = await res.json() as { imported?: number; skipped?: number; error?: string }
-    if (data.error) { toast.error(data.error); return }
-    toast.success(`${data.imported} lead(s) importado(s), ${data.skipped} ignorado(s)`)
-    await loadLeads()
-    if (csvRef.current) csvRef.current.value = ''
-  }
 
   // ── LinkedIn sync ──
   const handleLinkedInSync = async () => {
@@ -1049,23 +1006,6 @@ export function LeadsView() {
               }}
             >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
           ))}
-
-          {/* Import CSV */}
-          <input ref={csvRef} type="file" accept=".csv" onChange={handleCSV} style={{ display: 'none' }} />
-          <button
-            onClick={() => csvRef.current?.click()}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '5px 12px', borderRadius: 100, border: '1px solid var(--gray3)',
-              background: 'transparent', color: 'var(--gray2)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              transition: 'opacity .15s',
-            }}
-          >
-            <svg width={11} height={11} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>
-            </svg>
-            Importar CSV
-          </button>
 
           {/* LinkedIn sync */}
           {linkedInConn && (
