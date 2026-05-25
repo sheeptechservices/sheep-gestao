@@ -654,16 +654,17 @@ export function EditProjectDrawer({ project, onSave, onClose, onDelete, isNew, c
             {(['form', 'meetings'] as const).map(t => {
               const label = t === 'form' ? 'Editar' : 'Reuniões'
               const active = tab === t
+              const accentColor = form.color_hex || 'var(--primary)'
               return (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   style={{
                     padding: '10px 4px', fontSize: 12, fontWeight: 700,
-                    color: active ? 'var(--primary)' : 'var(--gray2)',
+                    color: active ? accentColor : 'var(--gray2)',
                     background: 'none', border: 'none', cursor: 'pointer',
-                    borderBottom: `2px solid ${active ? 'var(--primary)' : 'transparent'}`,
-                    marginBottom: -1, transition: 'all 0.15s',
+                    borderBottom: `2px solid ${active ? accentColor : 'transparent'}`,
+                    marginBottom: -1, transition: 'color 0.15s, border-color 0.15s',
                     marginRight: 16,
                   }}
                 >

@@ -155,6 +155,7 @@ export function ProjectDetailDrawer({ project, onClose }: {
           {(['info', 'meetings'] as DrawerTab[]).map(t => {
             const labels: Record<DrawerTab, string> = { info: 'Informações', meetings: 'Reuniões' }
             const active = tab === t
+            const accentColor = project.color_hex || 'var(--primary)'
             return (
               <button
                 key={t}
@@ -162,11 +163,11 @@ export function ProjectDetailDrawer({ project, onClose }: {
                 style={{
                   padding: '10px 14px',
                   fontSize: 12, fontWeight: 700,
-                  color: active ? 'var(--primary-text)' : 'var(--gray2)',
+                  color: active ? accentColor : 'var(--gray2)',
                   background: 'none', border: 'none', cursor: 'pointer',
-                  borderBottom: `2px solid ${active ? 'var(--primary)' : 'transparent'}`,
+                  borderBottom: `2px solid ${active ? accentColor : 'transparent'}`,
                   marginBottom: -1,
-                  transition: 'color 0.15s',
+                  transition: 'color 0.15s, border-color 0.15s',
                 }}
               >
                 {labels[t]}
