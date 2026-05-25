@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
     // Busca transcrição na API do Fireflies
     const transcript = await fetchFirefliesTranscript(meetingId, apiKey)
     if (!transcript) {
-      return NextResponse.json({ error: 'Transcrição não encontrada' }, { status: 404 })
+      // Transcrição ainda não disponível ou ID inválido (ex: Test Webhook do Fireflies)
+      return NextResponse.json({ ok: true, skipped: true, reason: 'transcript_not_found' })
     }
 
     const summary     = transcript.summary?.overview   ?? ''

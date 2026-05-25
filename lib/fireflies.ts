@@ -65,7 +65,13 @@ export async function fetchFirefliesTranscript(
   if (!res.ok) throw new Error(`Fireflies API retornou ${res.status}`)
 
   const json = await res.json() as { data?: { transcript?: FirefliesTranscript }; errors?: { message: string }[] }
-  if (json.errors?.length) throw new Error(json.errors[0].message)
+
+  // Erros "not found" retornam null em vez de lançar (ex: ID falso do Test Webhook)
+  if (json.errors?.length) {
+    const msg = json.errors[0].message.toLowerCase()
+    if (msg.includes('not found') || msg.includes('does not exist')) return null
+    throw new Error(json.errors[0].message)
+  }
 
   return json.data?.transcript ?? null
 }
