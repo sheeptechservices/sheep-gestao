@@ -18,8 +18,19 @@ export async function GET(req: NextRequest) {
     const appUrl = `${reqUrl.protocol}//${reqUrl.host}`
 
     if (!clientId) {
+      // Diagnóstico: inclui detalhes para facilitar o debug
+      const rowExists   = !!row.rows[0]
+      const keyRaw      = row.rows[0]?.api_key
+      const keyType     = typeof keyRaw
+      const keyLen      = keyRaw != null ? String(keyRaw).length : -1
+      const extra       = rowExists ? JSON.parse((row.rows[0]!.extra as string) || '{}') : {}
+      const hasSecret   = !!extra.client_secret
+      const dbUrl       = process.env.TURSO_DATABASE_URL
+        ? 'turso:' + (process.env.TURSO_DATABASE_URL as string).slice(0, 20) + '…'
+        : 'local-file'
+      const detail = `row=${rowExists} keyType=${keyType} keyLen=${keyLen} hasSecret=${hasSecret} db=${dbUrl}`
       return NextResponse.redirect(
-        `${appUrl}/?linkedin_error=${encodeURIComponent('client_id_missing')}`
+        `${appUrl}/?linkedin_error=${encodeURIComponent('client_id_missing: ' + detail)}`
       )
     }
 
