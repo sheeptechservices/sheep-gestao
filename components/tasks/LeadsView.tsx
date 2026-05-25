@@ -1028,32 +1028,33 @@ export function LeadsView() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {/* View toggle */}
-          <div style={{ display: 'flex', border: '1px solid var(--gray3)', borderRadius: 8, overflow: 'hidden' }}>
-            {(['kanban', 'table'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  padding: '6px 14px', border: 'none', fontSize: 12, fontWeight: 700,
-                  background: view === v ? 'var(--primary)' : 'var(--white)',
-                  color: view === v ? '#fff' : 'var(--gray2)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                }}
-              >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
-            ))}
-          </div>
+          {(['kanban', 'table'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer',
+                border: `1px solid ${view === v ? 'var(--primary-mid)' : 'var(--gray3)'}`,
+                background: view === v ? 'var(--primary-dim)' : 'transparent',
+                color: view === v ? 'var(--primary-text)' : 'var(--gray2)',
+                transition: 'all 0.15s',
+              }}
+            >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
+          ))}
 
           {/* Import CSV */}
           <input ref={csvRef} type="file" accept=".csv" onChange={handleCSV} style={{ display: 'none' }} />
           <button
             onClick={() => csvRef.current?.click()}
             style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '7px 13px', borderRadius: 8, border: '1px solid var(--gray3)',
-              background: 'var(--white)', color: 'var(--gray2)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', borderRadius: 100, border: '1px solid var(--gray3)',
+              background: 'transparent', color: 'var(--gray2)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              transition: 'opacity .15s',
             }}
           >
-            <svg width={13} height={13} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg width={11} height={11} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 1v8M4 6l3 3 3-3M2 11h10"/>
             </svg>
             Importar CSV
@@ -1065,16 +1066,18 @@ export function LeadsView() {
               onClick={handleLinkedInSync}
               disabled={syncing}
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '7px 13px', borderRadius: 8, border: '1px solid rgba(0,119,181,0.3)',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 12px', borderRadius: 100,
+                border: '1px solid rgba(0,119,181,0.35)',
                 background: syncing ? 'var(--gray3)' : 'rgba(0,119,181,0.08)',
                 color: syncing ? 'var(--gray2)' : '#0077B5',
-                fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.7 : 1,
+                fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.7 : 1,
+                transition: 'opacity .15s',
               }}
             >
               {syncing
                 ? <><div style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid #0077B540', borderTopColor: '#0077B5', animation: 'spin-slow 0.7s linear infinite' }} />Sincronizando…</>
-                : <><svg viewBox="0 0 24 24" width="13" height="13" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Sync LinkedIn</>
+                : <><svg viewBox="0 0 24 24" width="11" height="11" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Sync LinkedIn</>
               }
             </button>
           )}
@@ -1083,12 +1086,16 @@ export function LeadsView() {
           <button
             onClick={() => { setEditingLead(null); setShowForm(true) }}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', borderRadius: 8, border: 'none',
-              background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 100,
+              background: 'var(--primary-dim)', color: 'var(--primary-text)',
+              border: '1px solid var(--primary-mid)',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'opacity .15s',
             }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
-            <svg width={12} height={12} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <svg width={11} height={11} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
               <path d="M6 1v10M1 6h10"/>
             </svg>
             Novo Lead
