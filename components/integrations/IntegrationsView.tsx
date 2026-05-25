@@ -92,6 +92,7 @@ interface IntegrationMeta {
   keyHint: string
   docsUrl: string
   webhookPath?: string   // if set, shows a read-only webhook URL field in the expanded form
+  syncPath?: string      // if set, shows a "Sincronizar histórico" button
   comingSoon?: boolean
 }
 
@@ -175,6 +176,7 @@ const CATALOGUE: IntegrationMeta[] = [
     keyHint: 'Obtenha sua chave em app.fireflies.ai → Integrações → API. Guarde também em FIREFLIES_API_KEY no arquivo .env.local para uso pelo servidor.',
     docsUrl: 'https://docs.fireflies.ai/getting-started/api-usage',
     webhookPath: '/api/webhooks/fireflies',
+    syncPath: '/api/integrations/fireflies/sync',
   },
 ]
 
@@ -243,11 +245,13 @@ function IntegrationCard({ meta, data, onSave }: {
   data: Integration | undefined
   onSave: (id: string, key: string, enabled: boolean) => Promise<void>
 }) {
-  const [expanded,  setExpanded]  = useState(false)
-  const [keyValue,  setKeyValue]  = useState('')
-  const [showKey,   setShowKey]   = useState(false)
-  const [saving,    setSaving]    = useState(false)
-  const [clearing,  setClearing]  = useState(false)
+  const [expanded,    setExpanded]    = useState(false)
+  const [keyValue,    setKeyValue]    = useState('')
+  const [showKey,     setShowKey]     = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [clearing,    setClearing]    = useState(false)
+  const [syncing,     setSyncing]     = useState(false)
+  const [syncResult,  setSyncResult]  = useState<{ imported: number; skipped: number } | null>(null)
 
   const hasKey  = data?.has_key ?? false
   const logo    = LOGOS[meta.id]
@@ -434,6 +438,78 @@ function IntegrationCard({ meta, data, onSave }: {
               <p style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 6, lineHeight: 1.55 }}>
                 Cole esta URL em <strong style={{ color: 'var(--gray)' }}>app.fireflies.ai → Settings → Webhooks</strong>. O Fireflies enviará cada nova reunião automaticamente para a plataforma.
               </p>
+            </div>
+          )}
+
+          {/* Sincronizar histórico */}
+          {meta.syncPath && (
+            <div style={{
+              padding: '14px 16px', borderRadius: 10,
+              background: 'var(--bg)', border: '1px solid var(--gray3)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', marginBottom: 4 }}>
+                Sincronizar histórico
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--gray2)', marginBottom: 10, lineHeight: 1.5 }}>
+                Importa todas as reuniões do Fireflies ainda não salvas no sistema. Cada uma aparecerá no sino para você vincular ao projeto desejado.
+              </p>
+
+              {syncResult && (
+                <div style={{
+                  fontSize: 11, fontWeight: 600, marginBottom: 10,
+                  color: syncResult.imported > 0 ? '#1E8A3E' : 'var(--gray2)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {syncResult.imported > 0
+                    ? `${syncResult.imported} reunião${syncResult.imported !== 1 ? 'ões' : ''} importada${syncResult.imported !== 1 ? 's' : ''} · ${syncResult.skipped} já existia${syncResult.skipped !== 1 ? 'm' : ''}`
+                    : `Tudo sincronizado (${syncResult.skipped} já existiam)`
+                  }
+                </div>
+              )}
+
+              <button
+                onClick={async () => {
+                  setSyncing(true)
+                  setSyncResult(null)
+                  try {
+                    const res  = await fetch(meta.syncPath!, { method: 'POST' })
+                    const data = await res.json() as { imported?: number; skipped?: number; error?: string }
+                    if (data.error) { toast.error(data.error); return }
+                    setSyncResult({ imported: data.imported ?? 0, skipped: data.skipped ?? 0 })
+                    if ((data.imported ?? 0) > 0) toast.success(`${data.imported} reuniões importadas para o sino!`)
+                  } catch { toast.error('Erro ao sincronizar.') }
+                  finally { setSyncing(false) }
+                }}
+                disabled={syncing}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 8,
+                  border: `1px solid ${meta.color}40`,
+                  background: meta.color + '10', color: meta.color,
+                  fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer',
+                  transition: 'all 0.15s', opacity: syncing ? 0.7 : 1,
+                }}
+                onMouseEnter={e => { if (!syncing) e.currentTarget.style.background = meta.color + '22' }}
+                onMouseLeave={e => { if (!syncing) e.currentTarget.style.background = meta.color + '10' }}
+              >
+                {syncing ? (
+                  <>
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', border: `2px solid ${meta.color}40`, borderTopColor: meta.color, animation: 'spin-slow 0.7s linear infinite' }} />
+                    Sincronizando…
+                  </>
+                ) : (
+                  <>
+                    <svg width={12} height={12} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2v4h-4M1 12V8h4"/>
+                      <path d="M2.5 5A5.5 5.5 0 0 1 12.4 8M11.5 9a5.5 5.5 0 0 1-9.9-3"/>
+                    </svg>
+                    Sincronizar histórico
+                  </>
+                )}
+              </button>
             </div>
           )}
 

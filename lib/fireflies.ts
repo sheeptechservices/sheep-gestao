@@ -70,6 +70,55 @@ export async function fetchFirefliesTranscript(
   return json.data?.transcript ?? null
 }
 
+// ── Query de listagem ─────────────────────────────────────────────────────────
+
+const TRANSCRIPTS_LIST_QUERY = `
+  query Transcripts($limit: Int, $skip: Int) {
+    transcripts(limit: $limit, skip: $skip) {
+      id
+      title
+      date
+      duration
+      summary {
+        overview
+        action_items
+      }
+      sentences {
+        text
+        speaker_name
+      }
+      participants
+    }
+  }
+`
+
+// ── Lista transcrições (paginado) ─────────────────────────────────────────────
+
+export async function listFirefliesTranscripts(
+  apiKey?: string,
+  skip = 0,
+  limit = 50,
+): Promise<FirefliesTranscript[]> {
+  const key = apiKey ?? process.env.FIREFLIES_API_KEY
+  if (!key) throw new Error('FIREFLIES_API_KEY não configurado')
+
+  const res = await fetch(ENDPOINT, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${key}`,
+    },
+    body: JSON.stringify({ query: TRANSCRIPTS_LIST_QUERY, variables: { limit, skip } }),
+  })
+
+  if (!res.ok) throw new Error(`Fireflies API retornou ${res.status}`)
+
+  const json = await res.json() as { data?: { transcripts?: FirefliesTranscript[] }; errors?: { message: string }[] }
+  if (json.errors?.length) throw new Error(json.errors[0].message)
+
+  return json.data?.transcripts ?? []
+}
+
 // ── Monta texto da transcrição agrupado por speaker ───────────────────────────
 
 export function buildTranscriptText(sentences: FirefliesSentence[]): string {
