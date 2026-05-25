@@ -4,79 +4,196 @@ import { createPortal } from 'react-dom'
 import { useNotificationsStore } from '@/stores/notificationsStore'
 import type { Notification, Project } from '@/lib/types'
 
-// ── Seletor de projeto inline ─────────────────────────────────────────────────
+// ── Custom inline project picker ──────────────────────────────────────────────
 
-function ProjectSelector({
+function ProjectPicker({
   notif,
   onLink,
+  onCancel,
 }: {
   notif: Notification
   onLink: (meetingId: string, projectId: string) => Promise<void>
+  onCancel: () => void
 }) {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [selected, setSelected] = useState(notif.payload.suggested_project_id ?? '')
-  const [saving,   setSaving]   = useState(false)
+  const [projects,  setProjects]  = useState<Project[]>([])
+  const [selected,  setSelected]  = useState(notif.payload.suggested_project_id ?? '')
+  const [query,     setQuery]     = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [hovId,     setHovId]     = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/projects')
       .then(r => r.json())
       .then((p: Project[]) => setProjects(p.filter(x => x.status !== 'cancelled')))
       .catch(() => {})
+    setTimeout(() => inputRef.current?.focus(), 50)
   }, [])
 
+  const filtered = projects.filter(p => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return p.name.toLowerCase().includes(q) || (p.client?.name ?? '').toLowerCase().includes(q)
+  })
+
   const handleSave = async () => {
-    if (!selected) return
+    if (!selected || saving) return
     setSaving(true)
     await onLink(notif.payload.meeting_id, selected)
     setSaving(false)
   }
 
-  const isSuggested = (id: string) => id === notif.payload.suggested_project_id
-
   return (
-    <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-      {/* Hint de sugestão */}
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ marginTop: 10 }}
+    >
+      {/* Sugestão */}
       {notif.payload.suggested_project_name && (
         <div style={{
-          fontSize: 10, color: '#7B5EA7', fontWeight: 700,
-          marginBottom: 5, display: 'flex', alignItems: 'center', gap: 4,
+          display: 'flex', alignItems: 'center', gap: 5,
+          fontSize: 10, fontWeight: 700, color: '#7B5EA7',
+          marginBottom: 6,
         }}>
           <svg width={9} height={9} viewBox="0 0 10 10" fill="none">
-            <path d="M5 1a3 3 0 110 6A3 3 0 015 1zm0 7v1" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+            <path d="M5 1a3 3 0 110 6A3 3 0 015 1zm0 7v1"
+              stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
           </svg>
           Sugestão: {notif.payload.suggested_project_name}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 6 }}>
-        <select
-          value={selected}
-          onChange={e => setSelected(e.target.value)}
+
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 4 }}>
+        <svg width={11} height={11} viewBox="0 0 12 12" fill="none"
+          style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
+          <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth={1.4}/>
+          <path d="M8.5 8.5l2 2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+        </svg>
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Buscar projeto…"
           style={{
-            flex: 1, fontSize: 11, fontWeight: 600,
-            border: `1px solid ${selected ? 'var(--primary)' : 'var(--gray3)'}`, borderRadius: 6,
-            padding: '4px 8px', background: 'var(--bg)',
-            color: 'var(--black)', fontFamily: 'inherit', cursor: 'pointer',
+            width: '100%', boxSizing: 'border-box',
+            padding: '5px 8px 5px 26px',
+            fontSize: 11, fontFamily: 'inherit',
+            border: '1px solid var(--gray3)', borderRadius: 7,
+            background: 'var(--bg)', color: 'var(--black)',
+            outline: 'none',
           }}
+          onFocus={e => { e.target.style.borderColor = 'var(--primary)' }}
+          onBlur={e => { e.target.style.borderColor = 'var(--gray3)' }}
+        />
+      </div>
+
+      {/* Project list */}
+      <div style={{
+        maxHeight: 130, overflowY: 'auto',
+        border: '1px solid var(--gray3)', borderRadius: 7,
+        background: 'var(--white)',
+        scrollbarWidth: 'thin',
+      }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '10px 10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
+            Nenhum projeto encontrado
+          </div>
+        ) : (
+          filtered.map(p => {
+            const isSel  = p.id === selected
+            const isSugg = p.id === notif.payload.suggested_project_id
+            const isHov  = p.id === hovId
+            return (
+              <div
+                key={p.id}
+                onClick={() => setSelected(p.id)}
+                onMouseEnter={() => setHovId(p.id)}
+                onMouseLeave={() => setHovId('')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '6px 9px', cursor: 'pointer',
+                  borderBottom: '1px solid var(--gray3)',
+                  background: isSel
+                    ? 'rgba(99,102,241,0.07)'
+                    : isHov ? 'var(--bg)' : 'transparent',
+                  transition: 'background 0.1s',
+                }}
+              >
+                {/* Dot */}
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: isSel ? '#6366F1' : 'var(--gray3)',
+                  transition: 'background 0.1s',
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: isSel ? 700 : 500,
+                    color: isSel ? 'var(--black)' : 'var(--gray)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {p.name}
+                  </div>
+                  {p.client?.name && (
+                    <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
+                      {p.client.name}
+                    </div>
+                  )}
+                </div>
+                {isSugg && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
+                    background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
+                    border: '1px solid rgba(123,94,167,0.2)',
+                    flexShrink: 0,
+                  }}>
+                    ★
+                  </span>
+                )}
+                {isSel && (
+                  <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M2 5l2.5 2.5L8 3" stroke="#6366F1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            flex: 1, padding: '5px 0', borderRadius: 7,
+            border: '1px solid var(--gray3)', background: 'transparent',
+            fontSize: 11, fontWeight: 600, color: 'var(--gray)',
+            cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'border-color 0.12s, color 0.12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gray2)'; e.currentTarget.style.color = 'var(--black)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray)' }}
         >
-          <option value="">Selecionar projeto…</option>
-          {projects.map(p => (
-            <option key={p.id} value={p.id}>
-              {isSuggested(p.id) ? '★ ' : ''}{p.name}{p.client?.name ? ` — ${p.client.name}` : ''}
-            </option>
-          ))}
-        </select>
+          Cancelar
+        </button>
         <button
           onClick={handleSave}
           disabled={!selected || saving}
           style={{
-            padding: '4px 10px', borderRadius: 6, border: 'none',
-            background: selected ? 'var(--primary)' : 'var(--gray3)',
-            color: '#fff', fontSize: 11, fontWeight: 700,
+            flex: 2, padding: '5px 0', borderRadius: 7,
+            border: 'none',
+            background: selected ? '#6366F1' : 'var(--gray3)',
+            fontSize: 11, fontWeight: 700, color: '#fff',
             cursor: selected && !saving ? 'pointer' : 'default',
-            transition: 'background 0.15s',
+            fontFamily: 'inherit',
+            transition: 'background 0.15s, opacity 0.15s',
+            opacity: saving ? 0.7 : 1,
           }}
+          onMouseEnter={e => { if (selected && !saving) e.currentTarget.style.background = '#4f46e5' }}
+          onMouseLeave={e => { if (selected && !saving) e.currentTarget.style.background = '#6366F1' }}
         >
-          {saving ? '…' : 'Vincular'}
+          {saving ? 'Vinculando…' : 'Vincular projeto'}
         </button>
       </div>
     </div>
@@ -95,71 +212,106 @@ function NotifItem({
   onRead: (id: string) => void
 }) {
   const [linking, setLinking] = useState(false)
+  const [hov,     setHov]     = useState(false)
 
   const fmtDate = (iso?: string) => {
     if (!iso) return ''
-    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    })
   }
 
   return (
-    <div style={{
-      padding: '10px 14px',
-      borderBottom: '1px solid var(--gray3)',
-      background: notif.read ? 'transparent' : 'rgba(99,102,241,0.04)',
-    }}>
-      {/* Linha de título */}
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        padding: linking ? '12px 14px 14px' : '10px 14px',
+        borderBottom: '1px solid var(--gray3)',
+        background: linking
+          ? 'rgba(99,102,241,0.05)'
+          : hov
+            ? 'var(--bg)'
+            : notif.read ? 'transparent' : 'rgba(99,102,241,0.03)',
+        transition: 'background 0.12s',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        {/* Dot de não-lido */}
+        {/* Unread dot */}
         <div style={{
-          width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 4,
+          width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 5,
           background: notif.read ? 'transparent' : '#6366F1',
+          transition: 'background 0.2s',
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--black)', marginBottom: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {/* Title */}
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--black)', marginBottom: 2,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
             {notif.payload.title}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--gray2)' }}>
-            {fmtDate(notif.payload.date)} · Aguardando vinculação
+
+          {/* Date + status */}
+          <div style={{ fontSize: 11, color: 'var(--gray2)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            {fmtDate(notif.payload.date)}
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ color: '#F59E0B', fontWeight: 600 }}>Aguardando vinculação</span>
           </div>
 
-          {/* Botão vincular / form */}
+          {/* Vincular picker / button */}
           {!notif.read && (
-            linking
-              ? <ProjectSelector notif={notif} onLink={async (mId, pId) => {
-                  await onLink(mId, pId)
-                  setLinking(false)
-                }} />
-              : <button
-                  onClick={e => { e.stopPropagation(); setLinking(true) }}
-                  style={{
-                    marginTop: 6, padding: '3px 10px',
-                    fontSize: 11, fontWeight: 700,
-                    border: '1px solid #6366F1', borderRadius: 6,
-                    background: 'transparent', color: '#6366F1',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Vincular projeto
-                </button>
+            linking ? (
+              <ProjectPicker
+                notif={notif}
+                onLink={async (mId, pId) => { await onLink(mId, pId); setLinking(false) }}
+                onCancel={() => setLinking(false)}
+              />
+            ) : (
+              <button
+                onClick={e => { e.stopPropagation(); setLinking(true) }}
+                style={{
+                  marginTop: 7, padding: '3px 11px',
+                  fontSize: 11, fontWeight: 700,
+                  border: '1px solid #6366F1', borderRadius: 6,
+                  background: 'transparent', color: '#6366F1',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#6366F1'; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6366F1' }}
+              >
+                Vincular projeto
+              </button>
+            )
           )}
         </div>
 
-        {/* Fechar */}
-        {!notif.read && (
+        {/* Dismiss button */}
+        {!notif.read && !linking && (
           <button
             onClick={e => { e.stopPropagation(); onRead(notif.id) }}
             title="Dispensar"
             style={{
-              width: 18, height: 18, borderRadius: 4, border: 'none',
-              background: 'transparent', cursor: 'pointer',
+              width: 20, height: 20, borderRadius: 5, border: 'none',
+              background: hov ? 'var(--gray3)' : 'transparent',
+              cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'var(--gray2)', flexShrink: 0,
+              transition: 'background 0.12s, color 0.12s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#fee2e2'
+              e.currentTarget.style.color = '#ef4444'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = hov ? 'var(--gray3)' : 'transparent'
+              e.currentTarget.style.color = 'var(--gray2)'
             }}
           >
-            <svg width={9} height={9} viewBox="0 0 9 9" fill="none">
-              <path d="M1 1l7 7M8 1L1 8" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+            <svg width={8} height={8} viewBox="0 0 9 9" fill="none">
+              <path d="M1 1l7 7M8 1L1 8" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
             </svg>
           </button>
         )}
@@ -175,27 +327,26 @@ export function NotificationBell() {
   const [open,    setOpen]    = useState(false)
   const [mounted, setMounted] = useState(false)
   const [rect,    setRect]    = useState<{ top: number; left: number } | null>(null)
+  const [hov,     setHov]     = useState(false)
   const btnRef  = useRef<HTMLButtonElement>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Fetch on mount
+  // Fetch on mount + poll every 60s
   useEffect(() => { fetchNotifs() }, [fetchNotifs])
-
-  // Poll a cada 60s para reuniões novas
   useEffect(() => {
     const t = setInterval(() => fetchNotifs(), 60_000)
     return () => clearInterval(t)
   }, [fetchNotifs])
 
-  // Fechar ao clicar fora
+  // Close on outside click
   useEffect(() => {
     if (!open) return
     const h = (e: MouseEvent) => {
       const target = e.target as Node
-      if (btnRef.current?.contains(target)) return          // clique no próprio botão
+      if (btnRef.current?.contains(target)) return
       const panel = document.querySelector('[data-notif-panel]')
-      if (panel?.contains(target)) return                   // clique dentro do painel
+      if (panel?.contains(target)) return
       setOpen(false)
     }
     document.addEventListener('mousedown', h)
@@ -206,7 +357,7 @@ export function NotificationBell() {
     if (open) { setOpen(false); return }
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setRect({ top: r.bottom + 8, left: Math.max(8, r.right - 280) })
+      setRect({ top: r.bottom + 8, left: Math.max(8, r.right - 320) })
     }
     setOpen(true)
   }
@@ -220,6 +371,8 @@ export function NotificationBell() {
     fetchNotifs()
   }
 
+  const unread = notifications.filter(n => !n.read)
+
   const panel = mounted && open && rect ? createPortal(
     <div
       data-notif-panel=""
@@ -227,13 +380,13 @@ export function NotificationBell() {
         position: 'fixed',
         top:      rect.top,
         left:     rect.left,
-        width:    280,
-        maxHeight: 440,
+        width:    320,
+        maxHeight: 480,
         zIndex:   99999,
         background: 'var(--white)',
         border:     '1px solid var(--gray3)',
-        borderRadius: 12,
-        boxShadow:  '0 8px 32px rgba(0,0,0,0.16)',
+        borderRadius: 14,
+        boxShadow:  '0 12px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
         display:    'flex',
         flexDirection: 'column',
         overflow:   'hidden',
@@ -242,34 +395,58 @@ export function NotificationBell() {
     >
       {/* Header */}
       <div style={{
-        padding: '10px 14px 8px',
+        padding: '11px 14px 10px',
         borderBottom: '1px solid var(--gray3)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'var(--white)',
       }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--black)' }}>
-          Notificações {unreadCount > 0 && <span style={{ color: '#6366F1' }}>({unreadCount})</span>}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--black)' }}>Notificações</span>
+          {unreadCount > 0 && (
+            <span style={{
+              fontSize: 10, fontWeight: 800,
+              padding: '1px 7px', borderRadius: 100,
+              background: 'rgba(99,102,241,0.1)', color: '#6366F1',
+              border: '1px solid rgba(99,102,241,0.2)',
+            }}>
+              {unreadCount}
+            </span>
+          )}
+        </div>
         {unreadCount > 0 && (
           <button
             onClick={() => markAllRead()}
             style={{
-              fontSize: 11, fontWeight: 700, color: 'var(--gray2)',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              fontSize: 11, fontWeight: 600, color: 'var(--gray2)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '3px 7px', borderRadius: 6, fontFamily: 'inherit',
+              transition: 'background 0.12s, color 0.12s',
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--gray2)' }}
           >
             Marcar todas como lidas
           </button>
         )}
       </div>
 
-      {/* Lista — só não lidas */}
-      <div style={{ overflowY: 'auto', flex: 1 }}>
-        {notifications.filter(n => !n.read).length === 0 ? (
-          <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12, color: 'var(--gray2)' }}>
-            Nenhuma notificação pendente
+      {/* List */}
+      <div style={{ overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
+        {unread.length === 0 ? (
+          <div style={{
+            padding: '36px 20px', textAlign: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+          }}>
+            <svg width={28} height={28} viewBox="0 0 24 24" fill="none" style={{ opacity: 0.25 }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
+                stroke="var(--gray)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 500 }}>
+              Nenhuma notificação pendente
+            </span>
           </div>
         ) : (
-          notifications.filter(n => !n.read).map(n => (
+          unread.map(n => (
             <NotifItem
               key={n.id}
               notif={n}
@@ -289,19 +466,20 @@ export function NotificationBell() {
         ref={btnRef}
         onClick={handleOpen}
         title="Notificações"
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
         style={{
           position: 'relative',
           width: 32, height: 32, borderRadius: 8,
-          border: `1px solid ${open ? 'var(--primary)' : 'var(--gray3)'}`,
-          background: open ? 'var(--primary-dim)' : 'transparent',
+          border: `1px solid ${open ? 'var(--primary)' : hov ? 'var(--gray2)' : 'var(--gray3)'}`,
+          background: open ? 'var(--primary-dim)' : hov ? 'var(--bg)' : 'transparent',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: open ? 'var(--primary-text)' : 'var(--gray)',
+          color: open ? 'var(--primary-text)' : hov ? 'var(--black)' : 'var(--gray)',
           transition: 'all 0.15s',
         }}
-        onMouseEnter={e => { if (!open) { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' } }}
-        onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray)' } }}
       >
-        <svg width={15} height={15} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={15} height={15} viewBox="0 0 16 16" fill="none"
+          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 1a5 5 0 0 1 5 5v2.5l1.5 2.5H1.5L3 8.5V6a5 5 0 0 1 5-5Z"/>
           <path d="M6.5 13a1.5 1.5 0 0 0 3 0"/>
         </svg>
