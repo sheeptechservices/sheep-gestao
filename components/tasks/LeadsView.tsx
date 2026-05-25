@@ -477,10 +477,13 @@ function KanbanCard({
         <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 3 }}>
           <div
             onClick={e => { e.stopPropagation(); onDelete() }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.10)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.5)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)' }}
             style={{
               width: 20, height: 20, borderRadius: 5, cursor: 'pointer',
               background: 'var(--white)', border: '1px solid rgba(220,38,38,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s',
             }}
           >
             <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
@@ -640,10 +643,14 @@ function TableView({
               <path d="M8 2L10 4L4 10H2V8L8 2Z" stroke="var(--gray2)" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={() => onDelete(lead)} style={{
-            width: 24, height: 24, borderRadius: 5, border: '1px solid rgba(220,38,38,0.2)',
-            background: 'rgba(220,38,38,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <button onClick={() => onDelete(lead)}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.10)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.5)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.04)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.2)' }}
+            style={{
+              width: 24, height: 24, borderRadius: 5, border: '1px solid rgba(220,38,38,0.2)',
+              background: 'rgba(220,38,38,0.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s',
+            }}>
             <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
               <path d="M2 3h8M4.5 3V2h3v1M3.5 3l.6 7h3.8l.6-7" stroke="#DC2626" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
