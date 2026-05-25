@@ -13,10 +13,9 @@ function ProjectSelector({
   notif: Notification
   onLink: (meetingId: string, projectId: string) => Promise<void>
 }) {
-  const [projects, setProjects]   = useState<Project[]>([])
-  const [loading,  setLoading]    = useState(false)
-  const [selected, setSelected]   = useState('')
-  const [saving,   setSaving]     = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selected, setSelected] = useState(notif.payload.suggested_project_id ?? '')
+  const [saving,   setSaving]   = useState(false)
 
   useEffect(() => {
     fetch('/api/projects')
@@ -32,37 +31,54 @@ function ProjectSelector({
     setSaving(false)
   }
 
+  const isSuggested = (id: string) => id === notif.payload.suggested_project_id
+
   return (
-    <div style={{ display: 'flex', gap: 6, marginTop: 8 }} onClick={e => e.stopPropagation()}>
-      <select
-        value={selected}
-        onChange={e => setSelected(e.target.value)}
-        style={{
-          flex: 1, fontSize: 11, fontWeight: 600,
-          border: '1px solid var(--gray3)', borderRadius: 6,
-          padding: '4px 8px', background: 'var(--bg)',
-          color: 'var(--black)', fontFamily: 'inherit',
-          cursor: loading ? 'wait' : 'pointer',
-        }}
-      >
-        <option value="">Selecionar projeto…</option>
-        {projects.map(p => (
-          <option key={p.id} value={p.id}>{p.name}{p.client?.name ? ` — ${p.client.name}` : ''}</option>
-        ))}
-      </select>
-      <button
-        onClick={handleSave}
-        disabled={!selected || saving}
-        style={{
-          padding: '4px 10px', borderRadius: 6, border: 'none',
-          background: selected ? 'var(--primary)' : 'var(--gray3)',
-          color: '#fff', fontSize: 11, fontWeight: 700,
-          cursor: selected && !saving ? 'pointer' : 'default',
-          transition: 'background 0.15s',
-        }}
-      >
-        {saving ? '…' : 'Vincular'}
-      </button>
+    <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
+      {/* Hint de sugestão */}
+      {notif.payload.suggested_project_name && (
+        <div style={{
+          fontSize: 10, color: '#7B5EA7', fontWeight: 700,
+          marginBottom: 5, display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          <svg width={9} height={9} viewBox="0 0 10 10" fill="none">
+            <path d="M5 1a3 3 0 110 6A3 3 0 015 1zm0 7v1" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+          </svg>
+          Sugestão: {notif.payload.suggested_project_name}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <select
+          value={selected}
+          onChange={e => setSelected(e.target.value)}
+          style={{
+            flex: 1, fontSize: 11, fontWeight: 600,
+            border: `1px solid ${selected ? 'var(--primary)' : 'var(--gray3)'}`, borderRadius: 6,
+            padding: '4px 8px', background: 'var(--bg)',
+            color: 'var(--black)', fontFamily: 'inherit', cursor: 'pointer',
+          }}
+        >
+          <option value="">Selecionar projeto…</option>
+          {projects.map(p => (
+            <option key={p.id} value={p.id}>
+              {isSuggested(p.id) ? '★ ' : ''}{p.name}{p.client?.name ? ` — ${p.client.name}` : ''}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleSave}
+          disabled={!selected || saving}
+          style={{
+            padding: '4px 10px', borderRadius: 6, border: 'none',
+            background: selected ? 'var(--primary)' : 'var(--gray3)',
+            color: '#fff', fontSize: 11, fontWeight: 700,
+            cursor: selected && !saving ? 'pointer' : 'default',
+            transition: 'background 0.15s',
+          }}
+        >
+          {saving ? '…' : 'Vincular'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -89,20 +105,14 @@ function NotifItem({
     <div style={{
       padding: '10px 14px',
       borderBottom: '1px solid var(--gray3)',
-      background: notif.read
-        ? 'transparent'
-        : notif.type === 'linked_meeting'
-          ? 'rgba(5,150,105,0.04)'
-          : 'rgba(99,102,241,0.04)',
+      background: notif.read ? 'transparent' : 'rgba(99,102,241,0.04)',
     }}>
       {/* Linha de título */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         {/* Dot de não-lido */}
         <div style={{
           width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-          background: notif.read
-            ? 'transparent'
-            : notif.type === 'linked_meeting' ? '#059669' : '#6366F1',
+          background: notif.read ? 'transparent' : '#6366F1',
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -111,14 +121,11 @@ function NotifItem({
             {notif.payload.title}
           </div>
           <div style={{ fontSize: 11, color: 'var(--gray2)' }}>
-            {notif.type === 'linked_meeting'
-              ? <>{fmtDate(notif.payload.date)} · Vinculado a <strong style={{ color: 'var(--gray)' }}>{notif.payload.project_name}</strong></>
-              : <>{fmtDate(notif.payload.date)} · Sem projeto vinculado</>
-            }
+            {fmtDate(notif.payload.date)} · Aguardando vinculação
           </div>
 
-          {/* Botão vincular / form — só para unlinked_meeting */}
-          {!notif.read && notif.type === 'unlinked_meeting' && (
+          {/* Botão vincular / form */}
+          {!notif.read && (
             linking
               ? <ProjectSelector notif={notif} onLink={async (mId, pId) => {
                   await onLink(mId, pId)
