@@ -863,6 +863,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
 }) {
   const [hov, setHov]   = useState(false)
   const [pop, setPop]   = useState(false)
+  const duplicateTask = useTasksStore(s => s.duplicateTask)
   const color      = project?.color_hex ?? '#6366F1'
   const tag        = project?.client?.name ?? project?.name
   const bloqueado  = task.flags?.includes('bloqueado')
@@ -1036,6 +1037,25 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
         }}>
           {/* Consult agent */}
           <ConsultAgentButton task={task} project={project} variant="icon" direction="down" />
+          {/* Duplicate */}
+          <div
+            onClick={async e => { e.stopPropagation(); const t = await duplicateTask(task.id); if (t) toast.success('Entregável duplicado', t.title) }}
+            title="Duplicar"
+            style={{
+              width: 20, height: 20, borderRadius: 5,
+              background: 'var(--white)', border: '1px solid var(--gray3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer',
+              transition: 'background 0.12s, border-color 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--gray3)' }}
+          >
+            <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+              <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="var(--gray)" strokeWidth={1.3}/>
+              <path d="M2.5 8V2.5A1.5 1.5 0 014 1h5.5" stroke="var(--gray)" strokeWidth={1.3} strokeLinecap="round"/>
+            </svg>
+          </div>
           {/* Delete */}
           <div
             onClick={e => { e.stopPropagation(); onDelete() }}
