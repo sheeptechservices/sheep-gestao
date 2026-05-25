@@ -615,7 +615,7 @@ function IntegrationCard({ meta, data, onSave }: {
                     <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   {syncResult.imported > 0
-                    ? `${syncResult.imported} reunião${syncResult.imported !== 1 ? 'ões' : ''} importada${syncResult.imported !== 1 ? 's' : ''} · ${syncResult.skipped} já existia${syncResult.skipped !== 1 ? 'm' : ''}`
+                    ? `${syncResult.imported} reunião${syncResult.imported !== 1 ? 'ões' : ''} importada${syncResult.imported !== 1 ? 's' : ''}${syncResult.skipped > 0 ? ` · ${syncResult.skipped} já existia${syncResult.skipped !== 1 ? 'm' : ''}` : ''}`
                     : `Tudo sincronizado (${syncResult.skipped} já existiam)`
                   }
                 </div>
