@@ -192,9 +192,11 @@ export function NotificationBell() {
   useEffect(() => {
     if (!open) return
     const h = (e: MouseEvent) => {
-      if (btnRef.current && !btnRef.current.closest('[data-notif-panel]')?.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      const target = e.target as Node
+      if (btnRef.current?.contains(target)) return          // clique no próprio botão
+      const panel = document.querySelector('[data-notif-panel]')
+      if (panel?.contains(target)) return                   // clique dentro do painel
+      setOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -260,14 +262,14 @@ export function NotificationBell() {
         )}
       </div>
 
-      {/* Lista */}
+      {/* Lista — só não lidas */}
       <div style={{ overflowY: 'auto', flex: 1 }}>
-        {notifications.length === 0 ? (
+        {notifications.filter(n => !n.read).length === 0 ? (
           <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 12, color: 'var(--gray2)' }}>
-            Nenhuma notificação
+            Nenhuma notificação pendente
           </div>
         ) : (
-          notifications.map(n => (
+          notifications.filter(n => !n.read).map(n => (
             <NotifItem
               key={n.id}
               notif={n}
