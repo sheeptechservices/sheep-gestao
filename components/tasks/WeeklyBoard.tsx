@@ -1602,9 +1602,17 @@ export function WeeklyBoard() {
   }
   for (const key of Object.keys(tasksByDay)) tasksByDay[key].sort(byUrgency)
 
-  // "Sem data definida" — ALL tasks with no day-level deadline, shown persistently across weeks
+  // "Sem data definida" — tasks from the current week without a day-level deadline
+  // PLUS tasks with no week assigned at all (true backlog), shown persistently across weeks
   const noDateTasks: Task[] = applyFilters(
-    tasks.filter(t => !t.deadline || !days.includes(t.deadline))
+    tasks.filter(t => {
+      // Task from current week but no specific day deadline
+      if (currentWeek && t.week_id === currentWeek.id) {
+        return !t.deadline || !days.includes(t.deadline)
+      }
+      // Task with no week at all — always show
+      return !t.week_id
+    })
   ).sort(byUrgency)
 
   // Drag-and-drop helpers
