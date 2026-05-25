@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
+import { AppSelect } from '@/components/ui/AppSelect'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -157,60 +158,70 @@ function LeadFormModal({
     try { await onSave(form) } finally { setSaving(false) }
   }
 
-  const inputStyle = {
-    width: '100%', padding: '7px 10px', fontSize: 12, fontWeight: 500,
-    border: '1px solid var(--gray3)', borderRadius: 7,
-    background: 'var(--white)', color: 'var(--black)', outline: 'none',
-    boxSizing: 'border-box' as const,
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', fontSize: 12, fontWeight: 500,
+    border: '1px solid var(--gray3)', borderRadius: 8,
+    background: 'var(--bg)', color: 'var(--black)', outline: 'none',
+    boxSizing: 'border-box', fontFamily: 'inherit',
   }
 
-  const labelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block' as const, marginBottom: 4 }
+  const label = (text: string) => (
+    <label style={{
+      fontSize: 10, fontWeight: 800, color: 'var(--gray2)',
+      textTransform: 'uppercase' as const, letterSpacing: '0.06em',
+      display: 'block', marginBottom: 6,
+    }}>{text}</label>
+  )
 
   return createPortal(
     <div
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
       style={{
         position: 'fixed', inset: 0, zIndex: 2000,
-        background: 'rgba(18,19,22,0.45)', backdropFilter: 'blur(5px)',
+        background: 'rgba(18,19,22,0.35)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
+        animation: 'fadeIn 0.15s ease both',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--white)', borderRadius: 14,
-          width: 'min(640px, 100%)',
+          background: 'var(--white)', borderRadius: 16,
+          width: 'min(600px, 100%)',
           maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
           animation: 'modalSlideUp 0.22s ease both',
+          display: 'flex', flexDirection: 'column',
         }}
       >
         {/* Header */}
         <div style={{
-          padding: '20px 24px 16px', borderBottom: '1px solid var(--gray3)',
+          padding: '22px 28px 18px', borderBottom: '1px solid var(--gray3)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', top: 0, background: 'var(--white)', zIndex: 1,
+          borderRadius: '16px 16px 0 0',
         }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--black)' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
             {initial ? 'Editar Lead' : 'Novo Lead'}
-          </div>
+          </h2>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: 8, border: '1px solid var(--gray3)',
-            background: 'var(--bg)', cursor: 'pointer', fontSize: 16,
+            width: 28, height: 28, borderRadius: '50%', border: 'none',
+            background: 'var(--bg)', cursor: 'pointer', fontSize: 14, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
           }}>×</button>
         </div>
 
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
           {/* Row: name + company */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Nome</label>
+              {label('Nome')}
               <input style={inputStyle} value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Nome do contato" />
             </div>
             <div>
-              <label style={labelStyle}>Empresa</label>
+              {label('Empresa')}
               <input style={inputStyle} value={form.company ?? ''} onChange={e => set('company', e.target.value)} placeholder="Nome da empresa" />
             </div>
           </div>
@@ -218,11 +229,11 @@ function LeadFormModal({
           {/* Row: email + phone */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>E-mail</label>
+              {label('E-mail')}
               <input style={inputStyle} type="email" value={form.email ?? ''} onChange={e => set('email', e.target.value)} placeholder="contato@empresa.com" />
             </div>
             <div>
-              <label style={labelStyle}>Telefone</label>
+              {label('Telefone')}
               <input style={inputStyle} value={form.phone ?? ''} onChange={e => set('phone', e.target.value)} placeholder="+55 11 9xxxx-xxxx" />
             </div>
           </div>
@@ -230,30 +241,41 @@ function LeadFormModal({
           {/* Row: funnel_stage + propensity */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Etapa do Funil</label>
-              <select style={inputStyle} value={form.funnel_stage} onChange={e => set('funnel_stage', e.target.value as LeadFunnelStage)}>
-                {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
+              {label('Etapa do Funil')}
+              <AppSelect
+                value={form.funnel_stage}
+                onChange={v => set('funnel_stage', v as LeadFunnelStage)}
+                options={STAGES.map(s => ({
+                  value: s.id, label: s.label,
+                  color: s.color, bg: s.bg,
+                  border: s.color + '55',
+                }))}
+              />
             </div>
             <div>
-              <label style={labelStyle}>Propensão</label>
-              <select style={inputStyle} value={form.propensity ?? ''} onChange={e => set('propensity', e.target.value || null)}>
-                <option value="">— Sem propensão —</option>
-                <option value="frio">Frio</option>
-                <option value="morno">Morno</option>
-                <option value="quente">Quente 🔥</option>
-              </select>
+              {label('Propensão')}
+              <AppSelect
+                value={form.propensity ?? ''}
+                onChange={v => set('propensity', v || null)}
+                options={[
+                  { value: '', label: '— Sem propensão —' },
+                  { value: 'frio',   label: 'Frio',      color: '#3B82F6', bg: 'rgba(59,130,246,0.10)'  },
+                  { value: 'morno',  label: 'Morno',     color: '#EA580C', bg: 'rgba(234,88,12,0.10)'   },
+                  { value: 'quente', label: 'Quente 🔥', color: '#DC2626', bg: 'rgba(220,38,38,0.10)'   },
+                ]}
+                placeholder="— Sem propensão —"
+              />
             </div>
           </div>
 
           {/* Row: segment + sub_segment */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Segmento</label>
+              {label('Segmento')}
               <input style={inputStyle} value={form.segment ?? ''} onChange={e => set('segment', e.target.value)} placeholder="Fintech, Saúde, Varejo…" />
             </div>
             <div>
-              <label style={labelStyle}>Sub-segmento</label>
+              {label('Sub-segmento')}
               <input style={inputStyle} value={form.sub_segment ?? ''} onChange={e => set('sub_segment', e.target.value)} placeholder="Sub-segmento" />
             </div>
           </div>
@@ -261,11 +283,11 @@ function LeadFormModal({
           {/* Row: commercial_origin + acquisition_channel */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Origem Comercial</label>
+              {label('Origem Comercial')}
               <input style={inputStyle} value={form.commercial_origin ?? ''} onChange={e => set('commercial_origin', e.target.value)} placeholder="Indicação, LinkedIn, Evento…" />
             </div>
             <div>
-              <label style={labelStyle}>Canal de Aquisição</label>
+              {label('Canal de Aquisição')}
               <input style={inputStyle} value={form.acquisition_channel ?? ''} onChange={e => set('acquisition_channel', e.target.value)} placeholder="Inbound, Outbound…" />
             </div>
           </div>
@@ -273,11 +295,11 @@ function LeadFormModal({
           {/* Row: project_name + estimated_value */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Nome do Projeto</label>
+              {label('Nome do Projeto')}
               <input style={inputStyle} value={form.project_name ?? ''} onChange={e => set('project_name', e.target.value)} placeholder="Nome do projeto / solução" />
             </div>
             <div>
-              <label style={labelStyle}>Valor Estimado (R$)</label>
+              {label('Valor Estimado (R$)')}
               <input style={inputStyle} type="number" value={form.estimated_value ?? ''} onChange={e => set('estimated_value', e.target.value ? Number(e.target.value) : null)} placeholder="0" />
             </div>
           </div>
@@ -285,18 +307,18 @@ function LeadFormModal({
           {/* Row: first_contact_date + referred_by */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={labelStyle}>Data do Primeiro Contato</label>
+              {label('Data do Primeiro Contato')}
               <input style={inputStyle} type="date" value={form.first_contact_date ?? ''} onChange={e => set('first_contact_date', e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>Indicado por</label>
+              {label('Indicado por')}
               <input style={inputStyle} value={form.referred_by ?? ''} onChange={e => set('referred_by', e.target.value)} placeholder="Nome de quem indicou" />
             </div>
           </div>
 
-          {/* Project types */}
+          {/* Tipos de Projeto */}
           <div>
-            <label style={labelStyle}>Tipos de Projeto</label>
+            {label('Tipos de Projeto')}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {PROJECT_TYPES.map(t => {
                 const sel = form.project_types.includes(t)
@@ -307,11 +329,12 @@ function LeadFormModal({
                     type="button"
                     onClick={() => toggleType(t)}
                     style={{
-                      padding: '4px 10px', borderRadius: 100, fontSize: 11, fontWeight: 700,
-                      border: `1px solid ${sel ? c.color : 'var(--gray3)'}`,
-                      background: sel ? c.bg : 'var(--white)',
+                      padding: '4px 11px', borderRadius: 100, fontSize: 11, fontWeight: 700,
+                      border: `1px solid ${sel ? c.color + '88' : 'var(--gray3)'}`,
+                      background: sel ? c.bg : 'transparent',
                       color: sel ? c.color : 'var(--gray2)',
                       cursor: 'pointer', transition: 'all 0.13s',
+                      fontFamily: 'inherit',
                     }}
                   >{t}</button>
                 )
@@ -319,34 +342,41 @@ function LeadFormModal({
             </div>
           </div>
 
-          {/* Context */}
+          {/* Contexto */}
           <div>
-            <label style={labelStyle}>Contexto</label>
-            <textarea style={{ ...inputStyle, minHeight: 64, resize: 'vertical' }} value={form.context ?? ''} onChange={e => set('context', e.target.value)} placeholder="Breve contexto do lead…" />
+            {label('Contexto')}
+            <textarea
+              style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }}
+              value={form.context ?? ''}
+              onChange={e => set('context', e.target.value)}
+              placeholder="Breve contexto do lead…"
+            />
           </div>
 
-          {/* Notes */}
+          {/* Observações */}
           <div>
-            <label style={labelStyle}>Observações</label>
-            <textarea style={{ ...inputStyle, minHeight: 64, resize: 'vertical' }} value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} placeholder="Notas internas…" />
+            {label('Observações')}
+            <textarea
+              style={{ ...inputStyle, minHeight: 64, resize: 'vertical' }}
+              value={form.notes ?? ''}
+              onChange={e => set('notes', e.target.value)}
+              placeholder="Notas internas…"
+            />
           </div>
 
-          {/* LinkedIn ID */}
-          <div>
-            <label style={labelStyle}>LinkedIn ID</label>
-            <input style={inputStyle} value={form.linkedin_id ?? ''} onChange={e => set('linkedin_id', e.target.value)} placeholder="ID do perfil LinkedIn" />
-          </div>
         </div>
 
         {/* Footer */}
         <div style={{
-          padding: '14px 24px 20px', borderTop: '1px solid var(--gray3)',
+          padding: '14px 28px 22px', borderTop: '1px solid var(--gray3)',
           display: 'flex', justifyContent: 'flex-end', gap: 8,
           position: 'sticky', bottom: 0, background: 'var(--white)',
+          borderRadius: '0 0 16px 16px',
         }}>
           <button onClick={onClose} style={{
             padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gray3)',
-            background: 'var(--white)', fontSize: 13, fontWeight: 600, color: 'var(--gray)', cursor: 'pointer',
+            background: 'transparent', fontSize: 12, fontWeight: 600,
+            color: 'var(--gray2)', cursor: 'pointer', fontFamily: 'inherit',
           }}>Cancelar</button>
           <button
             onClick={handleSubmit}
@@ -355,8 +385,12 @@ function LeadFormModal({
               padding: '8px 22px', borderRadius: 8, border: 'none',
               background: saving ? 'var(--gray3)' : 'var(--primary)',
               color: saving ? 'var(--gray2)' : '#fff',
-              fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+              fontSize: 12, fontWeight: 700,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', transition: 'opacity 0.15s',
             }}
+            onMouseEnter={e => { if (!saving) e.currentTarget.style.opacity = '0.88' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
           >{saving ? 'Salvando…' : initial ? 'Atualizar' : 'Criar Lead'}</button>
         </div>
       </div>
