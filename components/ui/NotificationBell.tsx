@@ -18,17 +18,28 @@ function ProjectPicker({
   const [projects,  setProjects]  = useState<Project[]>([])
   const [selected,  setSelected]  = useState(notif.payload.suggested_project_id ?? '')
   const [query,     setQuery]     = useState('')
+  const [open,      setOpen]      = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [hovId,     setHovId]     = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/api/projects')
       .then(r => r.json())
       .then((p: Project[]) => setProjects(p.filter(x => x.status !== 'cancelled')))
       .catch(() => {})
-    setTimeout(() => inputRef.current?.focus(), 50)
   }, [])
+
+  // Fecha a lista ao clicar fora do picker
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => {
+      if (!pickerRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
 
   const filtered = projects.filter(p => {
     if (!query) return true
@@ -36,7 +47,25 @@ function ProjectPicker({
     return p.name.toLowerCase().includes(q) || (p.client?.name ?? '').toLowerCase().includes(q)
   })
 
-  const handleSave = async () => {
+  const selectedProject = projects.find(p => p.id === selected) ?? null
+  const isSugg = (id: string) => id === notif.payload.suggested_project_id
+
+  const handleOpenToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (open) { setOpen(false); return }
+    setOpen(true)
+    setQuery('')
+    setTimeout(() => inputRef.current?.focus(), 30)
+  }
+
+  const handleSelect = (id: string) => {
+    setSelected(id)
+    setOpen(false)
+    setQuery('')
+  }
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!selected || saving) return
     setSaving(true)
     await onLink(notif.payload.meeting_id, selected)
@@ -45,6 +74,7 @@ function ProjectPicker({
 
   return (
     <div
+      ref={pickerRef}
       onClick={e => e.stopPropagation()}
       style={{ marginTop: 10 }}
     >
@@ -63,108 +93,154 @@ function ProjectPicker({
         </div>
       )}
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 4 }}>
-        <svg width={11} height={11} viewBox="0 0 12 12" fill="none"
-          style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
-          <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth={1.4}/>
-          <path d="M8.5 8.5l2 2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
-        </svg>
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar projeto…"
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            padding: '5px 8px 5px 26px',
-            fontSize: 11, fontFamily: 'inherit',
-            border: '1px solid var(--gray3)', borderRadius: 7,
-            background: 'var(--bg)', color: 'var(--black)',
-            outline: 'none',
-          }}
-          onFocus={e => { e.target.style.borderColor = 'var(--primary)' }}
-          onBlur={e => { e.target.style.borderColor = 'var(--gray3)' }}
-        />
-      </div>
-
-      {/* Project list */}
-      <div style={{
-        maxHeight: 130, overflowY: 'auto',
-        border: '1px solid var(--gray3)', borderRadius: 7,
-        background: 'var(--white)',
-        scrollbarWidth: 'thin',
-      }}>
-        {filtered.length === 0 ? (
-          <div style={{ padding: '10px 10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
-            Nenhum projeto encontrado
+      {/* Trigger / search input */}
+      <div style={{ position: 'relative' }}>
+        {open ? (
+          /* Campo de busca — visível quando aberto */
+          <div style={{ position: 'relative' }}>
+            <svg width={11} height={11} viewBox="0 0 12 12" fill="none"
+              style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
+              <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth={1.4}/>
+              <path d="M8.5 8.5l2 2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+            </svg>
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
+              placeholder="Buscar projeto…"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '6px 8px 6px 28px',
+                fontSize: 11, fontFamily: 'inherit',
+                border: '1px solid var(--primary)', borderRadius: 7,
+                background: 'var(--bg)', color: 'var(--black)',
+                outline: 'none',
+                boxShadow: '0 0 0 3px var(--primary-dim)',
+              }}
+            />
           </div>
         ) : (
-          filtered.map(p => {
-            const isSel  = p.id === selected
-            const isSugg = p.id === notif.payload.suggested_project_id
-            const isHov  = p.id === hovId
-            return (
-              <div
-                key={p.id}
-                onClick={() => setSelected(p.id)}
-                onMouseEnter={() => setHovId(p.id)}
-                onMouseLeave={() => setHovId('')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  padding: '6px 9px', cursor: 'pointer',
-                  borderBottom: '1px solid var(--gray3)',
-                  background: isSel
-                    ? 'rgba(99,102,241,0.07)'
-                    : isHov ? 'var(--bg)' : 'transparent',
-                  transition: 'background 0.1s',
-                }}
-              >
-                {/* Dot */}
-                <div style={{
-                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                  background: isSel ? '#6366F1' : 'var(--gray3)',
-                  transition: 'background 0.1s',
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: isSel ? 700 : 500,
-                    color: isSel ? 'var(--black)' : 'var(--gray)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {p.name}
-                  </div>
-                  {p.client?.name && (
-                    <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
-                      {p.client.name}
+          /* Trigger colapsado — mostra projeto selecionado ou placeholder */
+          <div
+            onClick={handleOpenToggle}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '6px 10px', borderRadius: 7, cursor: 'pointer',
+              border: `1px solid ${selectedProject ? 'var(--primary)' : 'var(--gray3)'}`,
+              background: 'var(--bg)', gap: 8,
+              transition: 'border-color 0.12s',
+            }}
+            onMouseEnter={e => { if (!selectedProject) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray2)' }}
+            onMouseLeave={e => { if (!selectedProject) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray3)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                background: selectedProject ? '#6366F1' : 'var(--gray3)',
+              }} />
+              <div style={{ minWidth: 0 }}>
+                {selectedProject ? (
+                  <>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: 'var(--black)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {selectedProject.name}
                     </div>
-                  )}
-                </div>
-                {isSugg && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
-                    background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
-                    border: '1px solid rgba(123,94,167,0.2)',
-                    flexShrink: 0,
-                  }}>
-                    ★
-                  </span>
-                )}
-                {isSel && (
-                  <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
-                    <path d="M2 5l2.5 2.5L8 3" stroke="#6366F1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                    {selectedProject.client?.name && (
+                      <div style={{ fontSize: 10, color: 'var(--gray2)' }}>
+                        {selectedProject.client.name}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'var(--gray2)' }}>Selecionar projeto…</span>
                 )}
               </div>
-            )
-          })
+            </div>
+            <svg width={10} height={10} viewBox="0 0 8 8" fill="none" style={{ opacity: 0.45, flexShrink: 0 }}>
+              <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
+
+        {/* Dropdown list — aparece sob o trigger */}
+        {open && (
+          <div style={{
+            marginTop: 3,
+            maxHeight: 150, overflowY: 'auto',
+            border: '1px solid var(--gray3)', borderRadius: 7,
+            background: 'var(--white)',
+            scrollbarWidth: 'thin',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
+                Nenhum projeto encontrado
+              </div>
+            ) : (
+              filtered.map(p => {
+                const isSel = p.id === selected
+                const isHov = p.id === hovId
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => handleSelect(p.id)}
+                    onMouseEnter={() => setHovId(p.id)}
+                    onMouseLeave={() => setHovId('')}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      padding: '7px 9px', cursor: 'pointer',
+                      borderBottom: '1px solid var(--gray3)',
+                      background: isSel
+                        ? 'rgba(99,102,241,0.07)'
+                        : isHov ? 'var(--bg)' : 'transparent',
+                      transition: 'background 0.1s',
+                    }}
+                  >
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                      background: isSel ? '#6366F1' : 'var(--gray3)',
+                    }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 11, fontWeight: isSel ? 700 : 500,
+                        color: isSel ? 'var(--black)' : 'var(--gray)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {p.name}
+                      </div>
+                      {p.client?.name && (
+                        <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
+                          {p.client.name}
+                        </div>
+                      )}
+                    </div>
+                    {isSugg(p.id) && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
+                        background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
+                        border: '1px solid rgba(123,94,167,0.2)', flexShrink: 0,
+                      }}>★</span>
+                    )}
+                    {isSel && (
+                      <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+                        <path d="M2 5l2.5 2.5L8 3" stroke="#6366F1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
         )}
       </div>
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
         <button
-          onClick={onCancel}
+          onClick={e => { e.stopPropagation(); onCancel() }}
           style={{
             flex: 1, padding: '5px 0', borderRadius: 7,
             border: '1px solid var(--gray3)', background: 'transparent',
