@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
 import { AppSelect } from '@/components/ui/AppSelect'
+import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -362,7 +363,12 @@ function LeadFormModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {label('Data do Primeiro Contato')}
-              <input style={inputStyle} type="date" value={form.first_contact_date ?? ''} onChange={e => set('first_contact_date', e.target.value)} />
+              <AppDatePicker
+                value={form.first_contact_date ?? ''}
+                onChange={v => set('first_contact_date', v)}
+                placeholder="DD/MM/AAAA"
+                clearable
+              />
             </div>
             <div>
               {label('Indicado por')}
