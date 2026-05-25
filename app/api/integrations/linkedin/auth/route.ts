@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDb } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 /** GET /api/integrations/linkedin/auth — redirect to LinkedIn OAuth */
 export async function GET(req: NextRequest) {
   try {
-    const db = await initDb()
+    // Usa getDb() diretamente para evitar que initDb() (que roda migrations)
+    // interfira com dados já existentes no banco via transações implícitas
+    const db = getDb()
 
     const row = await db.execute({
       sql:  `SELECT api_key, extra FROM integrations WHERE id = 'linkedin' LIMIT 1`,

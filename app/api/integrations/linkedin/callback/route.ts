@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDb } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 /** GET /api/integrations/linkedin/callback — handle OAuth callback */
 export async function GET(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=no_code`)
     }
 
-    const db = await initDb()
+    const db = getDb()
 
     const row = await db.execute({
       sql:  `SELECT api_key, extra FROM integrations WHERE id = 'linkedin' LIMIT 1`,
