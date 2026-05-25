@@ -716,9 +716,10 @@ function LinkedInCard({ data, onRefresh }: {
   const [clientId,   setClientId]  = useState('')   // never pre-fill from masked DB value
   const [clientSec,  setClientSec] = useState('')   // user must always retype to change
   const [acctId,     setAcctId]    = useState((extra.linkedin_account_id as string | undefined) ?? '')
-  const [saving,     setSaving]    = useState(false)
-  const [syncing,    setSyncing]   = useState(false)
-  const [loadingAcct,setLoadingAcct] = useState(false)
+  const [saving,      setSaving]     = useState(false)
+  const [connecting,  setConnecting] = useState(false)
+  const [syncing,     setSyncing]    = useState(false)
+  const [loadingAcct, setLoadingAcct] = useState(false)
   const [syncRes,    setSyncRes]   = useState<{ imported: number; skipped: number } | null>(null)
   const [expanded,   setExpanded]  = useState(false)
   const [rowHov,     setRowHov]    = useState(false)
@@ -1018,17 +1019,56 @@ function LinkedInCard({ data, onRefresh }: {
                   fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >{saving ? 'Salvando…' : credsSaved ? 'Atualizar credenciais' : 'Salvar credenciais'}</button>
-              {!connected && credsSaved && (
-                <a
-                  href="/api/integrations/linkedin/auth"
+              {!connected && (credsSaved || (clientId.trim() && clientSec.trim())) && (
+                <button
+                  disabled={connecting || saving}
+                  onClick={async () => {
+                    setConnecting(true)
+                    try {
+                      // Se o usuário digitou novos valores, salva antes de redirecionar
+                      if (clientId.trim() && clientSec.trim()) {
+                        const newExtra = { ...extra, client_secret: clientSec.trim(), linkedin_account_id: acctId }
+                        const res = await fetch('/api/integrations', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ id: 'linkedin', api_key: clientId.trim(), extra: newExtra }),
+                        })
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({})) as { error?: string }
+                          toast.error(`Erro ao salvar credenciais: ${err.error ?? res.status}`)
+                          return
+                        }
+                      } else if (!credsSaved) {
+                        toast.error('Preencha Client ID e Client Secret antes de conectar.')
+                        return
+                      }
+                      // Redireciona para o fluxo OAuth
+                      window.location.href = '/api/integrations/linkedin/auth'
+                    } finally {
+                      setConnecting(false)
+                    }
+                  }}
                   style={{
                     padding: '8px 18px', borderRadius: 8, border: `1px solid ${color}40`,
-                    background: color + '10', color, fontSize: 12, fontWeight: 700,
-                    cursor: 'pointer', textDecoration: 'none',
+                    background: connecting ? 'var(--gray3)' : color + '10',
+                    color: connecting ? 'var(--gray2)' : color,
+                    fontSize: 12, fontWeight: 700,
+                    cursor: connecting || saving ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = color + '22' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = color + '10' }}
-                >Conectar via OAuth →</a>
+                  onMouseEnter={e => { if (!connecting && !saving) e.currentTarget.style.background = color + '22' }}
+                  onMouseLeave={e => { if (!connecting && !saving) e.currentTarget.style.background = color + '10' }}
+                >
+                  {connecting ? (
+                    <>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${color}40`, borderTopColor: color, animation: 'spin-slow 0.7s linear infinite' }} />
+                      Salvando e conectando…
+                    </>
+                  ) : (
+                    <>Conectar via OAuth →</>
+                  )}
+                </button>
               )}
             </div>
             <p style={{ fontSize: 11, color: 'var(--gray2)', lineHeight: 1.5, margin: 0 }}>
