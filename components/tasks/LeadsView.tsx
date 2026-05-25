@@ -424,15 +424,22 @@ function KanbanCard({
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: isDragging ? color + '12' : hov ? 'var(--white)' : 'var(--bg)',
+        background: isDragging ? color + '12' : hov ? 'var(--card-hover-bg)' : 'var(--white)',
         borderRadius: 10,
         border: `1px solid ${isDragging ? color + '55' : hov ? color + '44' : 'var(--gray3)'}`,
         borderLeft: `3px solid ${isDragging ? color : hov ? color : 'var(--gray3)'}`,
-        boxShadow: hov && !isDragging ? `0 4px 14px rgba(0,0,0,0.09)` : 'none',
-        cursor: isDragging ? 'grabbing' : 'grab',
+        boxShadow: isDragging
+          ? `0 8px 24px ${color}44`
+          : hov ? `0 4px 14px rgba(0,0,0,0.09), 0 0 0 0px ${color}22`
+          : 'none',
+        cursor: isDragging ? 'grabbing' : 'pointer',
         transition: 'all 0.18s ease',
-        transform: isDragging ? 'rotate(2deg) scale(1.04)' : hov ? 'translateY(-2px)' : 'none',
+        transform: isDragging
+          ? 'rotate(2deg) scale(1.04) translateZ(0)'
+          : hov ? 'translateY(-2px) translateZ(0)' : 'translateZ(0)',
         opacity: isDragging ? 0.5 : 1,
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
         position: 'relative', userSelect: 'none',
         padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7,
       }}
