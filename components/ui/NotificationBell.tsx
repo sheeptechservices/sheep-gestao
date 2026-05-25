@@ -89,14 +89,20 @@ function NotifItem({
     <div style={{
       padding: '10px 14px',
       borderBottom: '1px solid var(--gray3)',
-      background: notif.read ? 'transparent' : 'rgba(99,102,241,0.04)',
+      background: notif.read
+        ? 'transparent'
+        : notif.type === 'linked_meeting'
+          ? 'rgba(5,150,105,0.04)'
+          : 'rgba(99,102,241,0.04)',
     }}>
       {/* Linha de título */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         {/* Dot de não-lido */}
         <div style={{
           width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-          background: notif.read ? 'transparent' : '#6366F1',
+          background: notif.read
+            ? 'transparent'
+            : notif.type === 'linked_meeting' ? '#059669' : '#6366F1',
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -105,11 +111,14 @@ function NotifItem({
             {notif.payload.title}
           </div>
           <div style={{ fontSize: 11, color: 'var(--gray2)' }}>
-            {fmtDate(notif.payload.date)} · Sem projeto vinculado
+            {notif.type === 'linked_meeting'
+              ? <>{fmtDate(notif.payload.date)} · Vinculado a <strong style={{ color: 'var(--gray)' }}>{notif.payload.project_name}</strong></>
+              : <>{fmtDate(notif.payload.date)} · Sem projeto vinculado</>
+            }
           </div>
 
-          {/* Botão vincular / form */}
-          {!notif.read && (
+          {/* Botão vincular / form — só para unlinked_meeting */}
+          {!notif.read && notif.type === 'unlinked_meeting' && (
             linking
               ? <ProjectSelector notif={notif} onLink={async (mId, pId) => {
                   await onLink(mId, pId)

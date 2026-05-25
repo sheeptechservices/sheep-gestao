@@ -126,15 +126,34 @@ export async function POST(req: NextRequest) {
       ],
     })
 
-    // Sem match → cria notificação para vinculação manual
+    // Cria notificação em ambos os casos
+    const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     if (!projectId) {
-      const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+      // Sem match → notificação para vinculação manual
       await db.execute({
         sql: `INSERT INTO notifications (id, type, payload, read, created_at) VALUES (?, ?, ?, 0, ?)`,
         args: [
           notifId,
           'unlinked_meeting',
           JSON.stringify({ meeting_id: id, title: transcript.title, date }),
+          now,
+        ],
+      })
+    } else {
+      // Match automático → notificação informativa
+      const matchedProject = projects.find(p => p.id === projectId)
+      await db.execute({
+        sql: `INSERT INTO notifications (id, type, payload, read, created_at) VALUES (?, ?, ?, 0, ?)`,
+        args: [
+          notifId,
+          'linked_meeting',
+          JSON.stringify({
+            meeting_id: id,
+            title: transcript.title,
+            date,
+            project_id: projectId,
+            project_name: matchedProject?.name ?? '',
+          }),
           now,
         ],
       })
