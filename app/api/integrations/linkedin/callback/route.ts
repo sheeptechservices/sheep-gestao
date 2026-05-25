@@ -93,6 +93,35 @@ export async function GET(req: NextRequest) {
       args: [clientId, JSON.stringify(newExtra), new Date().toISOString()],
     })
 
+    // Auto-fetch ad accounts so the UI can show a dropdown immediately
+    try {
+      const acctRes = await fetch(
+        'https://api.linkedin.com/rest/adAccounts?q=search&search.status.values[0]=ACTIVE&fields=id,name,status,currency&count=50',
+        {
+          headers: {
+            Authorization:      `Bearer ${tokenData.access_token}`,
+            'LinkedIn-Version': '202401',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+        }
+      )
+      if (acctRes.ok) {
+        const acctData = await acctRes.json() as {
+          elements?: Array<{ id: string | number; name?: string; status?: string; currency?: string }>
+        }
+        const adAccounts = (acctData.elements ?? []).map(el => ({
+          id:   String(el.id),
+          name: el.name ?? `Conta ${el.id}`,
+        }))
+        // Store accounts in extra
+        const finalExtra = { ...newExtra, ad_accounts: adAccounts }
+        await db.execute({
+          sql: `UPDATE integrations SET extra = ?, updated_at = ? WHERE id = 'linkedin'`,
+          args: [JSON.stringify(finalExtra), new Date().toISOString()],
+        })
+      }
+    } catch { /* non-fatal — user can refresh accounts manually */ }
+
     return NextResponse.redirect(`${appUrl}/?linkedin_connected=1`)
   } catch (err) {
     return NextResponse.redirect(`${appUrl}/?linkedin_error=${encodeURIComponent(String(err))}`)

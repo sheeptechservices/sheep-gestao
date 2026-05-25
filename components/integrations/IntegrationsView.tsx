@@ -711,12 +711,13 @@ function LinkedInCard({ data, onRefresh }: {
 }) {
   const extra        = data?.extra ?? {}
   const connected    = !!(extra.access_token)
-  const accountId    = (extra.linkedin_account_id as string | undefined) ?? ''
+  const adAccounts   = (extra.ad_accounts as Array<{ id: string; name: string }> | undefined) ?? []
   const [clientId,   setClientId]  = useState((data?.api_key as string | undefined) ?? '')
   const [clientSec,  setClientSec] = useState((extra.client_secret as string | undefined) ?? '')
-  const [acctId,     setAcctId]    = useState(accountId)
+  const [acctId,     setAcctId]    = useState((extra.linkedin_account_id as string | undefined) ?? '')
   const [saving,     setSaving]    = useState(false)
   const [syncing,    setSyncing]   = useState(false)
+  const [loadingAcct,setLoadingAcct] = useState(false)
   const [syncRes,    setSyncRes]   = useState<{ imported: number; skipped: number } | null>(null)
   const [expanded,   setExpanded]  = useState(false)
   const [rowHov,     setRowHov]    = useState(false)
@@ -735,6 +736,30 @@ function LinkedInCard({ data, onRefresh }: {
       toast.success('Credenciais LinkedIn salvas!')
       onRefresh()
     } finally { setSaving(false) }
+  }
+
+  const handleLoadAccounts = async () => {
+    setLoadingAcct(true)
+    try {
+      const res  = await fetch('/api/integrations/linkedin/accounts')
+      const data = await res.json() as { accounts?: Array<{ id: string; name: string }>; error?: string }
+      if (data.error) { toast.error(data.error); return }
+      toast.success(`${data.accounts?.length ?? 0} conta(s) encontrada(s)`)
+      onRefresh()
+    } catch { toast.error('Erro ao carregar contas.') }
+    finally { setLoadingAcct(false) }
+  }
+
+  const handleSaveAccount = async (id: string) => {
+    setAcctId(id)
+    const newExtra = { ...extra, linkedin_account_id: id }
+    await fetch('/api/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'linkedin', extra: newExtra }),
+    })
+    toast.success('Conta selecionada salva!')
+    onRefresh()
   }
 
   const handleSync = async () => {
@@ -845,8 +870,7 @@ function LinkedInCard({ data, onRefresh }: {
             {[
               { label: 'Client ID',          value: clientId,  set: setClientId,  ph: 'Cole o Client ID do app LinkedIn',    mono: true  },
               { label: 'Client Secret',       value: clientSec, set: setClientSec, ph: 'Cole o Client Secret do app LinkedIn', mono: true  },
-              { label: 'Ads Account ID',      value: acctId,    set: setAcctId,    ph: 'Ex: 123456789 (Campaign Manager)',    mono: false },
-            ].map(({ label, value, set, ph, mono }) => (
+              ].map(({ label, value, set, ph, mono }) => (
               <div key={label}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 5 }}>
                   {label}
@@ -868,6 +892,92 @@ function LinkedInCard({ data, onRefresh }: {
                 />
               </div>
             ))}
+
+            {/* Account selector — shown only when connected */}
+            {connected && (
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 5 }}>
+                  Conta de Anúncios
+                </label>
+                {adAccounts.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {adAccounts.map(acct => {
+                      const selected = acctId === acct.id
+                      return (
+                        <div
+                          key={acct.id}
+                          onClick={() => handleSaveAccount(acct.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                            border: `1.5px solid ${selected ? color : 'var(--gray3)'}`,
+                            background: selected ? color + '0D' : 'var(--white)',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={e => { if (!selected) (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
+                          onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLElement).style.background = 'var(--white)' }}
+                        >
+                          <div style={{
+                            width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                            border: `2px solid ${selected ? color : 'var(--gray3)'}`,
+                            background: selected ? color : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: selected ? color : 'var(--black)' }}>
+                              {acct.name}
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--gray2)', fontFamily: 'monospace' }}>ID: {acct.id}</div>
+                          </div>
+                          {selected && (
+                            <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                              <path d="M2.5 7l3 3 6-6" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <button
+                      onClick={handleLoadAccounts}
+                      disabled={loadingAcct}
+                      style={{
+                        alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 6,
+                        border: '1px solid var(--gray3)', background: 'transparent',
+                        fontSize: 11, fontWeight: 600, color: 'var(--gray2)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 5,
+                      }}
+                    >
+                      <svg width={10} height={10} viewBox="0 0 12 12" fill="none" style={{ animation: loadingAcct ? 'spin-slow 0.8s linear infinite' : 'none' }}>
+                        <path d="M10 6A4 4 0 1 1 6 2M10 2v4H6" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {loadingAcct ? 'Carregando…' : 'Atualizar contas'}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      onClick={handleLoadAccounts}
+                      disabled={loadingAcct}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8,
+                        border: `1px solid ${color}40`, background: color + '10', color,
+                        fontSize: 12, fontWeight: 700, cursor: loadingAcct ? 'wait' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      <svg width={12} height={12} viewBox="0 0 12 12" fill="none" style={{ animation: loadingAcct ? 'spin-slow 0.8s linear infinite' : 'none' }}>
+                        <path d="M10 6A4 4 0 1 1 6 2M10 2v4H6" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {loadingAcct ? 'Carregando contas…' : 'Carregar contas disponíveis'}
+                    </button>
+                    <span style={{ fontSize: 11, color: 'var(--gray2)' }}>Busca automaticamente após OAuth</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 onClick={handleSaveCredentials}
