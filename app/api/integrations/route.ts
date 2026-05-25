@@ -63,22 +63,7 @@ export async function PATCH(req: NextRequest) {
       args: [body.id, newKey, newExtra, newEnabled, now],
     })
 
-    // Leitura de confirmação — verifica que o dado foi de fato gravado neste banco
-    const verify = await db.execute({ sql: `SELECT api_key FROM integrations WHERE id = ?`, args: [body.id] })
-    const savedKey = verify.rows[0]?.api_key as string | null
-    const dbUrl = process.env.TURSO_DATABASE_URL
-      ? 'turso:' + (process.env.TURSO_DATABASE_URL as string).slice(0, 30) + '…'
-      : 'local-file'
-
-    return NextResponse.json({
-      ok: true,
-      _debug: {
-        db:            dbUrl,
-        key_saved:     !!savedKey && savedKey.length > 0,
-        key_length:    savedKey?.length ?? 0,
-        key_prefix:    savedKey ? savedKey.slice(0, 4) + '****' : '(vazio)',
-      },
-    })
+    return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

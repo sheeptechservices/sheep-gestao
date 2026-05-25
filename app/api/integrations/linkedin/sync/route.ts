@@ -14,8 +14,6 @@ interface LinkedInFormResponse {
 
 interface LinkedInApiResponse {
   elements?: LinkedInFormResponse[]
-  paging?: { total: number; start: number; count: number }
-  serviceErrorCode?: number
   message?: string
   status?: number
 }

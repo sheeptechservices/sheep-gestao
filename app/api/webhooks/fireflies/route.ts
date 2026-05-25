@@ -44,9 +44,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as Record<string, unknown>
 
-    // Log temporário para descobrir o formato exato do payload do Fireflies
-    console.log('[fireflies webhook] body:', JSON.stringify(body))
-
     // Tenta camelCase e snake_case
     const meetingId = (body.meetingId ?? body.meeting_id ?? body.id) as string | undefined
     if (!meetingId) {

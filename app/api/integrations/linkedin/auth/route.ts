@@ -23,10 +23,8 @@ export async function GET(req: NextRequest) {
     const clientId = row.rows[0]?.api_key as string | undefined
 
     if (!clientId) {
-      const rowExists = !!row.rows[0]
-      const detail    = `row=${rowExists} keyLen=${clientId === undefined ? 'undef' : String(clientId).length} db=${(process.env.TURSO_DATABASE_URL ?? 'NO_URL').slice(0, 30)}…`
       return NextResponse.redirect(
-        `${appUrl}/?linkedin_error=${encodeURIComponent('client_id_missing: ' + detail)}`
+        `${appUrl}/?linkedin_error=${encodeURIComponent('client_id_missing')}`
       )
     }
 
