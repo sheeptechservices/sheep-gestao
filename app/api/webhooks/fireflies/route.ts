@@ -42,11 +42,15 @@ function autoMatch(title: string, context: string, projects: Project[]): string 
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as { meetingId?: string; eventType?: string }
+    const body = await req.json() as Record<string, unknown>
 
-    const meetingId = body.meetingId
+    // Log temporário para descobrir o formato exato do payload do Fireflies
+    console.log('[fireflies webhook] body:', JSON.stringify(body))
+
+    // Tenta camelCase e snake_case
+    const meetingId = (body.meetingId ?? body.meeting_id ?? body.id) as string | undefined
     if (!meetingId) {
-      return NextResponse.json({ error: 'meetingId obrigatório' }, { status: 400 })
+      return NextResponse.json({ error: 'meetingId obrigatório', received: body }, { status: 400 })
     }
 
     const db = await initDb()
