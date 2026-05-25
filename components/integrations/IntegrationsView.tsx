@@ -187,7 +187,7 @@ const CATEGORIES = ['IA Generativa', 'Reuniões', 'Desenvolvimento', 'Produtivid
 function ShimmerCard() {
   return (
     <div className="shimmer-bar" style={{
-      border: '1px solid var(--gray3)', borderRadius: 12,
+      border: '1px solid var(--gray3)', borderRadius: 10,
       background: 'var(--white)', overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
@@ -209,12 +209,22 @@ function ShimmerSection({ count }: { count: number }) {
   return (
     <div className="shimmer-bar" style={{
       background: 'var(--white)', border: '1px solid var(--gray3)',
-      borderRadius: 12, overflow: 'hidden', marginBottom: 20,
+      borderRadius: 12, overflow: 'hidden', marginBottom: 16,
     }}>
-      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--gray3)', background: 'var(--bg)' }}>
-        <div style={{ width: 120, height: 13, borderRadius: 4, background: 'var(--gray3)' }} />
+      {/* Header mimics SectionCard structure */}
+      <div style={{
+        padding: '13px 20px',
+        borderBottom: '1px solid var(--gray3)',
+        background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 100, height: 13, borderRadius: 4, background: 'var(--gray3)' }} />
+          <div style={{ width: 72, height: 20, borderRadius: 20, background: 'var(--gray3)' }} />
+        </div>
+        <div style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--gray3)' }} />
       </div>
-      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {Array.from({ length: count }).map((_, i) => (
           <ShimmerCard key={i} />
         ))}
@@ -225,14 +235,94 @@ function ShimmerSection({ count }: { count: number }) {
 
 // ── Section card ──────────────────────────────────────────────────────────────
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, children, connectedCount, totalCount }: {
+  title: string
+  children: React.ReactNode
+  connectedCount: number
+  totalCount: number
+}) {
+  const [open, setOpen] = useState(true)
+  const [headerHovered, setHeaderHovered] = useState(false)
+
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--gray3)', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
-      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--gray3)', background: 'var(--bg)' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)' }}>{title}</span>
+    <div style={{
+      background: 'var(--white)',
+      border: '1px solid var(--gray3)',
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginBottom: 16,
+    }}>
+      {/* Clickable header */}
+      <div
+        onClick={() => setOpen(o => !o)}
+        onMouseEnter={() => setHeaderHovered(true)}
+        onMouseLeave={() => setHeaderHovered(false)}
+        style={{
+          padding: '13px 20px',
+          borderBottom: open ? '1px solid var(--gray3)' : 'none',
+          background: headerHovered ? 'var(--gray3)' : 'var(--bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+          userSelect: 'none',
+        }}
+      >
+        {/* Left: title + item count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)' }}>{title}</span>
+          <span style={{
+            fontSize: 11, fontWeight: 600,
+            color: 'var(--gray2)',
+            background: 'var(--white)',
+            border: '1px solid var(--gray3)',
+            borderRadius: 20,
+            padding: '1px 8px',
+          }}>
+            {totalCount} integraç{totalCount === 1 ? 'ão' : 'ões'}
+          </span>
+        </div>
+
+        {/* Right: connected badge + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {connectedCount > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: '#1E8A3E',
+              background: 'rgba(30,138,62,0.09)',
+              border: '1px solid rgba(30,138,62,0.2)',
+              borderRadius: 20,
+              padding: '2px 9px',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1E8A3E', flexShrink: 0 }} />
+              {connectedCount} ativa{connectedCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          <svg
+            width={14} height={14} viewBox="0 0 14 14" fill="none"
+            style={{
+              transition: 'transform 0.22s ease',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              color: 'var(--gray2)',
+              flexShrink: 0,
+            }}
+          >
+            <path d="M2.5 5l4.5 4.5L11.5 5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
       </div>
-      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {children}
+
+      {/* Collapsible content */}
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: open ? '2000px' : '0px',
+        transition: 'max-height 0.28s ease',
+      }}>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {children}
+        </div>
       </div>
     </div>
   )
@@ -252,6 +342,7 @@ function IntegrationCard({ meta, data, onSave }: {
   const [clearing,    setClearing]    = useState(false)
   const [syncing,     setSyncing]     = useState(false)
   const [syncResult,  setSyncResult]  = useState<{ imported: number; skipped: number } | null>(null)
+  const [rowHovered,  setRowHovered]  = useState(false)
 
   const hasKey  = data?.has_key ?? false
   const logo    = LOGOS[meta.id]
@@ -280,13 +371,27 @@ function IntegrationCard({ meta, data, onSave }: {
   return (
     <div style={{
       border: `1px solid ${hasKey ? meta.color + '35' : 'var(--gray3)'}`,
-      borderRadius: 12,
+      borderRadius: 10,
       background: hasKey ? meta.color + '04' : 'var(--white)',
       overflow: 'hidden',
       transition: 'border-color 0.2s',
+      opacity: meta.comingSoon ? 0.65 : 1,
     }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px' }}>
+      {/* Clickable header row */}
+      <div
+        onClick={() => { if (!meta.comingSoon) setExpanded(e => !e) }}
+        onMouseEnter={() => { if (!meta.comingSoon) setRowHovered(true) }}
+        onMouseLeave={() => setRowHovered(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '14px 18px',
+          cursor: meta.comingSoon ? 'default' : 'pointer',
+          background: rowHovered ? 'var(--bg)' : 'transparent',
+          transition: 'background 0.15s',
+        }}
+      >
         {/* Logo */}
         <div style={{
           width: 42, height: 42, borderRadius: 11, flexShrink: 0,
@@ -300,9 +405,6 @@ function IntegrationCard({ meta, data, onSave }: {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--black)' }}>{meta.name}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gray2)', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 20, padding: '1px 7px', letterSpacing: '0.04em' }}>
-              {meta.category}
-            </span>
             {meta.comingSoon && (
               <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 20, padding: '1px 7px' }}>
                 Em breve
@@ -313,29 +415,23 @@ function IntegrationCard({ meta, data, onSave }: {
         </div>
 
         {/* Status + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
+          onClick={e => e.stopPropagation()}
+        >
           {hasKey ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(30,138,62,0.1)', border: '1px solid rgba(30,138,62,0.25)' }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1E8A3E' }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>Conectado</span>
-              </div>
-              {!meta.comingSoon && (
-                <button
-                  onClick={() => setExpanded(e => !e)}
-                  title="Editar chave"
-                  style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
-                >
-                  <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><path d="M2 11h10M8 3l3 3-5 5-3-3 5-5z" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-              )}
-            </>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 20,
+              background: 'rgba(30,138,62,0.1)', border: '1px solid rgba(30,138,62,0.25)',
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1E8A3E' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>Conectado</span>
+            </div>
           ) : (
             !meta.comingSoon && (
               <button
-                onClick={() => setExpanded(e => !e)}
+                onClick={e => { e.stopPropagation(); setExpanded(ex => !ex) }}
                 style={{
                   padding: '6px 14px', borderRadius: 8, border: `1px solid ${meta.color}40`,
                   background: meta.color + '10', color: meta.color,
@@ -348,18 +444,57 @@ function IntegrationCard({ meta, data, onSave }: {
               </button>
             )
           )}
-          <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer" title="Documentação"
-            style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', transition: 'all 0.15s', textDecoration: 'none' }}
+
+          <a
+            href={meta.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Documentação"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)',
+              background: 'transparent', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+              transition: 'all 0.15s', textDecoration: 'none',
+            }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}>
-            <svg width={12} height={12} viewBox="0 0 13 13" fill="none"><path d="M5.5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8.5M8 1h4m0 0v4m0-4L5.5 7.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/></svg>
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+          >
+            <svg width={12} height={12} viewBox="0 0 13 13" fill="none">
+              <path d="M5.5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8.5M8 1h4m0 0v4m0-4L5.5 7.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </a>
+
+          {/* Expandable chevron (only for non-comingSoon) */}
+          {!meta.comingSoon && (
+            <div style={{
+              width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--gray2)', flexShrink: 0,
+              transition: 'color 0.15s',
+            }}>
+              <svg
+                width={13} height={13} viewBox="0 0 14 14" fill="none"
+                style={{
+                  transition: 'transform 0.2s ease',
+                  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+              >
+                <path d="M2.5 5l4.5 4.5L11.5 5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Expanded form */}
       {expanded && !meta.comingSoon && (
-        <div style={{ borderTop: `1px solid ${meta.color}20`, padding: '16px 18px', background: meta.color + '04', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{
+          borderTop: `1px solid ${meta.color}30`,
+          padding: '16px 18px',
+          background: meta.color + '04',
+          display: 'flex', flexDirection: 'column', gap: 12,
+          animation: 'slideDown 0.18s ease',
+        }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 6 }}>
               {meta.keyLabel}
@@ -372,14 +507,23 @@ function IntegrationCard({ meta, data, onSave }: {
                   onChange={e => setKeyValue(e.target.value)}
                   placeholder={hasKey ? '••••••••  (deixe em branco para manter a atual)' : meta.keyPlaceholder}
                   onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-                  style={{ width: '100%', padding: '8px 36px 8px 12px', fontSize: 13, fontWeight: 500, border: `1px solid ${meta.color}40`, borderRadius: 8, background: 'var(--white)', color: 'var(--black)', outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                  style={{
+                    width: '100%', padding: '8px 36px 8px 12px', fontSize: 13, fontWeight: 500,
+                    border: `1px solid ${meta.color}40`, borderRadius: 8,
+                    background: 'var(--white)', color: 'var(--black)', outline: 'none',
+                    fontFamily: 'monospace', boxSizing: 'border-box',
+                  }}
                   onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 3px ${meta.color}20` }}
                   onBlur={e => { e.currentTarget.style.boxShadow = 'none' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(s => !s)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray2)', padding: 0, display: 'flex' }}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray2)',
+                    padding: 0, display: 'flex',
+                  }}
                 >
                   {showKey
                     ? <svg width={14} height={14} viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5Z" stroke="currentColor" strokeWidth={1.4}/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth={1.4}/><path d="M2 2l12 12" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/></svg>
@@ -390,7 +534,14 @@ function IntegrationCard({ meta, data, onSave }: {
               <button
                 onClick={handleSave}
                 disabled={saving || !keyValue.trim()}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: (saving || !keyValue.trim()) ? 'var(--gray3)' : meta.color, color: (saving || !keyValue.trim()) ? 'var(--gray2)' : '#fff', fontSize: 12, fontWeight: 700, cursor: (saving || !keyValue.trim()) ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none',
+                  background: (saving || !keyValue.trim()) ? 'var(--gray3)' : meta.color,
+                  color: (saving || !keyValue.trim()) ? 'var(--gray2)' : '#fff',
+                  fontSize: 12, fontWeight: 700,
+                  cursor: (saving || !keyValue.trim()) ? 'not-allowed' : 'pointer',
+                  flexShrink: 0, transition: 'all 0.15s',
+                }}
                 onMouseEnter={e => { if (!saving && keyValue.trim()) e.currentTarget.style.opacity = '0.85' }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
               >
@@ -518,7 +669,13 @@ function IntegrationCard({ meta, data, onSave }: {
               <button
                 onClick={handleClear}
                 disabled={clearing}
-                style={{ fontSize: 11, fontWeight: 600, color: '#D93025', background: 'none', border: 'none', cursor: clearing ? 'wait' : 'pointer', opacity: clearing ? 0.5 : 1, padding: '2px 0', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                style={{
+                  fontSize: 11, fontWeight: 600, color: '#D93025',
+                  background: 'none', border: 'none',
+                  cursor: clearing ? 'wait' : 'pointer',
+                  opacity: clearing ? 0.5 : 1,
+                  padding: '2px 0', textDecoration: 'underline', textDecorationStyle: 'dotted',
+                }}
               >
                 {clearing ? 'Removendo…' : 'Remover integração'}
               </button>
@@ -560,6 +717,7 @@ export function IntegrationsView() {
     }
   }
 
+  const totalAvailable = CATALOGUE.filter(c => !c.comingSoon).length
   const connectedCount = integrations.filter(i => i.has_key).length
 
   return (
@@ -570,14 +728,45 @@ export function IntegrationsView() {
         <p style={{ fontSize: 13, color: 'var(--gray)', lineHeight: 1.6 }}>
           Conecte ferramentas externas para expandir as capacidades dos especialistas — geração de imagens, acesso a repositórios, calendário e muito mais.
         </p>
-        {!loading && connectedCount > 0 && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '5px 12px', borderRadius: 20, background: 'rgba(30,138,62,0.09)', border: '1px solid rgba(30,138,62,0.2)' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1E8A3E' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>{connectedCount} integraç{connectedCount === 1 ? 'ão ativa' : 'ões ativas'}</span>
+
+        {/* Progress summary */}
+        {!loading && (
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, maxWidth: 220 }}>
+              <div style={{
+                height: 5, borderRadius: 99,
+                background: 'var(--gray3)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${totalAvailable > 0 ? (connectedCount / totalAvailable) * 100 : 0}%`,
+                  background: connectedCount > 0 ? '#1E8A3E' : 'var(--gray3)',
+                  borderRadius: 99,
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {connectedCount} de {totalAvailable} conectadas
+            </span>
+            {connectedCount > 0 && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '3px 10px', borderRadius: 20,
+                background: 'rgba(30,138,62,0.09)', border: '1px solid rgba(30,138,62,0.2)',
+              }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1E8A3E' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>
+                  {connectedCount} ativa{connectedCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
+      {/* Content */}
       {loading ? (
         <>
           <ShimmerSection count={3} />
@@ -588,8 +777,9 @@ export function IntegrationsView() {
       ) : (
         CATEGORIES.map(cat => {
           const items = CATALOGUE.filter(c => c.category === cat)
+          const connected = items.filter(m => integrations.find(i => i.id === m.id)?.has_key).length
           return (
-            <SectionCard key={cat} title={cat}>
+            <SectionCard key={cat} title={cat} connectedCount={connected} totalCount={items.length}>
               {items.map(meta => (
                 <IntegrationCard
                   key={meta.id}
@@ -606,6 +796,14 @@ export function IntegrationsView() {
       <p style={{ fontSize: 11, color: 'var(--gray2)', lineHeight: 1.6, marginTop: 8 }}>
         As chaves de API são armazenadas de forma segura no servidor e nunca expostas ao navegador após o salvamento.
       </p>
+
+      {/* Keyframe for expand animation */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   )
 }
