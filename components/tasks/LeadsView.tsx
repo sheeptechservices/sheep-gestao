@@ -17,6 +17,45 @@ const STAGES: { id: LeadFunnelStage; label: string; short: string; color: string
   { id: 'perdido',          label: 'Perdido',             short: 'Perdido',      color: '#9CA3AF', bg: 'rgba(156,163,175,0.07)' },
 ]
 
+const SEGMENT_OPTIONS = [
+  { value: '',                    label: '— Sem segmento —'       },
+  { value: 'Agronegócio',        label: 'Agronegócio'             },
+  { value: 'Construção Civil',   label: 'Construção Civil'        },
+  { value: 'Contabilidade',      label: 'Contabilidade'           },
+  { value: 'Educação',           label: 'Educação'                },
+  { value: 'Financeiro',         label: 'Financeiro'              },
+  { value: 'Franquias',          label: 'Franquias'               },
+  { value: 'Indústria',          label: 'Indústria'               },
+  { value: 'Jurídico',           label: 'Jurídico'                },
+  { value: 'Logística',          label: 'Logística e Transporte'  },
+  { value: 'Marketing',          label: 'Marketing / Agência'     },
+  { value: 'Óleo e Gás',         label: 'Óleo e Gás'              },
+  { value: 'Saúde',              label: 'Saúde'                   },
+  { value: 'Tecnologia',         label: 'Tecnologia'              },
+  { value: 'Varejo',             label: 'Varejo / E-commerce'     },
+  { value: 'Veterinário',        label: 'Veterinário'             },
+  { value: 'Outro',              label: 'Outro'                   },
+]
+
+const SUB_SEGMENT_OPTIONS = [
+  { value: '',                         label: '— Sem sub-segmento —'   },
+  { value: 'SaaS / Produto Digital',   label: 'SaaS / Produto Digital' },
+  { value: 'BI / Data Science',        label: 'BI / Data Science'      },
+  { value: 'ERP / Sistemas',           label: 'ERP / Sistemas'         },
+  { value: 'E-commerce',               label: 'E-commerce'             },
+  { value: 'Marketplace',              label: 'Marketplace'            },
+  { value: 'Plataforma B2B',           label: 'Plataforma B2B'         },
+  { value: 'Plataforma B2C',           label: 'Plataforma B2C'         },
+  { value: 'Plano de Benefícios',      label: 'Plano de Benefícios'    },
+  { value: 'Gestão Financeira',        label: 'Gestão Financeira'      },
+  { value: 'Contabilidade Online',     label: 'Contabilidade Online'   },
+  { value: 'Transformação Digital',    label: 'Transformação Digital'  },
+  { value: 'Franquia Digital',         label: 'Franquia Digital'       },
+  { value: 'Logística Última Milha',   label: 'Logística Última Milha' },
+  { value: 'Veículo de Mídia',         label: 'Veículo de Mídia'       },
+  { value: 'Outro',                    label: 'Outro'                  },
+]
+
 const PROJECT_TYPES = [
   'Alocação Time', 'Consultoria BI', 'Dev.Software', 'Transformação Digital',
   'Power Platform', 'IA', 'SaaS', 'TaaS', 'BI', 'Outro',
@@ -272,11 +311,21 @@ function LeadFormModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {label('Segmento')}
-              <input style={inputStyle} value={form.segment ?? ''} onChange={e => set('segment', e.target.value)} placeholder="Fintech, Saúde, Varejo…" />
+              <AppSelect
+                value={form.segment ?? ''}
+                onChange={v => set('segment', v)}
+                options={SEGMENT_OPTIONS}
+                placeholder="— Sem segmento —"
+              />
             </div>
             <div>
               {label('Sub-segmento')}
-              <input style={inputStyle} value={form.sub_segment ?? ''} onChange={e => set('sub_segment', e.target.value)} placeholder="Sub-segmento" />
+              <AppSelect
+                value={form.sub_segment ?? ''}
+                onChange={v => set('sub_segment', v)}
+                options={SUB_SEGMENT_OPTIONS}
+                placeholder="— Sem sub-segmento —"
+              />
             </div>
           </div>
 
