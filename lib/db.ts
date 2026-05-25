@@ -223,6 +223,19 @@ async function createTables(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_leads_created_at   ON leads(created_at);
     CREATE INDEX IF NOT EXISTS idx_leads_funnel_stage ON leads(funnel_stage);
 
+    CREATE TABLE IF NOT EXISTS lead_attachments (
+      id         TEXT PRIMARY KEY,
+      lead_id    TEXT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+      filename   TEXT NOT NULL,
+      url        TEXT NOT NULL DEFAULT '',
+      size       INTEGER NOT NULL DEFAULT 0,
+      mime_type  TEXT NOT NULL DEFAULT '',
+      data       TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_lead_attachments_lead_id ON lead_attachments(lead_id);
+
     CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
     CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(read);

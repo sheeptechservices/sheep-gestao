@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
 import { AppSelect } from '@/components/ui/AppSelect'
@@ -99,20 +99,67 @@ function getStage(id: LeadFunnelStage) {
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
-function Skeleton() {
+function ShimBar({ w, h, r = 6, mb = 0, style }: { w: number | string; h: number; r?: number; mb?: number; style?: React.CSSProperties }) {
   return (
-    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-      {STAGES.filter(s => s.id !== 'perdido').map(s => (
-        <div key={s.id} style={{ minWidth: 200, flex: '0 0 200px' }}>
-          <div style={{ height: 28, background: 'var(--gray3)', borderRadius: 6, marginBottom: 8, opacity: 0.6 }} />
-          {[1,2].map(i => (
-            <div key={i} className="shimmer-bar" style={{
-              height: 80, background: 'var(--white)', border: '1px solid var(--gray3)',
-              borderRadius: 8, marginBottom: 6,
-            }} />
-          ))}
+    <div className="shimmer-bar" style={{
+      width: w, height: h, borderRadius: r, marginBottom: mb,
+      flexShrink: 0, ...style,
+    }} />
+  )
+}
+
+function Skeleton() {
+  const activeStages = STAGES.filter(s => s.id !== 'perdido')
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+      {/* Header shimmer */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ShimBar w={200} h={22} r={7} />
+          <ShimBar w={300} h={13} r={5} />
         </div>
-      ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ShimBar w={120} h={30} r={8} />
+          <ShimBar w={110} h={30} r={100} />
+        </div>
+      </div>
+
+      {/* KPI cards shimmer */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} className="shimmer-bar" style={{
+            borderRadius: 12, height: 80,
+            border: '1px solid var(--gray3)',
+          }} />
+        ))}
+      </div>
+
+      {/* Kanban board shimmer */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`, gap: 8, alignItems: 'start' }}>
+        {activeStages.map((s, ci) => (
+          <div key={s.id}>
+            {/* Column header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gray3)' }} />
+                <ShimBar w={50} h={10} r={4} />
+              </div>
+              <ShimBar w={22} h={18} r={5} />
+            </div>
+            {/* Cards */}
+            {[1, 2, ci % 2 === 0 ? 3 : 0].filter(Boolean).map(i => (
+              <div key={i} className="shimmer-bar" style={{
+                height: i === 3 ? 68 : 80,
+                borderRadius: 10, marginBottom: 6,
+                border: '1px solid var(--gray3)',
+              }} />
+            ))}
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
@@ -153,6 +200,18 @@ function TypeChips({ types }: { types: string[] }) {
   )
 }
 
+// ── Lead attachment type ──────────────────────────────────────────────────────
+
+interface LeadAttachment {
+  id: string
+  lead_id: string
+  filename: string
+  url: string
+  size: number
+  mime_type: string
+  created_at: string
+}
+
 // ── Lead form modal ───────────────────────────────────────────────────────────
 
 const EMPTY_FORM: Omit<Lead, 'id' | 'created_at'> = {
@@ -187,7 +246,64 @@ function LeadFormModal({
         }
       : { ...EMPTY_FORM }
   )
-  const [saving, setSaving] = useState(false)
+  const [saving,          setSaving]          = useState(false)
+  const [attachments,     setAttachments]     = useState<LeadAttachment[]>([])
+  const [attFetching,     setAttFetching]     = useState(false)
+  const [attUploading,    setAttUploading]    = useState(false)
+  const [attLoading,      setAttLoading]      = useState(false)
+  const [attHover,        setAttHover]        = useState(false)
+  const [dragOver,        setDragOver]        = useState(false)
+  const [attHoverId,      setAttHoverId]      = useState<string | null>(null)
+  const [attToDelete,     setAttToDelete]     = useState<LeadAttachment | null>(null)
+  const [previewAtt,      setPreviewAtt]      = useState<LeadAttachment | null>(null)
+  const [previewLoading,  setPreviewLoading]  = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const leadId = initial?.id ?? null
+
+  // Load existing attachments when editing
+  useEffect(() => {
+    if (!leadId) return
+    setAttFetching(true)
+    fetch(`/api/lead-attachments?lead_id=${leadId}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAttachments(data as LeadAttachment[]) })
+      .catch(() => {})
+      .finally(() => setAttFetching(false))
+  }, [leadId])
+
+  async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length || !leadId) return
+    setAttUploading(true)
+    for (const file of files) {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('lead_id', leadId)
+      try {
+        const res  = await fetch('/api/lead-attachments', { method: 'POST', body: fd })
+        const data = await res.json() as LeadAttachment & { error?: string }
+        if (data.error) { toast.error(data.error); continue }
+        setAttachments(prev => [...prev, data])
+      } catch {
+        toast.error('Erro ao fazer upload do arquivo')
+      }
+    }
+    setAttUploading(false)
+    e.target.value = ''
+  }
+
+  async function handleDeleteAttachment(att: LeadAttachment) {
+    setAttLoading(true)
+    try {
+      await fetch(`/api/lead-attachments/${att.id}`, { method: 'DELETE' })
+      setAttachments(prev => prev.filter(a => a.id !== att.id))
+    } catch {
+      toast.error('Erro ao remover anexo')
+    } finally {
+      setAttLoading(false)
+    }
+  }
 
   const set = (k: keyof typeof form, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
@@ -355,7 +471,21 @@ function LeadFormModal({
             </div>
             <div>
               {label('Valor Estimado (R$)')}
-              <input style={inputStyle} type="number" value={form.estimated_value ?? ''} onChange={e => set('estimated_value', e.target.value ? Number(e.target.value) : null)} placeholder="0" />
+              <input
+                style={inputStyle}
+                type="text"
+                inputMode="numeric"
+                value={
+                  form.estimated_value != null
+                    ? 'R$ ' + form.estimated_value.toLocaleString('pt-BR')
+                    : ''
+                }
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '')
+                  set('estimated_value', digits ? Number(digits) : null)
+                }}
+                placeholder="R$ 0"
+              />
             </div>
           </div>
 
@@ -423,6 +553,285 @@ function LeadFormModal({
               placeholder="Notas internas…"
             />
           </div>
+
+          {/* Attachments */}
+          <div>
+            <label style={{
+              fontSize: 10, fontWeight: 800, color: 'var(--gray2)',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+            }}>
+              Anexos
+              {attFetching
+                ? <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--gray3)', borderTopColor: 'var(--gray2)', display: 'inline-block', animation: 'spin-slow 0.7s linear infinite', flexShrink: 0 }} />
+                : attachments.length > 0 && <span style={{ fontWeight: 600, textTransform: 'none', color: 'var(--gray2)' }}>({attachments.length})</span>
+              }
+            </label>
+
+            {/* Drop zone */}
+            <div
+              onClick={() => leadId && !attUploading && fileRef.current?.click()}
+              onMouseEnter={() => { if (leadId && !attUploading) setAttHover(true) }}
+              onMouseLeave={() => setAttHover(false)}
+              onDragOver={e => { e.preventDefault(); if (leadId) setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault(); setDragOver(false)
+                if (!leadId || attUploading) return
+                const synth = { target: { files: e.dataTransfer.files } } as unknown as React.ChangeEvent<HTMLInputElement>
+                handleAttachFile(synth)
+              }}
+              style={{
+                border: `1.5px dashed ${dragOver ? 'var(--primary)' : attHover ? 'var(--primary-mid)' : 'var(--gray3)'}`,
+                borderRadius: 10,
+                background: dragOver || attHover ? 'var(--primary-dim)' : 'var(--bg)',
+                padding: '18px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                cursor: leadId && !attUploading ? 'pointer' : 'default',
+                transition: 'border-color 0.15s, background 0.15s',
+                opacity: !leadId ? 0.5 : 1,
+                userSelect: 'none',
+              }}
+            >
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
+                stroke={dragOver || attHover ? 'var(--primary)' : 'var(--gray2)'}
+                strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+                style={{ transition: 'stroke 0.15s' }}
+              >
+                <path d="M12 3v13M7 8l5-5 5 5M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+              </svg>
+              {attUploading ? (
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray2)' }}>Enviando…</span>
+              ) : !leadId ? (
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gray2)' }}>
+                  Salve o lead primeiro para adicionar anexos
+                </span>
+              ) : (
+                <>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gray)' }}>
+                    Arraste arquivos ou{' '}
+                    <span style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
+                      clique para selecionar
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                    PDF · DOCX · XLSX · PNG · JPG — até 3 MB
+                  </span>
+                </>
+              )}
+            </div>
+            <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleAttachFile} />
+
+            {/* File list skeleton */}
+            {attFetching && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
+                {[0, 1].map(i => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--gray3)', background: 'var(--white)', animation: `skeleton-pulse 1.5s ease-in-out ${i * 0.15}s infinite` }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--gray3)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      <div style={{ height: 10, borderRadius: 4, background: 'var(--gray3)', width: `${52 + i * 22}%` }} />
+                      <div style={{ height: 8, borderRadius: 4, background: 'var(--gray3)', width: '28%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* File list */}
+            {!attFetching && attachments.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
+                {attachments.map(att => {
+                  const isImg = att.mime_type.startsWith('image/')
+                  const isPdf = att.mime_type === 'application/pdf'
+                  const isDoc = att.mime_type.includes('word') || att.filename.endsWith('.docx') || att.filename.endsWith('.doc')
+                  const isXls = att.mime_type.includes('spreadsheet') || att.filename.endsWith('.xlsx') || att.filename.endsWith('.xls')
+                  const icon  = isImg ? '🖼' : isPdf ? '📄' : isDoc ? '📝' : isXls ? '📊' : '📎'
+                  const kb    = att.size < 1024 * 1024
+                    ? `${(att.size / 1024).toFixed(0)} KB`
+                    : `${(att.size / 1024 / 1024).toFixed(1)} MB`
+                  return (
+                    <div
+                      key={att.id}
+                      onMouseEnter={() => setAttHoverId(att.id)}
+                      onMouseLeave={() => setAttHoverId(null)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 10px', borderRadius: 8,
+                        border: `1px solid ${attHoverId === att.id ? 'var(--gray2)' : 'var(--gray3)'}`,
+                        background: attHoverId === att.id ? 'var(--bg)' : 'var(--white)',
+                        transition: 'background 0.15s, border-color 0.15s',
+                      }}
+                    >
+                      <span style={{ fontSize: 15, flexShrink: 0 }}>{icon}</span>
+                      <div
+                        onClick={e => { e.stopPropagation(); setPreviewLoading(true); setPreviewAtt(att) }}
+                        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                        title="Pré-visualizar"
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 }}>
+                          {att.filename}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{kb}</div>
+                      </div>
+                      {/* Download */}
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={att.filename}
+                        onClick={e => e.stopPropagation()}
+                        style={{ display: 'flex', alignItems: 'center', color: 'var(--gray2)', transition: 'color 0.12s', flexShrink: 0 }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gray2)')}
+                        title="Baixar arquivo"
+                      >
+                        <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                          <path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </a>
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        disabled={attLoading}
+                        onClick={e => { e.stopPropagation(); setAttToDelete(att) }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: 22, height: 22, borderRadius: 6, border: 'none',
+                          background: 'transparent', cursor: attLoading ? 'not-allowed' : 'pointer',
+                          color: 'var(--gray2)', transition: 'all 0.12s', flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.10)'; e.currentTarget.style.color = '#D93025' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+                        title="Remover anexo"
+                      >
+                        <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Preview modal */}
+          {previewAtt && createPortal(
+            <div
+              onClick={() => setPreviewAtt(null)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                padding: 24, animation: 'fadeIn 0.18s ease both',
+              }}
+            >
+              <div onClick={e => e.stopPropagation()} style={{
+                display: 'flex', flexDirection: 'column',
+                width: '90vw', maxWidth: 900, maxHeight: '90vh',
+                background: 'var(--white)', borderRadius: 16,
+                boxShadow: '0 24px 80px rgba(0,0,0,0.45)', overflow: 'hidden',
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--gray3)', flexShrink: 0 }}>
+                  <span style={{ fontSize: 18 }}>
+                    {previewAtt.mime_type.startsWith('image/') ? '🖼' : previewAtt.mime_type === 'application/pdf' ? '📄' : previewAtt.mime_type.includes('word') ? '📝' : previewAtt.mime_type.includes('spreadsheet') ? '📊' : '📎'}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewAtt.filename}</div>
+                    <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>
+                      {previewAtt.size < 1024 * 1024 ? `${(previewAtt.size / 1024).toFixed(0)} KB` : `${(previewAtt.size / 1024 / 1024).toFixed(1)} MB`}
+                    </div>
+                  </div>
+                  <a
+                    href={previewAtt.url}
+                    download={previewAtt.filename}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--gray3)', background: 'var(--bg)', fontSize: 11, fontWeight: 700, color: 'var(--black)', textDecoration: 'none', flexShrink: 0 }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                  >
+                    <svg width={12} height={12} viewBox="0 0 14 14" fill="none"><path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Baixar
+                  </a>
+                  <button
+                    onClick={() => setPreviewAtt(null)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray2)', flexShrink: 0 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+                  >
+                    <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+                {/* Content */}
+                <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', minHeight: 200, position: 'relative' }}>
+                  {previewLoading && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'var(--bg)', zIndex: 2 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--gray3)', borderTopColor: 'var(--primary)', animation: 'spin-slow 0.7s linear infinite' }} />
+                      <span style={{ fontSize: 12, color: 'var(--gray2)', fontWeight: 600 }}>Carregando…</span>
+                    </div>
+                  )}
+                  {previewAtt.mime_type.startsWith('image/') ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`${previewAtt.url}?preview=1`} alt={previewAtt.filename}
+                      onLoad={() => setPreviewLoading(false)}
+                      style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4, display: 'block', opacity: previewLoading ? 0 : 1, transition: 'opacity 0.2s ease' }}
+                    />
+                  ) : previewAtt.mime_type === 'application/pdf' ? (
+                    <iframe src={`${previewAtt.url}?preview=1`} onLoad={() => setPreviewLoading(false)}
+                      style={{ width: '100%', height: '75vh', border: 'none', opacity: previewLoading ? 0 : 1, transition: 'opacity 0.2s ease' }}
+                      title={previewAtt.filename}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ fontSize: 48, marginBottom: 16 }}>{previewAtt.mime_type.includes('word') ? '📝' : previewAtt.mime_type.includes('spreadsheet') ? '📊' : '📎'}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--black)', marginBottom: 6 }}>Pré-visualização não disponível</div>
+                      <div style={{ fontSize: 12, color: 'var(--gray2)', marginBottom: 20 }}>Este tipo de arquivo não pode ser visualizado no navegador.<br/>Faça o download para abrir.</div>
+                      <a href={previewAtt.url} download={previewAtt.filename}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 10, background: 'var(--primary)', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                      >
+                        <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><path d="M7 2v7m-3-2.5L7 9l3-2.5M2 11.5h10" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Baixar {previewAtt.filename}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          {/* Confirm delete attachment */}
+          {attToDelete && createPortal(
+            <div
+              onClick={() => setAttToDelete(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(18,19,22,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.15s ease both' }}
+            >
+              <div onClick={e => e.stopPropagation()} style={{ background: 'var(--white)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.22)', padding: '24px 24px 20px', width: 340, maxWidth: 'calc(100vw - 32px)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, marginBottom: 14, background: 'rgba(217,48,37,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width={18} height={18} viewBox="0 0 14 14" fill="none">
+                    <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="#D93025" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', marginBottom: 6 }}>Remover anexo?</div>
+                <div style={{ fontSize: 13, color: 'var(--gray)', lineHeight: 1.5, marginBottom: 20 }}>
+                  O arquivo <span style={{ fontWeight: 700, color: 'var(--black)' }}>"{attToDelete.filename}"</span> será removido permanentemente.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setAttToDelete(null)} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: '1px solid var(--gray3)', background: 'var(--white)', color: 'var(--gray)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gray2)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--gray3)'}
+                  >Cancelar</button>
+                  <button onClick={() => { handleDeleteAttachment(attToDelete); setAttToDelete(null) }}
+                    style={{ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, border: 'none', background: '#D93025', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#B91C1C'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#D93025'}
+                  >Remover</button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
 
         </div>
 
@@ -1076,132 +1485,134 @@ export function LeadsView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-      {/* LinkedIn banner */}
+      {/* LinkedIn banner — always visible (null = not yet checked, false = not connected) */}
       {linkedInConn === false && (
         <LinkedInBanner onConnect={() => { window.location.href = '/api/integrations/linkedin/auth' }} />
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--black)', margin: 0, letterSpacing: '-0.3px' }}>
-            Pipeline de Leads
-          </h1>
-          <p style={{ fontSize: 12, color: 'var(--gray2)', marginTop: 3, lineHeight: 1.5 }}>
-            Funil comercial — do primeiro contato até a conversão em cliente
-          </p>
-        </div>
+      {loading ? <Skeleton /> : (
+        <>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--black)', margin: 0, letterSpacing: '-0.3px' }}>
+                Pipeline de Leads
+              </h1>
+              <p style={{ fontSize: 12, color: 'var(--gray2)', marginTop: 3, lineHeight: 1.5 }}>
+                Funil comercial — do primeiro contato até a conversão em cliente
+              </p>
+            </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {/* View toggle — sliding pill */}
-          <div style={{ position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
-            <div style={{
-              position: 'absolute', top: 2, bottom: 2,
-              width: 'calc(50% - 2px)',
-              left: view === 'kanban' ? 2 : 'calc(50%)',
-              background: 'var(--white)', borderRadius: 6,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-              transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
-              pointerEvents: 'none',
-            }} />
-            {(['kanban', 'table'] as const).map(v => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* View toggle — sliding pill */}
+              <div style={{ position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
+                <div style={{
+                  position: 'absolute', top: 2, bottom: 2,
+                  width: 'calc(50% - 2px)',
+                  left: view === 'kanban' ? 2 : 'calc(50%)',
+                  background: 'var(--white)', borderRadius: 6,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+                  transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: 'none',
+                }} />
+                {(['kanban', 'table'] as const).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    style={{
+                      position: 'relative', zIndex: 1,
+                      width: 56, padding: '4px 0',
+                      borderRadius: 6, border: 'none', cursor: 'pointer',
+                      fontSize: 11, fontWeight: 700, textAlign: 'center',
+                      background: 'transparent',
+                      color: view === v ? 'var(--black)' : 'var(--gray2)',
+                      transition: 'color 0.2s ease',
+                    }}
+                  >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
+                ))}
+              </div>
+
+              {/* LinkedIn sync */}
+              {linkedInConn && (
+                <button
+                  onClick={handleLinkedInSync}
+                  disabled={syncing}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 12px', borderRadius: 100,
+                    border: '1px solid rgba(0,119,181,0.35)',
+                    background: syncing ? 'var(--gray3)' : 'rgba(0,119,181,0.08)',
+                    color: syncing ? 'var(--gray2)' : '#0077B5',
+                    fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.7 : 1,
+                    transition: 'opacity .15s',
+                  }}
+                >
+                  {syncing
+                    ? <><div style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid #0077B540', borderTopColor: '#0077B5', animation: 'spin-slow 0.7s linear infinite' }} />Sincronizando…</>
+                    : <><svg viewBox="0 0 24 24" width="11" height="11" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Sync LinkedIn</>
+                  }
+                </button>
+              )}
+
+              {/* Add lead */}
               <button
-                key={v}
-                onClick={() => setView(v)}
+                onClick={() => { setEditingLead(null); setShowForm(true) }}
+                onMouseEnter={() => setHovNewLead(true)}
+                onMouseLeave={() => setHovNewLead(false)}
                 style={{
-                  position: 'relative', zIndex: 1,
-                  width: 56, padding: '4px 0',
-                  borderRadius: 6, border: 'none', cursor: 'pointer',
-                  fontSize: 11, fontWeight: 700, textAlign: 'center',
-                  background: 'transparent',
-                  color: view === v ? 'var(--black)' : 'var(--gray2)',
-                  transition: 'color 0.2s ease',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 11, fontWeight: 800, color: '#fff',
+                  background: 'var(--primary)', border: 'none',
+                  padding: '6px 14px', borderRadius: 100, cursor: 'pointer',
+                  boxShadow: hovNewLead ? '0 3px 10px rgba(99,102,241,0.35)' : 'none',
+                  transform: hovNewLead ? 'translateY(-1px)' : 'translateY(0)',
+                  opacity: hovNewLead ? 0.88 : 1,
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.01em',
                 }}
-              >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
+              >
+                <span style={{
+                  fontSize: 16, lineHeight: 1, fontWeight: 400,
+                  display: 'inline-block',
+                  transform: hovNewLead ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}>+</span>
+                Novo Lead
+              </button>
+            </div>
+          </div>
+
+          {/* KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {KPIS.map(kpi => (
+              <div key={kpi.label} style={{
+                background: 'var(--white)', border: '1px solid var(--gray3)',
+                borderLeft: `4px solid ${kpi.color}`, borderRadius: 12,
+                padding: '16px 18px', boxShadow: 'var(--shadow)',
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: kpi.color, marginTop: 6 }}>{kpi.value}</div>
+              </div>
             ))}
           </div>
 
-          {/* LinkedIn sync */}
-          {linkedInConn && (
-            <button
-              onClick={handleLinkedInSync}
-              disabled={syncing}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '5px 12px', borderRadius: 100,
-                border: '1px solid rgba(0,119,181,0.35)',
-                background: syncing ? 'var(--gray3)' : 'rgba(0,119,181,0.08)',
-                color: syncing ? 'var(--gray2)' : '#0077B5',
-                fontSize: 11, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer', opacity: syncing ? 0.7 : 1,
-                transition: 'opacity .15s',
-              }}
-            >
-              {syncing
-                ? <><div style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid #0077B540', borderTopColor: '#0077B5', animation: 'spin-slow 0.7s linear infinite' }} />Sincronizando…</>
-                : <><svg viewBox="0 0 24 24" width="11" height="11" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Sync LinkedIn</>
-              }
-            </button>
+          {/* Board / Table */}
+          {view === 'kanban' ? (
+            <KanbanView
+              leads={leads}
+              onEdit={l => { setEditingLead(l); setShowForm(true) }}
+              onDelete={l => setDeletingLead(l)}
+              onStageChange={handleStageChange}
+            />
+          ) : (
+            <TableView
+              leads={leads}
+              onEdit={l => { setEditingLead(l); setShowForm(true) }}
+              onDelete={l => setDeletingLead(l)}
+              onFieldChange={handleFieldChange}
+            />
           )}
-
-          {/* Add lead */}
-          <button
-            onClick={() => { setEditingLead(null); setShowForm(true) }}
-            onMouseEnter={() => setHovNewLead(true)}
-            onMouseLeave={() => setHovNewLead(false)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: 11, fontWeight: 800, color: '#fff',
-              background: 'var(--primary)', border: 'none',
-              padding: '6px 14px', borderRadius: 100, cursor: 'pointer',
-              boxShadow: hovNewLead ? '0 3px 10px rgba(99,102,241,0.35)' : 'none',
-              transform: hovNewLead ? 'translateY(-1px)' : 'translateY(0)',
-              opacity: hovNewLead ? 0.88 : 1,
-              transition: 'all 0.2s ease',
-              letterSpacing: '0.01em',
-            }}
-          >
-            <span style={{
-              fontSize: 16, lineHeight: 1, fontWeight: 400,
-              display: 'inline-block',
-              transform: hovNewLead ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease',
-            }}>+</span>
-            Novo Lead
-          </button>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-        {KPIS.map(kpi => (
-          <div key={kpi.label} style={{
-            background: 'var(--white)', border: '1px solid var(--gray3)',
-            borderLeft: `4px solid ${kpi.color}`, borderRadius: 12,
-            padding: '16px 18px', boxShadow: 'var(--shadow)',
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: kpi.color, marginTop: 6 }}>{kpi.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Board / Table */}
-      {loading ? (
-        <Skeleton />
-      ) : view === 'kanban' ? (
-        <KanbanView
-          leads={leads}
-          onEdit={l => { setEditingLead(l); setShowForm(true) }}
-          onDelete={l => setDeletingLead(l)}
-          onStageChange={handleStageChange}
-        />
-      ) : (
-        <TableView
-          leads={leads}
-          onEdit={l => { setEditingLead(l); setShowForm(true) }}
-          onDelete={l => setDeletingLead(l)}
-          onFieldChange={handleFieldChange}
-        />
+        </>
       )}
 
       {/* Modals */}
