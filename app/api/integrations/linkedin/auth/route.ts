@@ -13,16 +13,16 @@ export async function GET(req: NextRequest) {
 
     const clientId = row.rows[0]?.api_key as string | undefined
 
+    // Derive app URL early so we can redirect on error
+    const reqUrl = new URL(req.url)
+    const appUrl = `${reqUrl.protocol}//${reqUrl.host}`
+
     if (!clientId) {
-      return NextResponse.json(
-        { error: 'LinkedIn Client ID não configurado. Adicione em Integrações → LinkedIn Lead Gen.' },
-        { status: 500 }
+      return NextResponse.redirect(
+        `${appUrl}/?linkedin_error=${encodeURIComponent('client_id_missing')}`
       )
     }
 
-    // Derive app URL from request — no env var needed
-    const reqUrl     = new URL(req.url)
-    const appUrl     = `${reqUrl.protocol}//${reqUrl.host}`
     const redirectUri = `${appUrl}/api/integrations/linkedin/callback`
     const state       = Math.random().toString(36).slice(2) + Date.now().toString(36)
 

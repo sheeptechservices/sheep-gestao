@@ -880,7 +880,14 @@ export function LeadsView() {
       window.history.replaceState({}, '', window.location.pathname)
     }
     if (params.get('linkedin_error')) {
-      toast.error(`Erro LinkedIn: ${params.get('linkedin_error')}`)
+      const code = params.get('linkedin_error')
+      const msg =
+        code === 'client_id_missing'     ? 'Salve o Client ID antes de conectar (Integrações → LinkedIn).' :
+        code === 'client_secret_missing' ? 'Salve o Client Secret antes de conectar (Integrações → LinkedIn).' :
+        code === 'not_configured'        ? 'Configure as credenciais LinkedIn em Integrações primeiro.' :
+        code === 'invalid_state'         ? 'Sessão OAuth expirada. Tente conectar novamente.' :
+        `Erro LinkedIn: ${code}`
+      toast.error(msg)
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
