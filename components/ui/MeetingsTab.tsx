@@ -198,6 +198,7 @@ function MeetingCard({ meeting, color }: { meeting: Meeting; color: string }) {
 export function MeetingsTab({ projectId, projectColor }: Props) {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading,  setLoading]  = useState(true)
+  const [query,    setQuery]    = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -206,6 +207,10 @@ export function MeetingsTab({ projectId, projectColor }: Props) {
       .then((data: Meeting[]) => { setMeetings(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [projectId])
+
+  const filtered = query.trim()
+    ? meetings.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))
+    : meetings
 
   if (loading) {
     return (
@@ -231,9 +236,68 @@ export function MeetingsTab({ projectId, projectColor }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0' }}>
-      {meetings.map(m => (
-        <MeetingCard key={m.id} meeting={m} color={projectColor} />
-      ))}
+
+      {/* Barra de pesquisa */}
+      <div style={{ position: 'relative' }}>
+        <svg width={13} height={13} viewBox="0 0 14 14" fill="none"
+          style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.35, pointerEvents: 'none' }}>
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth={1.5}/>
+          <path d="M10 10l2.5 2.5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+        </svg>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Buscar reunião…"
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '7px 32px 7px 30px',
+            fontSize: 12, fontFamily: 'inherit',
+            border: '1px solid var(--gray3)', borderRadius: 8,
+            background: 'var(--bg)', color: 'var(--black)',
+            outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+          }}
+          onFocus={e => {
+            e.target.style.borderColor = projectColor
+            e.target.style.boxShadow   = `0 0 0 3px ${projectColor}22`
+          }}
+          onBlur={e => {
+            e.target.style.borderColor = 'var(--gray3)'
+            e.target.style.boxShadow   = 'none'
+          }}
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              width: 18, height: 18, borderRadius: 4, border: 'none',
+              background: 'var(--gray3)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--gray)', padding: 0,
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray2)'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray)' }}
+          >
+            <svg width={8} height={8} viewBox="0 0 9 9" fill="none">
+              <path d="M1 1l7 7M8 1L1 8" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Resultados */}
+      {filtered.length === 0 ? (
+        <div style={{ padding: '28px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray2)' }}>
+            Nenhuma reunião encontrada para "{query}"
+          </div>
+        </div>
+      ) : (
+        filtered.map(m => (
+          <MeetingCard key={m.id} meeting={m} color={projectColor} />
+        ))
+      )}
     </div>
   )
 }
