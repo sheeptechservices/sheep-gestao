@@ -840,6 +840,7 @@ export function LeadsView() {
   const [deletingLead,  setDeletingLead]  = useState<Lead | null>(null)
   const [linkedInConn,  setLinkedInConn]  = useState<boolean | null>(null)
   const [syncing,       setSyncing]       = useState(false)
+  const [hovNewLead,    setHovNewLead]    = useState(false)
 
   // ── Load leads ──
   const loadLeads = useCallback(async () => {
@@ -1032,19 +1033,26 @@ export function LeadsView() {
           {/* Add lead */}
           <button
             onClick={() => { setEditingLead(null); setShowForm(true) }}
+            onMouseEnter={() => setHovNewLead(true)}
+            onMouseLeave={() => setHovNewLead(false)}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 100,
-              background: 'var(--primary-dim)', color: 'var(--primary-text)',
-              border: '1px solid var(--primary-mid)',
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'opacity .15s',
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 11, fontWeight: 800, color: '#fff',
+              background: 'var(--primary)', border: 'none',
+              padding: '6px 14px', borderRadius: 100, cursor: 'pointer',
+              boxShadow: hovNewLead ? '0 3px 10px rgba(99,102,241,0.35)' : 'none',
+              transform: hovNewLead ? 'translateY(-1px)' : 'translateY(0)',
+              opacity: hovNewLead ? 0.88 : 1,
+              transition: 'all 0.2s ease',
+              letterSpacing: '0.01em',
             }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
-            <svg width={11} height={11} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M6 1v10M1 6h10"/>
-            </svg>
+            <span style={{
+              fontSize: 16, lineHeight: 1, fontWeight: 400,
+              display: 'inline-block',
+              transform: hovNewLead ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}>+</span>
             Novo Lead
           </button>
         </div>
