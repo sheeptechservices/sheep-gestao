@@ -709,27 +709,30 @@ function LinkedInCard({ data, onRefresh }: {
   data: Integration | undefined
   onRefresh: () => void
 }) {
-  const extra       = data?.extra ?? {}
-  const connected   = !!(extra.access_token)
-  const accountId   = (extra.linkedin_account_id as string | undefined) ?? ''
-  const [acctId,    setAcctId]    = useState(accountId)
-  const [saving,    setSaving]    = useState(false)
-  const [syncing,   setSyncing]   = useState(false)
-  const [syncRes,   setSyncRes]   = useState<{ imported: number; skipped: number } | null>(null)
-  const [expanded,  setExpanded]  = useState(false)
-  const [rowHov,    setRowHov]    = useState(false)
+  const extra        = data?.extra ?? {}
+  const connected    = !!(extra.access_token)
+  const accountId    = (extra.linkedin_account_id as string | undefined) ?? ''
+  const [clientId,   setClientId]  = useState((data?.api_key as string | undefined) ?? '')
+  const [clientSec,  setClientSec] = useState((extra.client_secret as string | undefined) ?? '')
+  const [acctId,     setAcctId]    = useState(accountId)
+  const [saving,     setSaving]    = useState(false)
+  const [syncing,    setSyncing]   = useState(false)
+  const [syncRes,    setSyncRes]   = useState<{ imported: number; skipped: number } | null>(null)
+  const [expanded,   setExpanded]  = useState(false)
+  const [rowHov,     setRowHov]    = useState(false)
   const color = '#0077B5'
 
-  const handleSaveAccountId = async () => {
+  const handleSaveCredentials = async () => {
+    if (!clientId || !clientSec) { toast.error('Preencha Client ID e Client Secret.'); return }
     setSaving(true)
     try {
-      const newExtra = { ...extra, linkedin_account_id: acctId }
+      const newExtra = { ...extra, client_secret: clientSec, linkedin_account_id: acctId }
       await fetch('/api/integrations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'linkedin', extra: newExtra }),
+        body: JSON.stringify({ id: 'linkedin', api_key: clientId, extra: newExtra }),
       })
-      toast.success('Account ID salvo!')
+      toast.success('Credenciais LinkedIn salvas!')
       onRefresh()
     } finally { setSaving(false) }
   }
@@ -793,26 +796,16 @@ function LinkedInCard({ data, onRefresh }: {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-          {connected ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
-              background: 'rgba(30,138,62,0.1)', border: '1px solid rgba(30,138,62,0.25)',
-            }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1E8A3E' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>Conectado</span>
-            </div>
-          ) : (
-            <a
-              href="/api/integrations/linkedin/auth"
-              style={{
-                padding: '6px 14px', borderRadius: 8, border: `1px solid ${color}40`,
-                background: color + '10', color, fontSize: 12, fontWeight: 700,
-                cursor: 'pointer', textDecoration: 'none', display: 'inline-block',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = color + '22' }}
-              onMouseLeave={e => { e.currentTarget.style.background = color + '10' }}
-            >Conectar LinkedIn</a>
-          )}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
+            background: connected ? 'rgba(30,138,62,0.1)' : 'var(--gray3)',
+            border: `1px solid ${connected ? 'rgba(30,138,62,0.25)' : 'var(--gray3)'}`,
+          }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? '#1E8A3E' : 'var(--gray2)' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: connected ? '#1E8A3E' : 'var(--gray2)' }}>
+              {connected ? 'Conectado' : 'Não conectado'}
+            </span>
+          </div>
           <a
             href="https://learn.microsoft.com/en-us/linkedin/marketing/lead-gen-forms/lead-gen-form-responses"
             target="_blank" rel="noopener noreferrer"
@@ -847,38 +840,61 @@ function LinkedInCard({ data, onRefresh }: {
           background: color + '04', display: 'flex', flexDirection: 'column', gap: 14,
           animation: 'slideDown 0.18s ease',
         }}>
-          {/* Account ID */}
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 6 }}>
-              LinkedIn Ads Account ID
-            </label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                value={acctId}
-                onChange={e => setAcctId(e.target.value)}
-                placeholder="Ex: 123456789"
-                style={{
-                  flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 500,
-                  border: `1px solid ${color}40`, borderRadius: 8,
-                  background: 'var(--white)', color: 'var(--black)', outline: 'none',
-                  fontFamily: 'monospace', boxSizing: 'border-box' as const,
-                }}
-                onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 3px ${color}20` }}
-                onBlur={e => { e.currentTarget.style.boxShadow = 'none' }}
-              />
+          {/* Credentials */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Client ID',          value: clientId,  set: setClientId,  ph: 'Cole o Client ID do app LinkedIn',    mono: true  },
+              { label: 'Client Secret',       value: clientSec, set: setClientSec, ph: 'Cole o Client Secret do app LinkedIn', mono: true  },
+              { label: 'Ads Account ID',      value: acctId,    set: setAcctId,    ph: 'Ex: 123456789 (Campaign Manager)',    mono: false },
+            ].map(({ label, value, set, ph, mono }) => (
+              <div key={label}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 5 }}>
+                  {label}
+                </label>
+                <input
+                  value={value}
+                  onChange={e => set(e.target.value)}
+                  placeholder={ph}
+                  type={label === 'Client Secret' ? 'password' : 'text'}
+                  style={{
+                    width: '100%', padding: '8px 12px', fontSize: 13, fontWeight: 500,
+                    border: `1px solid ${color}40`, borderRadius: 8,
+                    background: 'var(--white)', color: 'var(--black)', outline: 'none',
+                    fontFamily: mono ? 'monospace' : 'inherit',
+                    boxSizing: 'border-box' as const,
+                  }}
+                  onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 3px ${color}20` }}
+                  onBlur={e => { e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
-                onClick={handleSaveAccountId}
+                onClick={handleSaveCredentials}
                 disabled={saving}
                 style={{
-                  padding: '8px 16px', borderRadius: 8, border: 'none',
+                  padding: '8px 18px', borderRadius: 8, border: 'none',
                   background: saving ? 'var(--gray3)' : color,
                   color: saving ? 'var(--gray2)' : '#fff',
-                  fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', flexShrink: 0,
+                  fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
                 }}
-              >{saving ? 'Salvando…' : 'Salvar'}</button>
+              >{saving ? 'Salvando…' : 'Salvar credenciais'}</button>
+              {!connected && clientId && clientSec && (
+                <a
+                  href="/api/integrations/linkedin/auth"
+                  style={{
+                    padding: '8px 18px', borderRadius: 8, border: `1px solid ${color}40`,
+                    background: color + '10', color, fontSize: 12, fontWeight: 700,
+                    cursor: 'pointer', textDecoration: 'none',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = color + '22' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = color + '10' }}
+                >Conectar via OAuth →</a>
+              )}
             </div>
-            <p style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 6, lineHeight: 1.5 }}>
-              Encontre o ID em LinkedIn Campaign Manager → Conta → URL (o número após /accounts/).
+            <p style={{ fontSize: 11, color: 'var(--gray2)', lineHeight: 1.5, margin: 0 }}>
+              Crie o app em <strong>LinkedIn Developer Portal</strong> → Products → Marketing Developer Platform.
+              O Account ID está no Campaign Manager → URL após /accounts/.
             </p>
           </div>
 

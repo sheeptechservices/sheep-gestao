@@ -1,33 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { initDb } from '@/lib/db'
 
 /** GET /api/integrations/linkedin/auth — redirect to LinkedIn OAuth */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const db = await initDb()
 
-    // Try to get client_id from integrations table first, then env
     const row = await db.execute({
       sql:  `SELECT api_key, extra FROM integrations WHERE id = 'linkedin' LIMIT 1`,
       args: [],
     })
 
-    const clientId =
-      (row.rows[0]?.api_key as string | undefined) ||
-      process.env.LINKEDIN_CLIENT_ID
+    const clientId = row.rows[0]?.api_key as string | undefined
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'LinkedIn Client ID não configurado. Adicione em Integrações ou defina LINKEDIN_CLIENT_ID no .env.local.' },
+        { error: 'LinkedIn Client ID não configurado. Adicione em Integrações → LinkedIn Lead Gen.' },
         { status: 500 }
       )
     }
 
-    const appUrl      = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    // Derive app URL from request — no env var needed
+    const reqUrl     = new URL(req.url)
+    const appUrl     = `${reqUrl.protocol}//${reqUrl.host}`
     const redirectUri = `${appUrl}/api/integrations/linkedin/callback`
     const state       = Math.random().toString(36).slice(2) + Date.now().toString(36)
 
-    // Store state temporarily in integrations extra for validation in callback
+    // Store state for CSRF validation in callback
     const existingExtra = row.rows[0]
       ? JSON.parse((row.rows[0].extra as string) || '{}')
       : {}

@@ -3,25 +3,25 @@ import { initDb } from '@/lib/db'
 
 /** GET /api/integrations/linkedin/callback — handle OAuth callback */
 export async function GET(req: NextRequest) {
+  // Derive app URL from request — no env var needed
+  const reqUrl = new URL(req.url)
+  const appUrl = `${reqUrl.protocol}//${reqUrl.host}`
+
   try {
-    const { searchParams } = new URL(req.url)
+    const { searchParams } = reqUrl
     const code  = searchParams.get('code')
     const state = searchParams.get('state')
     const error = searchParams.get('error')
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-
     if (error) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=${encodeURIComponent(error)}`)
     }
-
     if (!code) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=no_code`)
     }
 
     const db = await initDb()
 
-    // Load stored client_id and state
     const row = await db.execute({
       sql:  `SELECT api_key, extra FROM integrations WHERE id = 'linkedin' LIMIT 1`,
       args: [],
@@ -31,18 +31,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=not_configured`)
     }
 
-    const clientId  = row.rows[0].api_key as string
-    const extra     = JSON.parse((row.rows[0].extra as string) || '{}') as Record<string, unknown>
+    const clientId    = row.rows[0].api_key as string
+    const extra       = JSON.parse((row.rows[0].extra as string) || '{}') as Record<string, unknown>
     const storedState = extra.oauth_state as string | undefined
 
-    // Validate state
+    // CSRF validation
     if (storedState && state !== storedState) {
       return NextResponse.redirect(`${appUrl}/?linkedin_error=invalid_state`)
     }
 
-    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET
+    // Read client_secret from DB — no env var needed
+    const clientSecret = extra.client_secret as string | undefined
     if (!clientSecret) {
-      return NextResponse.redirect(`${appUrl}/?linkedin_error=no_client_secret`)
+      return NextResponse.redirect(`${appUrl}/?linkedin_error=client_secret_missing`)
     }
 
     const redirectUri = `${appUrl}/api/integrations/linkedin/callback`
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
 
     const expiresAt = new Date(Date.now() + (tokenData.expires_in ?? 5184000) * 1000).toISOString()
 
-    // Store token in integrations extra, remove oauth_state
+    // Store token, remove oauth_state
     const { oauth_state: _removed, ...restExtra } = extra
     const newExtra = {
       ...restExtra,
@@ -94,7 +95,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(`${appUrl}/?linkedin_connected=1`)
   } catch (err) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
     return NextResponse.redirect(`${appUrl}/?linkedin_error=${encodeURIComponent(String(err))}`)
   }
 }
