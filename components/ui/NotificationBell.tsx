@@ -172,7 +172,7 @@ function ProjectPicker({
             maxHeight: 150, overflowY: 'auto',
             border: '1px solid var(--gray3)', borderRadius: 7,
             background: 'var(--white)',
-            scrollbarWidth: 'thin',
+            scrollbarWidth: 'auto',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           }}>
             {filtered.length === 0 ? (
@@ -507,7 +507,7 @@ export function NotificationBell() {
       </div>
 
       {/* List */}
-      <div style={{ overflowY: 'auto', flex: 1, scrollbarWidth: 'thin' }}>
+      <div style={{ overflowY: 'auto', flex: 1, scrollbarWidth: 'auto' }}>
         {unread.length === 0 ? (
           <div style={{
             padding: '36px 20px', textAlign: 'center',
