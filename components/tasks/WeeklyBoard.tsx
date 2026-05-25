@@ -154,6 +154,39 @@ function WBDeleteModal({ task, onConfirm, onClose }: {
   )
 }
 
+// ── Duplicate button for modals ───────────────────────────────────────────────
+function DuplicateModalBtn({ taskId, onClose }: { taskId: string; onClose: () => void }) {
+  const duplicateTask = useTasksStore(s => s.duplicateTask)
+  const [loading, setLoading] = useState(false)
+  return (
+    <button
+      title="Duplicar entregável"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true)
+        const t = await duplicateTask(taskId)
+        setLoading(false)
+        if (t) { toast.success('Entregável duplicado', t.title); onClose() }
+      }}
+      style={{
+        width: 34, height: 34, borderRadius: 8,
+        border: '1px solid var(--gray3)', background: 'transparent',
+        cursor: loading ? 'wait' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--gray2)', transition: 'all 0.15s', flexShrink: 0,
+        opacity: loading ? 0.5 : 1,
+      }}
+      onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.color = '#475569' } }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+    >
+      <svg width={14} height={14} viewBox="0 0 12 12" fill="none">
+        <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={1.3}/>
+        <path d="M2.5 8V2.5A1.5 1.5 0 014 1h5.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round"/>
+      </svg>
+    </button>
+  )
+}
+
 // ── Task form modal ───────────────────────────────────────────────────────────
 
 export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, defaultDeadline, defaultProjectId, defaultWeekId }: {
@@ -797,6 +830,10 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
                 <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+          )}
+          {/* Duplicate — only in edit mode */}
+          {isEdit && task && (
+            <DuplicateModalBtn taskId={task.id} onClose={() => onClose()} />
           )}
           <ConsultAgentButton
             task={task}
