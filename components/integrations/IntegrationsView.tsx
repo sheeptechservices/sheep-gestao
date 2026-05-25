@@ -711,9 +711,10 @@ function LinkedInCard({ data, onRefresh }: {
 }) {
   const extra        = data?.extra ?? {}
   const connected    = !!(extra.access_token)
+  const credsSaved   = !!(data?.has_key && extra.client_secret)   // credentials actually in DB
   const adAccounts   = (extra.ad_accounts as Array<{ id: string; name: string }> | undefined) ?? []
-  const [clientId,   setClientId]  = useState((data?.api_key as string | undefined) ?? '')
-  const [clientSec,  setClientSec] = useState((extra.client_secret as string | undefined) ?? '')
+  const [clientId,   setClientId]  = useState('')   // never pre-fill from masked DB value
+  const [clientSec,  setClientSec] = useState('')   // user must always retype to change
   const [acctId,     setAcctId]    = useState((extra.linkedin_account_id as string | undefined) ?? '')
   const [saving,     setSaving]    = useState(false)
   const [syncing,    setSyncing]   = useState(false)
@@ -724,16 +725,28 @@ function LinkedInCard({ data, onRefresh }: {
   const color = '#0077B5'
 
   const handleSaveCredentials = async () => {
-    if (!clientId || !clientSec) { toast.error('Preencha Client ID e Client Secret.'); return }
+    if (!clientId.trim() || !clientSec.trim()) {
+      toast.error(credsSaved
+        ? 'Para atualizar, digite o Client ID e o Client Secret completos nos campos acima.'
+        : 'Preencha Client ID e Client Secret.')
+      return
+    }
     setSaving(true)
     try {
-      const newExtra = { ...extra, client_secret: clientSec, linkedin_account_id: acctId }
-      await fetch('/api/integrations', {
+      const newExtra = { ...extra, client_secret: clientSec.trim(), linkedin_account_id: acctId }
+      const res = await fetch('/api/integrations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'linkedin', api_key: clientId, extra: newExtra }),
+        body: JSON.stringify({ id: 'linkedin', api_key: clientId.trim(), extra: newExtra }),
       })
-      toast.success('Credenciais LinkedIn salvas!')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        toast.error(`Erro ao salvar credenciais: ${err.error ?? res.status}`)
+        return
+      }
+      toast.success('Credenciais LinkedIn salvas! Agora clique em "Conectar via OAuth →".')
+      setClientId('')
+      setClientSec('')
       onRefresh()
     } finally { setSaving(false) }
   }
@@ -867,9 +880,24 @@ function LinkedInCard({ data, onRefresh }: {
         }}>
           {/* Credentials */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {credsSaved && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 12px', borderRadius: 8,
+                background: 'rgba(30,138,62,0.07)', border: '1px solid rgba(30,138,62,0.2)',
+              }}>
+                <svg width={13} height={13} viewBox="0 0 13 13" fill="none">
+                  <path d="M2 6.5l3 3 6-6" stroke="#1E8A3E" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#1E8A3E' }}>
+                  Credenciais salvas no servidor.
+                  {!connected ? ' Digite novamente para substituir e depois clique em "Conectar via OAuth →".' : ' LinkedIn conectado via OAuth.'}
+                </span>
+              </div>
+            )}
             {[
-              { label: 'Client ID',          value: clientId,  set: setClientId,  ph: 'Cole o Client ID do app LinkedIn',    mono: true  },
-              { label: 'Client Secret',       value: clientSec, set: setClientSec, ph: 'Cole o Client Secret do app LinkedIn', mono: true  },
+              { label: 'Client ID',     value: clientId,  set: setClientId,  ph: data?.has_key ? '••••••••  (digite para atualizar)' : 'Cole o Client ID do app LinkedIn',    mono: true  },
+              { label: 'Client Secret', value: clientSec, set: setClientSec, ph: extra.client_secret ? '••••••••  (digite para atualizar)' : 'Cole o Client Secret do app LinkedIn', mono: true  },
               ].map(({ label, value, set, ph, mono }) => (
               <div key={label}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 5 }}>
@@ -982,14 +1010,15 @@ function LinkedInCard({ data, onRefresh }: {
               <button
                 onClick={handleSaveCredentials}
                 disabled={saving}
+                title={credsSaved ? 'Digite Client ID e Client Secret para substituir os salvos' : ''}
                 style={{
                   padding: '8px 18px', borderRadius: 8, border: 'none',
                   background: saving ? 'var(--gray3)' : color,
                   color: saving ? 'var(--gray2)' : '#fff',
                   fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
                 }}
-              >{saving ? 'Salvando…' : 'Salvar credenciais'}</button>
-              {!connected && clientId && clientSec && (
+              >{saving ? 'Salvando…' : credsSaved ? 'Atualizar credenciais' : 'Salvar credenciais'}</button>
+              {!connected && credsSaved && (
                 <a
                   href="/api/integrations/linkedin/auth"
                   style={{

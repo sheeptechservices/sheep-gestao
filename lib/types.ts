@@ -175,13 +175,15 @@ export interface Meeting {
 
 export interface Notification {
   id: string
-  type: 'unlinked_meeting'
+  type: 'unlinked_meeting' | 'linked_meeting'
   payload: {
     meeting_id: string
     title: string
     date?: string
-    suggested_project_id?:   string | null  // sugestão do auto-match (nunca vinculada automaticamente)
+    suggested_project_id?:   string | null  // sugestão para unlinked_meeting
     suggested_project_name?: string | null
+    project_id?:   string | null            // projeto vinculado automaticamente (linked_meeting)
+    project_name?: string | null
   }
   read: boolean
   created_at: string

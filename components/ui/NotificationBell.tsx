@@ -297,6 +297,9 @@ function NotifItem({
     })
   }
 
+  const isLinked = notif.type === 'linked_meeting'
+  const dotColor = notif.read ? 'transparent' : isLinked ? '#059669' : '#6366F1'
+
   return (
     <div
       onMouseEnter={() => setHov(true)}
@@ -308,7 +311,7 @@ function NotifItem({
           ? 'rgba(99,102,241,0.05)'
           : hov
             ? 'var(--bg)'
-            : notif.read ? 'transparent' : 'rgba(99,102,241,0.03)',
+            : notif.read ? 'transparent' : isLinked ? 'rgba(5,150,105,0.03)' : 'rgba(99,102,241,0.03)',
         transition: 'background 0.12s',
       }}
     >
@@ -316,7 +319,7 @@ function NotifItem({
         {/* Unread dot */}
         <div style={{
           width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 5,
-          background: notif.read ? 'transparent' : '#6366F1',
+          background: dotColor,
           transition: 'background 0.2s',
         }} />
 
@@ -333,11 +336,17 @@ function NotifItem({
           <div style={{ fontSize: 11, color: 'var(--gray2)', display: 'flex', alignItems: 'center', gap: 5 }}>
             {fmtDate(notif.payload.date)}
             <span style={{ opacity: 0.4 }}>·</span>
-            <span style={{ color: '#F59E0B', fontWeight: 600 }}>Aguardando vinculação</span>
+            {isLinked ? (
+              <span style={{ color: '#059669', fontWeight: 600 }}>
+                Vinculado a <strong>{notif.payload.project_name}</strong>
+              </span>
+            ) : (
+              <span style={{ color: '#F59E0B', fontWeight: 600 }}>Aguardando vinculação</span>
+            )}
           </div>
 
-          {/* Vincular picker / button */}
-          {!notif.read && (
+          {/* Vincular picker / button — só para unlinked_meeting */}
+          {!notif.read && !isLinked && (
             linking ? (
               <ProjectPicker
                 notif={notif}

@@ -109,15 +109,15 @@ export async function POST(req: NextRequest) {
       rowToProject(r as unknown as Record<string, unknown>),
     )
 
-    // Contexto para matching — apenas sugestão, nunca vincula automaticamente
-    const context         = `${summary} ${fullText.slice(0, 1000)}`
-    const suggestedId     = autoMatch(transcript.title, context, projects)
-    const suggestedProject = suggestedId ? projects.find(p => p.id === suggestedId) : null
+    // Auto-match: se houver projeto identificado, vincula automaticamente
+    const context        = `${summary} ${fullText.slice(0, 1000)}`
+    const matchedId      = autoMatch(transcript.title, context, projects)
+    const matchedProject = matchedId ? projects.find(p => p.id === matchedId) : null
 
     const id  = `mtg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const now = new Date().toISOString()
 
-    // Salva sempre sem projeto — usuário decide depois
+    // Salva a reunião — com projeto se encontrado, sem projeto caso contrário
     await db.execute({
       sql: `
         INSERT OR IGNORE INTO meetings
@@ -130,29 +130,49 @@ export async function POST(req: NextRequest) {
         summary, fullText, actionItems,
         JSON.stringify(transcript.participants ?? []),
         JSON.stringify(transcript.meeting_attendees ?? []),
-        null, 0, now,
+        matchedId ?? null, matchedId ? 1 : 0, now,
       ],
     })
 
-    // Notificação sempre do tipo unlinked — com sugestão opcional no payload
     const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    await db.execute({
-      sql: `INSERT INTO notifications (id, type, payload, read, created_at) VALUES (?, ?, ?, 0, ?)`,
-      args: [
-        notifId,
-        'unlinked_meeting',
-        JSON.stringify({
-          meeting_id: id,
-          title: transcript.title,
-          date,
-          suggested_project_id:   suggestedProject?.id   ?? null,
-          suggested_project_name: suggestedProject?.name ?? null,
-        }),
-        now,
-      ],
-    })
 
-    return NextResponse.json({ ok: true, meeting_id: id, suggested_project_id: suggestedId ?? null })
+    if (matchedProject) {
+      // Vinculação automática: notificação verde informando ao usuário
+      await db.execute({
+        sql: `INSERT INTO notifications (id, type, payload, read, created_at) VALUES (?, ?, ?, 0, ?)`,
+        args: [
+          notifId,
+          'linked_meeting',
+          JSON.stringify({
+            meeting_id:   id,
+            title:        transcript.title,
+            date,
+            project_id:   matchedProject.id,
+            project_name: matchedProject.name,
+          }),
+          now,
+        ],
+      })
+    } else {
+      // Sem match: notificação para o usuário vincular manualmente
+      await db.execute({
+        sql: `INSERT INTO notifications (id, type, payload, read, created_at) VALUES (?, ?, ?, 0, ?)`,
+        args: [
+          notifId,
+          'unlinked_meeting',
+          JSON.stringify({
+            meeting_id: id,
+            title:      transcript.title,
+            date,
+            suggested_project_id:   null,
+            suggested_project_name: null,
+          }),
+          now,
+        ],
+      })
+    }
+
+    return NextResponse.json({ ok: true, meeting_id: id, matched_project_id: matchedId ?? null })
   } catch (err) {
     console.error('[fireflies webhook]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
