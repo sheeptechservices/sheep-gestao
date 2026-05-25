@@ -423,7 +423,7 @@ function MeetingCard({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, color: 'var(--gray2)' }}>{fmtDate(meeting.date)}</span>
-              {meeting.duration && (
+              {meeting.duration != null && meeting.duration > 0 && (
                 <span style={{
                   fontSize: 10, fontWeight: 700,
                   color: color, background: color + '15',
