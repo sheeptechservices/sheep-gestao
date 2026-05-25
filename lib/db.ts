@@ -197,6 +197,32 @@ async function createTables(db: Client) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS leads (
+      id                  TEXT PRIMARY KEY,
+      name                TEXT,
+      company             TEXT,
+      context             TEXT,
+      email               TEXT,
+      phone               TEXT,
+      first_contact_date  TEXT,
+      funnel_stage        TEXT DEFAULT 'contato_inicial',
+      propensity          TEXT,
+      project_types       TEXT DEFAULT '[]',
+      project_name        TEXT,
+      estimated_value     REAL,
+      segment             TEXT,
+      sub_segment         TEXT,
+      commercial_origin   TEXT,
+      acquisition_channel TEXT,
+      referred_by         TEXT,
+      notes               TEXT,
+      linkedin_id         TEXT,
+      created_at          TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_leads_created_at   ON leads(created_at);
+    CREATE INDEX IF NOT EXISTS idx_leads_funnel_stage ON leads(funnel_stage);
+
     CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
     CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(read);

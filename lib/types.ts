@@ -196,3 +196,37 @@ export interface AgentConfig {
   bgColor: string;
   icon: string;
 }
+
+export type LeadFunnelStage =
+  | 'contato_inicial'
+  | 'apresentacao'
+  | 'proposta'
+  | 'negociacao'
+  | 'fechamento'
+  | 'venda_realizada'
+  | 'perdido'
+
+export type LeadPropensity = 'frio' | 'morno' | 'quente'
+
+export interface Lead {
+  id: string
+  name?: string
+  company?: string
+  context?: string
+  email?: string
+  phone?: string
+  first_contact_date?: string
+  funnel_stage: LeadFunnelStage
+  propensity?: LeadPropensity | null
+  project_types: string[]
+  project_name?: string
+  estimated_value?: number | null
+  segment?: string
+  sub_segment?: string
+  commercial_origin?: string
+  acquisition_channel?: string
+  referred_by?: string
+  notes?: string
+  linkedin_id?: string
+  created_at: string
+}

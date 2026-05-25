@@ -77,6 +77,11 @@ const LOGOS: Record<string, React.ReactNode> = {
       <ellipse cx="14" cy="14" rx="1.4" ry="5.5" fill="white"/>
     </svg>
   ),
+  linkedin: (
+    <svg viewBox="0 0 24 24" fill="#0077B5" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  ),
 }
 
 // ── Integration catalogue ─────────────────────────────────────────────────────
@@ -178,9 +183,20 @@ const CATALOGUE: IntegrationMeta[] = [
     webhookPath: '/api/webhooks/fireflies',
     syncPath: '/api/integrations/fireflies/sync',
   },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn Lead Gen',
+    description: 'Importe respostas de formulários de geração de leads do LinkedIn Ads automaticamente para o pipeline de CRM.',
+    category: 'Comercial',
+    color: '#0077B5',
+    keyLabel: 'Client ID (OAuth)',
+    keyPlaceholder: 'Cole aqui ou configure LINKEDIN_CLIENT_ID no .env.local',
+    keyHint: 'Crie um app no LinkedIn Developer Portal, adicione o produto "Marketing Developer Platform" e copie o Client ID. O Client Secret deve estar em LINKEDIN_CLIENT_SECRET no .env.local.',
+    docsUrl: 'https://learn.microsoft.com/en-us/linkedin/marketing/lead-gen-forms/lead-gen-form-responses',
+  },
 ]
 
-const CATEGORIES = ['IA Generativa', 'Reuniões', 'Desenvolvimento', 'Produtividade', 'Comunicação']
+const CATEGORIES = ['IA Generativa', 'Reuniões', 'Desenvolvimento', 'Produtividade', 'Comunicação', 'Comercial']
 
 // ── Shimmer skeleton ──────────────────────────────────────────────────────────
 
@@ -687,6 +703,258 @@ function IntegrationCard({ meta, data, onSave }: {
   )
 }
 
+// ── LinkedIn special card ─────────────────────────────────────────────────────
+
+function LinkedInCard({ data, onRefresh }: {
+  data: Integration | undefined
+  onRefresh: () => void
+}) {
+  const extra       = data?.extra ?? {}
+  const connected   = !!(extra.access_token)
+  const accountId   = (extra.linkedin_account_id as string | undefined) ?? ''
+  const [acctId,    setAcctId]    = useState(accountId)
+  const [saving,    setSaving]    = useState(false)
+  const [syncing,   setSyncing]   = useState(false)
+  const [syncRes,   setSyncRes]   = useState<{ imported: number; skipped: number } | null>(null)
+  const [expanded,  setExpanded]  = useState(false)
+  const [rowHov,    setRowHov]    = useState(false)
+  const color = '#0077B5'
+
+  const handleSaveAccountId = async () => {
+    setSaving(true)
+    try {
+      const newExtra = { ...extra, linkedin_account_id: acctId }
+      await fetch('/api/integrations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'linkedin', extra: newExtra }),
+      })
+      toast.success('Account ID salvo!')
+      onRefresh()
+    } finally { setSaving(false) }
+  }
+
+  const handleSync = async () => {
+    setSyncing(true); setSyncRes(null)
+    try {
+      const res  = await fetch('/api/integrations/linkedin/sync', { method: 'POST' })
+      const data = await res.json() as { imported?: number; skipped?: number; error?: string }
+      if (data.error) { toast.error(data.error); return }
+      const result = { imported: data.imported ?? 0, skipped: data.skipped ?? 0 }
+      setSyncRes(result)
+      if (result.imported > 0) toast.success(`${result.imported} leads importados do LinkedIn!`)
+      else toast.success('Leads já sincronizados.')
+    } catch { toast.error('Erro ao sincronizar LinkedIn.') }
+    finally { setSyncing(false) }
+  }
+
+  const handleDisconnect = async () => {
+    const { access_token: _t, expires_at: _e, oauth_state: _s, ...restExtra } = extra as Record<string, unknown>
+    await fetch('/api/integrations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'linkedin', extra: restExtra, enabled: false }),
+    })
+    toast.success('LinkedIn desconectado.')
+    onRefresh()
+  }
+
+  return (
+    <div style={{
+      border: `1px solid ${connected ? color + '35' : 'var(--gray3)'}`,
+      borderRadius: 10,
+      background: connected ? color + '04' : 'var(--white)',
+      overflow: 'hidden',
+      transition: 'border-color 0.2s',
+    }}>
+      {/* Header row */}
+      <div
+        onClick={() => setExpanded(e => !e)}
+        onMouseEnter={() => setRowHov(true)}
+        onMouseLeave={() => setRowHov(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
+          cursor: 'pointer', background: rowHov ? 'var(--bg)' : 'transparent', transition: 'background 0.15s',
+        }}
+      >
+        <div style={{
+          width: 42, height: 42, borderRadius: 11, flexShrink: 0,
+          background: color + '12', border: `1.5px solid ${color}25`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg viewBox="0 0 24 24" fill={color} width="26" height="26"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--black)' }}>LinkedIn Lead Gen</div>
+          <div style={{ fontSize: 12, color: 'var(--gray)', marginTop: 3, lineHeight: 1.45 }}>
+            Importe respostas de formulários de leads do LinkedIn Ads automaticamente para o CRM.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+          {connected ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
+              background: 'rgba(30,138,62,0.1)', border: '1px solid rgba(30,138,62,0.25)',
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1E8A3E' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3E' }}>Conectado</span>
+            </div>
+          ) : (
+            <a
+              href="/api/integrations/linkedin/auth"
+              style={{
+                padding: '6px 14px', borderRadius: 8, border: `1px solid ${color}40`,
+                background: color + '10', color, fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', textDecoration: 'none', display: 'inline-block',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = color + '22' }}
+              onMouseLeave={e => { e.currentTarget.style.background = color + '10' }}
+            >Conectar LinkedIn</a>
+          )}
+          <a
+            href="https://learn.microsoft.com/en-us/linkedin/marketing/lead-gen-forms/lead-gen-form-responses"
+            target="_blank" rel="noopener noreferrer"
+            title="Documentação"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 30, height: 30, borderRadius: 8, border: '1px solid var(--gray3)',
+              background: 'transparent', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+              transition: 'all 0.15s', textDecoration: 'none',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--black)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+          >
+            <svg width={12} height={12} viewBox="0 0 13 13" fill="none">
+              <path d="M5.5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8.5M8 1h4m0 0v4m0-4L5.5 7.5" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+          <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)' }}>
+            <svg width={13} height={13} viewBox="0 0 14 14" fill="none"
+              style={{ transition: 'transform 0.2s ease', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <path d="M2.5 5l4.5 4.5L11.5 5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded form */}
+      {expanded && (
+        <div style={{
+          borderTop: `1px solid ${color}30`, padding: '16px 18px',
+          background: color + '04', display: 'flex', flexDirection: 'column', gap: 14,
+          animation: 'slideDown 0.18s ease',
+        }}>
+          {/* Account ID */}
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', display: 'block', marginBottom: 6 }}>
+              LinkedIn Ads Account ID
+            </label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={acctId}
+                onChange={e => setAcctId(e.target.value)}
+                placeholder="Ex: 123456789"
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 500,
+                  border: `1px solid ${color}40`, borderRadius: 8,
+                  background: 'var(--white)', color: 'var(--black)', outline: 'none',
+                  fontFamily: 'monospace', boxSizing: 'border-box' as const,
+                }}
+                onFocus={e => { e.currentTarget.style.boxShadow = `0 0 0 3px ${color}20` }}
+                onBlur={e => { e.currentTarget.style.boxShadow = 'none' }}
+              />
+              <button
+                onClick={handleSaveAccountId}
+                disabled={saving}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, border: 'none',
+                  background: saving ? 'var(--gray3)' : color,
+                  color: saving ? 'var(--gray2)' : '#fff',
+                  fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', flexShrink: 0,
+                }}
+              >{saving ? 'Salvando…' : 'Salvar'}</button>
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 6, lineHeight: 1.5 }}>
+              Encontre o ID em LinkedIn Campaign Manager → Conta → URL (o número após /accounts/).
+            </p>
+          </div>
+
+          {/* Sync leads */}
+          {connected && (
+            <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--gray3)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--black)', marginBottom: 4 }}>Sincronizar Leads</div>
+              <p style={{ fontSize: 11, color: 'var(--gray2)', marginBottom: 10, lineHeight: 1.5 }}>
+                Importa respostas dos formulários de Lead Gen do LinkedIn para o pipeline de CRM.
+              </p>
+
+              {syncRes && (
+                <div style={{
+                  fontSize: 11, fontWeight: 600, marginBottom: 10,
+                  color: syncRes.imported > 0 ? '#1E8A3E' : 'var(--gray2)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {syncRes.imported > 0
+                    ? `${syncRes.imported} lead${syncRes.imported !== 1 ? 's' : ''} importado${syncRes.imported !== 1 ? 's' : ''}${syncRes.skipped > 0 ? ` · ${syncRes.skipped} já existia${syncRes.skipped !== 1 ? 'm' : ''}` : ''}`
+                    : `Tudo sincronizado (${syncRes.skipped} já existiam)`
+                  }
+                </div>
+              )}
+
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 8, border: `1px solid ${color}40`,
+                  background: color + '10', color,
+                  fontSize: 12, fontWeight: 700, cursor: syncing ? 'wait' : 'pointer',
+                  opacity: syncing ? 0.7 : 1,
+                }}
+                onMouseEnter={e => { if (!syncing) e.currentTarget.style.background = color + '22' }}
+                onMouseLeave={e => { if (!syncing) e.currentTarget.style.background = color + '10' }}
+              >
+                {syncing ? (
+                  <>
+                    <div style={{ width: 11, height: 11, borderRadius: '50%', border: `2px solid ${color}40`, borderTopColor: color, animation: 'spin-slow 0.7s linear infinite' }} />
+                    Sincronizando…
+                  </>
+                ) : (
+                  <>
+                    <svg width={12} height={12} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2v4h-4M1 12V8h4"/>
+                      <path d="M2.5 5A5.5 5.5 0 0 1 12.4 8M11.5 9a5.5 5.5 0 0 1-9.9-3"/>
+                    </svg>
+                    Sincronizar Leads
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {connected && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleDisconnect}
+                style={{
+                  fontSize: 11, fontWeight: 600, color: '#D93025',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '2px 0', textDecoration: 'underline', textDecorationStyle: 'dotted',
+                }}
+              >Desconectar LinkedIn</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function IntegrationsView() {
@@ -777,17 +1045,34 @@ export function IntegrationsView() {
       ) : (
         CATEGORIES.map(cat => {
           const items = CATALOGUE.filter(c => c.category === cat)
-          const connected = items.filter(m => integrations.find(i => i.id === m.id)?.has_key).length
+          const connected = items.filter(m => {
+            const d = integrations.find(i => i.id === m.id)
+            if (m.id === 'linkedin') return !!(d?.extra?.access_token)
+            return d?.has_key ?? false
+          }).length
           return (
             <SectionCard key={cat} title={cat} connectedCount={connected} totalCount={items.length}>
-              {items.map(meta => (
-                <IntegrationCard
-                  key={meta.id}
-                  meta={meta}
-                  data={integrations.find(i => i.id === meta.id)}
-                  onSave={handleSave}
-                />
-              ))}
+              {items.map(meta =>
+                meta.id === 'linkedin' ? (
+                  <LinkedInCard
+                    key="linkedin"
+                    data={integrations.find(i => i.id === 'linkedin')}
+                    onRefresh={() => {
+                      fetch('/api/integrations')
+                        .then(r => r.json())
+                        .then(data => { setIntegrations(Array.isArray(data) ? data : []) })
+                        .catch(() => {})
+                    }}
+                  />
+                ) : (
+                  <IntegrationCard
+                    key={meta.id}
+                    meta={meta}
+                    data={integrations.find(i => i.id === meta.id)}
+                    onSave={handleSave}
+                  />
+                )
+              )}
             </SectionCard>
           )
         })
