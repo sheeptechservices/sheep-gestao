@@ -19,6 +19,7 @@ import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
 import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 import { MemberPicker } from '@/components/ui/MemberPicker'
+import { TaskMemberPicker } from '@/components/ui/TaskMemberPicker'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -888,7 +889,7 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
 
 // ── Weekly board card (top-level — avoids remount-during-drag bug) ─────────────
 
-export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDragEnd, onClick, onToggleDone, onDelete }: {
+export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDragEnd, onClick, onToggleDone, onDelete, onMembersChange }: {
   task: Task
   project: Project | undefined
   isDragging: boolean
@@ -897,6 +898,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
   onClick: () => void
   onToggleDone: () => void
   onDelete: () => void
+  onMembersChange?: (ids: string[]) => void
 }) {
   const [hov, setHov]   = useState(false)
   const [pop, setPop]   = useState(false)
@@ -995,7 +997,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
       )}
 
       {/* Urgency + assigned + flags + attachments */}
-      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao || (task.attachment_count ?? 0) > 0) && (
+      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao || (task.attachment_count ?? 0) > 0 || onMembersChange) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingLeft: 22, flexWrap: 'wrap' }}>
           {bloqueado && (
             <span style={{
@@ -1036,19 +1038,25 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
               background: URGENCY_CONFIG[task.urgency].bg,
             }}>{URGENCY_CONFIG[task.urgency].label}</span>
           )}
-          {assignedMembers.length > 0
-            ? <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                {assignedMembers.map((m, i) => (
-                  <span key={m.id} style={{ marginLeft: i > 0 ? -6 : 0, display: 'inline-flex' }}>
-                    <MemberAvatarTip member={m} size={16} />
-                  </span>
-                ))}
-              </span>
-            : task.assigned_to && (
-                <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
-                  {task.assigned_to.split(' ')[0]}
+          {onMembersChange
+            ? <TaskMemberPicker
+                memberIds={task.member_ids?.length ? task.member_ids : task.member_id ? [task.member_id] : []}
+                onChange={onMembersChange}
+                size={16}
+              />
+            : assignedMembers.length > 0
+              ? <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  {assignedMembers.map((m, i) => (
+                    <span key={m.id} style={{ marginLeft: i > 0 ? -6 : 0, display: 'inline-flex' }}>
+                      <MemberAvatarTip member={m} size={16} />
+                    </span>
+                  ))}
                 </span>
-              )
+              : task.assigned_to && (
+                  <span style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500 }}>
+                    {task.assigned_to.split(' ')[0]}
+                  </span>
+                )
           }
           {(task.attachment_count ?? 0) > 0 && (
             <span style={{
@@ -2053,6 +2061,7 @@ export function WeeklyBoard() {
                             onClick={() => setEditing(task)}
                             onToggleDone={() => toggleDone(task.id, !task.done)}
                             onDelete={() => setDeleting(task)}
+                            onMembersChange={ids => updateTask(task.id, { member_ids: ids })}
                           />
                         ))}
                         {isOver && (
@@ -2132,6 +2141,7 @@ export function WeeklyBoard() {
                         onClick={() => setEditing(task)}
                         onToggleDone={() => toggleDone(task.id, !task.done)}
                         onDelete={() => setDeleting(task)}
+                        onMembersChange={ids => updateTask(task.id, { member_ids: ids })}
                       />
                     </div>
                   ))}

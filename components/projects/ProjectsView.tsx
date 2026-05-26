@@ -15,6 +15,7 @@ import { WBTaskModal, type FormState } from '@/components/tasks/WeeklyBoard'
 import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
 import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
+import { TaskMemberPicker } from '@/components/ui/TaskMemberPicker'
 
 // ── Troque para visualizar as variantes de navegação de semanas ───────────────
 // 'pills' | 'accordion' | 'prevnext'
@@ -1385,7 +1386,7 @@ function GlobalWeekNav({ weeks, idx, onChange }: {
 }
 
 // ── Day view card (top-level to avoid remount-on-drag bug) ────────────────────
-function DayTaskCard({ task, color, project, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange, onDelete }: {
+function DayTaskCard({ task, color, project, isDragging, compact = false, onDragStart, onDragEnd, onClick, onStatusChange, onDelete, onMembersChange }: {
   task: Task
   color: string
   project?: Project
@@ -1396,6 +1397,7 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
   onClick: () => void
   onStatusChange: () => void
   onDelete?: () => void
+  onMembersChange?: (ids: string[]) => void
 }) {
   const [pop, setPop]               = useState(false)
   const [hov, setHov]               = useState(false)
@@ -1472,6 +1474,13 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
                 color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
               }}>{URGENCY_CONFIG[task.urgency].label}</span>
             )}
+            {onMembersChange && (
+              <TaskMemberPicker
+                memberIds={task.member_ids?.length ? task.member_ids : task.member_id ? [task.member_id] : []}
+                onChange={onMembersChange}
+                size={14}
+              />
+            )}
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
@@ -1480,7 +1489,7 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
               color: task.done ? 'var(--gray2)' : 'var(--black)',
               textDecoration: task.done ? 'line-through' : 'none',
             }}>{task.title}</span>
-            {(task.urgency || task.assigned_to) && (
+            {(task.urgency || task.assigned_to || onMembersChange) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                 {task.urgency && URGENCY_CONFIG[task.urgency] && (
                   <span style={{
@@ -1488,10 +1497,17 @@ function DayTaskCard({ task, color, project, isDragging, compact = false, onDrag
                     color: URGENCY_CONFIG[task.urgency].color, background: URGENCY_CONFIG[task.urgency].bg,
                   }}>{URGENCY_CONFIG[task.urgency].label}</span>
                 )}
-                {task.assigned_to && (
+                {task.assigned_to && !onMembersChange && (
                   <span style={{ fontSize: 9, color: 'var(--gray2)', fontWeight: 500 }}>
                     {task.assigned_to.split(' ')[0]}
                   </span>
+                )}
+                {onMembersChange && (
+                  <TaskMemberPicker
+                    memberIds={task.member_ids?.length ? task.member_ids : task.member_id ? [task.member_id] : []}
+                    onChange={onMembersChange}
+                    size={16}
+                  />
                 )}
               </div>
             )}
@@ -1732,6 +1748,7 @@ function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onDelete, on
                         onClick={() => onEdit(task)}
                         onStatusChange={() => onStatusChange(task.id, !task.done)}
                         onDelete={onDelete ? () => onDelete(task.id) : undefined}
+                        onMembersChange={ids => updateTask(task.id, { member_ids: ids })}
                       />
                     ))}
                     {isOver && (
@@ -1814,6 +1831,7 @@ function DayView({ tasks, weekStart, color, project, onAdd, onEdit, onDelete, on
                   onClick={() => onEdit(task)}
                   onStatusChange={() => onStatusChange(task.id, !task.done)}
                   onDelete={onDelete ? () => onDelete(task.id) : undefined}
+                  onMembersChange={ids => updateTask(task.id, { member_ids: ids })}
                 />
               ))}
               {isOver && (
