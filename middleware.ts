@@ -35,9 +35,10 @@ export async function middleware(req: NextRequest) {
   // Page-level access control for 'user' role
   if (payload.role === 'user') {
     // Find the base route slug (e.g. /projects/new → 'projects')
-    const base    = '/' + (pathname.split('/')[1] ?? '')
-    const slug    = PAGE_SLUGS[base] ?? PAGE_SLUGS[pathname]
-    if (slug && !payload.pages.includes(slug)) {
+    const base = '/' + (pathname.split('/')[1] ?? '')
+    const slug = PAGE_SLUGS[base] ?? PAGE_SLUGS[pathname]
+    // /settings is always accessible — users can edit their own profile
+    if (slug && slug !== 'settings' && !payload.pages.includes(slug)) {
       // API routes → 403 JSON
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })

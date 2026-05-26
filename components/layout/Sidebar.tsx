@@ -95,12 +95,14 @@ export function Sidebar() {
   const authUser = useAuth(s => s.user)
 
   // Filtra itens conforme permissões: masters veem tudo, users só o que foi liberado
+  // /settings sempre visível — usuários podem editar nome/senha
   const visibleNavItems = navItems
     .map(group => ({
       ...group,
       items: group.items.filter(item => {
         if (!authUser || authUser.role === 'master') return true
         const slug = PAGE_SLUGS[item.href]
+        if (slug === 'settings') return true   // sempre visível
         return slug ? authUser.allowed_pages.includes(slug) : true
       }),
     }))

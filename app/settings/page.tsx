@@ -5,6 +5,116 @@ import { toast } from '@/stores/toastStore'
 import { useAuth } from '@/stores/authStore'
 import { UsersTab } from '@/components/settings/UsersTab'
 
+// ── Seção exclusiva para role 'user' ─────────────────────────────────────────
+function MyAccountSection() {
+  const authUser = useAuth(s => s.user)
+  const setUser  = useAuth(s => s.setUser)
+
+  const [name,        setName]       = useState(authUser?.name ?? '')
+  const [password,    setPassword]   = useState('')
+  const [showPass,    setShowPass]   = useState(false)
+  const [saving,      setSaving]     = useState(false)
+
+  useEffect(() => { setName(authUser?.name ?? '') }, [authUser?.name])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) { toast.error('O nome não pode ficar em branco.'); return }
+    if (password && password.length < 6) { toast.error('A senha deve ter pelo menos 6 caracteres.'); return }
+
+    setSaving(true)
+    try {
+      const body: Record<string, string> = { name: name.trim() }
+      if (password) body.new_password = password
+
+      const res = await fetch('/api/auth/me', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const d = await res.json() as { error?: string }
+        toast.error(d.error ?? 'Erro ao salvar.')
+        return
+      }
+      const updated = await res.json()
+      setUser(updated)
+      setPassword('')
+      toast.success('Perfil atualizado!')
+    } catch {
+      toast.error('Erro de conexão.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', fontSize: 13, fontWeight: 500,
+    border: '1px solid var(--gray3)', borderRadius: 8, outline: 'none',
+    background: 'var(--white)', color: 'var(--black)',
+    transition: 'border-color .15s', fontFamily: 'inherit', boxSizing: 'border-box',
+  }
+
+  return (
+    <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--black)', marginBottom: 6 }}>
+          Nome
+        </label>
+        <input
+          style={inputStyle} value={name} onChange={e => setName(e.target.value)}
+          placeholder="Seu nome" required
+          onFocus={e => (e.target.style.borderColor = 'var(--primary)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--gray3)')}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--black)', marginBottom: 6 }}>
+          E-mail
+        </label>
+        <input
+          style={{ ...inputStyle, background: 'var(--bg)', color: 'var(--gray2)' }}
+          value={authUser?.email ?? ''} disabled
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--black)', marginBottom: 6 }}>
+          Nova senha <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--gray2)' }}>(deixe em branco para manter)</span>
+        </label>
+        <div style={{ position: 'relative' }}>
+          <input
+            style={{ ...inputStyle, paddingRight: 40 }}
+            type={showPass ? 'text' : 'password'}
+            value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+            onFocus={e => (e.target.style.borderColor = 'var(--primary)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--gray3)')}
+          />
+          <button type="button" onClick={() => setShowPass(v => !v)} tabIndex={-1}
+            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray2)' }}>
+            {showPass
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" disabled={saving} style={{
+          padding: '8px 22px', borderRadius: 8, border: 'none',
+          background: saving ? 'var(--gray3)' : 'var(--primary)',
+          color: saving ? 'var(--gray2)' : 'var(--primary-contrast)',
+          fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+        }}>
+          {saving ? 'Salvando…' : 'Salvar alterações'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 // ── Preset palette ────────────────────────────────────────────────────────────
 const PRESETS = [
   { label: 'Verde Lima',   hex: '#84CC16' },
@@ -268,6 +378,21 @@ export default function SettingsPage() {
 
   // Build a small live preview of the color
   const [pr, pg, pb] = hexToRgb(localColor)
+
+  // Usuários comuns veem só a seção de perfil
+  if (authUser && authUser.role !== 'master') {
+    return (
+      <div style={{ maxWidth: 480 }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--black)' }}>Configurações</h1>
+          <p style={{ fontSize: 13, color: 'var(--gray)', marginTop: 2 }}>Minha conta</p>
+        </div>
+        <SectionCard title="Minha conta">
+          <MyAccountSection />
+        </SectionCard>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 680 }}>
