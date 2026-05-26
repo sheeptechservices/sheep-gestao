@@ -234,9 +234,10 @@ const EMPTY_FORM: Omit<Lead, 'id' | 'created_at'> = {
 }
 
 function LeadFormModal({
-  initial, onClose, onSave,
+  initial, defaultStage, onClose, onSave,
 }: {
   initial?: Lead | null
+  defaultStage?: LeadFunnelStage
   onClose: () => void
   onSave: (data: Omit<Lead, 'id' | 'created_at'>) => Promise<void>
 }) {
@@ -255,7 +256,7 @@ function LeadFormModal({
           referred_by: initial.referred_by ?? '', notes: initial.notes ?? '',
           linkedin_id: initial.linkedin_id ?? '', owner_id: initial.owner_id ?? '',
         }
-      : { ...EMPTY_FORM }
+      : { ...EMPTY_FORM, funnel_stage: defaultStage ?? EMPTY_FORM.funnel_stage }
   )
   const [saving,          setSaving]          = useState(false)
   const [attachments,     setAttachments]     = useState<LeadAttachment[]>([])
@@ -1037,6 +1038,33 @@ function CardOwnerPicker({ ownerId, onSelect }: {
   )
 }
 
+// ── Add-to-stage button ───────────────────────────────────────────────────────
+
+function AddToStageButton({ color, onClick }: { color: string; onClick: () => void }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+        padding: '6px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+        border: `1.5px dashed ${hov ? color : 'var(--gray3)'}`,
+        background: hov ? color + '0f' : 'transparent',
+        color: hov ? color : 'var(--gray3)',
+        fontSize: 11, fontWeight: 700,
+        transition: 'all 0.15s',
+      }}
+    >
+      <svg width={11} height={11} viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+        <path d="M5.5 1.5v8M1.5 5.5h8"/>
+      </svg>
+      Adicionar Lead
+    </button>
+  )
+}
+
 // ── Kanban card ───────────────────────────────────────────────────────────────
 
 function KanbanCard({
@@ -1144,13 +1172,14 @@ function KanbanCard({
 // ── Kanban view ───────────────────────────────────────────────────────────────
 
 function KanbanView({
-  leads, onEdit, onDelete, onStageChange, onOwnerChange,
+  leads, onEdit, onDelete, onStageChange, onOwnerChange, onAdd,
 }: {
   leads: Lead[]
   onEdit: (l: Lead) => void
   onDelete: (l: Lead) => void
   onStageChange: (id: string, stage: LeadFunnelStage) => void
   onOwnerChange: (id: string, ownerId: string | null) => void
+  onAdd: (stage: LeadFunnelStage) => void
 }) {
   const [dragId,   setDragId]   = useState<string | null>(null)
   const [overZone, setOverZone] = useState<LeadFunnelStage | null>(null)
@@ -1226,6 +1255,11 @@ function KanbanView({
             }}>{isOver ? 'Soltar aqui' : 'Sem leads'}</div>
           )}
         </div>
+
+        {/* Add lead to this stage */}
+        {!dimmed && (
+          <AddToStageButton color={stage.color} onClick={() => onAdd(stage.id)} />
+        )}
       </div>
     )
   }
@@ -1593,7 +1627,11 @@ export function LeadsView() {
   const [hovNewLead,    setHovNewLead]    = useState(false)
   const [filterStage,      setFilterStage]      = useState('')
   const [filterPropensity, setFilterPropensity] = useState('')
+  const [filterOwner,      setFilterOwner]      = useState('')
+  const [newLeadStage,     setNewLeadStage]     = useState<LeadFunnelStage | undefined>(undefined)
   const { isMobile } = useBreakpoint()
+  const { members, fetchMembers } = useTeamStore()
+  useEffect(() => { if (members.length === 0) fetchMembers() }, []) // eslint-disable-line
 
   // ── Load leads ──
   const loadLeads = useCallback(async () => {
@@ -1655,6 +1693,7 @@ export function LeadsView() {
   const filteredLeads = leads.filter(l => {
     if (filterStage      && l.funnel_stage !== filterStage)      return false
     if (filterPropensity && l.propensity   !== filterPropensity) return false
+    if (filterOwner      && l.owner_id     !== filterOwner)      return false
     return true
   })
 
@@ -1668,6 +1707,13 @@ export function LeadsView() {
     { value: 'frio',   label: 'Frio'   },
     { value: 'morno',  label: 'Morno'  },
     { value: 'quente', label: 'Quente 🔥' },
+  ]
+
+  const ownerFilterOptions = [
+    { value: '', label: 'Todos' },
+    ...members
+      .filter(m => m.status === 'active')
+      .map(m => ({ value: m.id, label: m.name })),
   ]
 
   // ── Create / Update ──
@@ -1697,6 +1743,7 @@ export function LeadsView() {
     }
     setShowForm(false)
     setEditingLead(null)
+    setNewLeadStage(undefined)
   }
 
   // ── Delete ──
@@ -1835,9 +1882,15 @@ export function LeadsView() {
               options={propensityFilterOptions}
               onChange={setFilterPropensity}
             />
-            {(filterStage || filterPropensity) && (
+            <FilterPill
+              label="Responsável"
+              value={filterOwner}
+              options={ownerFilterOptions}
+              onChange={setFilterOwner}
+            />
+            {(filterStage || filterPropensity || filterOwner) && (
               <button
-                onClick={() => { setFilterStage(''); setFilterPropensity('') }}
+                onClick={() => { setFilterStage(''); setFilterPropensity(''); setFilterOwner('') }}
                 style={{
                   fontSize: 11, fontWeight: 600, color: 'var(--gray2)',
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -1911,6 +1964,7 @@ export function LeadsView() {
               onDelete={l => setDeletingLead(l)}
               onStageChange={handleStageChange}
               onOwnerChange={(id, ownerId) => handleFieldChange(id, 'owner_id', ownerId)}
+              onAdd={stage => { setNewLeadStage(stage); setEditingLead(null); setShowForm(true) }}
             />
           ) : (
             <TableView
@@ -1927,7 +1981,8 @@ export function LeadsView() {
       {showForm && (
         <LeadFormModal
           initial={editingLead}
-          onClose={() => { setShowForm(false); setEditingLead(null) }}
+          defaultStage={newLeadStage}
+          onClose={() => { setShowForm(false); setEditingLead(null); setNewLeadStage(undefined) }}
           onSave={handleSave}
         />
       )}
