@@ -283,6 +283,8 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_ids   TEXT`),
     // meetings
     tryAlter(db, `ALTER TABLE meetings ADD COLUMN meeting_attendees TEXT DEFAULT '[]'`),
+    // leads
+    tryAlter(db, `ALTER TABLE leads ADD COLUMN owner_id TEXT`),
     // team_members — expanded profile fields
     tryAlter(db, `ALTER TABLE team_members ADD COLUMN sexo               TEXT`),
     tryAlter(db, `ALTER TABLE team_members ADD COLUMN data_nascimento     TEXT`),

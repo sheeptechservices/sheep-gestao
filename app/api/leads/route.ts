@@ -23,6 +23,7 @@ function rowToLead(r: Record<string, unknown>): Lead {
     referred_by:         (r.referred_by as string | null) ?? undefined,
     notes:               (r.notes as string | null) ?? undefined,
     linkedin_id:         (r.linkedin_id as string | null) ?? undefined,
+    owner_id:            (r.owner_id as string | null) || undefined,
     created_at:          r.created_at as string,
   }
 }
@@ -53,8 +54,8 @@ export async function POST(req: NextRequest) {
         (id, name, company, context, email, phone, first_contact_date,
          funnel_stage, propensity, project_types, project_name, estimated_value,
          segment, sub_segment, commercial_origin, acquisition_channel, referred_by,
-         notes, linkedin_id, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         notes, linkedin_id, owner_id, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       args: [
         id,
         body.name               ?? null,
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
         body.referred_by        ?? null,
         body.notes              ?? null,
         body.linkedin_id        ?? null,
+        body.owner_id           || null,
         now,
       ],
     })

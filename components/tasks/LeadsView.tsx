@@ -5,6 +5,10 @@ import { toast } from '@/stores/toastStore'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useTeamStore } from '@/stores/teamStore'
+import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
+import { MemberAvatar } from '@/components/ui/MemberAvatar'
+import { MemberPicker } from '@/components/ui/MemberPicker'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -226,7 +230,7 @@ const EMPTY_FORM: Omit<Lead, 'id' | 'created_at'> = {
   first_contact_date: '', funnel_stage: 'novo_lead', propensity: null,
   project_types: [], project_name: '', estimated_value: null,
   segment: '', sub_segment: '', commercial_origin: '', acquisition_channel: '',
-  referred_by: '', notes: '', linkedin_id: '',
+  referred_by: '', notes: '', linkedin_id: '', owner_id: '',
 }
 
 function LeadFormModal({
@@ -249,7 +253,7 @@ function LeadFormModal({
           commercial_origin: initial.commercial_origin ?? '',
           acquisition_channel: initial.acquisition_channel ?? '',
           referred_by: initial.referred_by ?? '', notes: initial.notes ?? '',
-          linkedin_id: initial.linkedin_id ?? '',
+          linkedin_id: initial.linkedin_id ?? '', owner_id: initial.owner_id ?? '',
         }
       : { ...EMPTY_FORM }
   )
@@ -434,6 +438,16 @@ function LeadFormModal({
                 placeholder="— Sem propensão —"
               />
             </div>
+          </div>
+
+          {/* Row: owner */}
+          <div>
+            {label('Responsável')}
+            <MemberPicker
+              value={form.owner_id ? [form.owner_id] : []}
+              onChange={ids => set('owner_id', ids.length > 0 ? ids[ids.length - 1] : '')}
+              placeholder="— Sem responsável —"
+            />
           </div>
 
           {/* Row: segment + sub_segment */}
@@ -914,14 +928,124 @@ function DeleteModal({ lead, onConfirm, onClose }: {
   )
 }
 
+// ── Card owner picker ─────────────────────────────────────────────────────────
+
+function CardOwnerPicker({ ownerId, onSelect }: {
+  ownerId?: string | null
+  onSelect: (id: string | null) => void
+}) {
+  const { members, fetchMembers } = useTeamStore()
+  const [open,    setOpen]    = useState(false)
+  const [pos,     setPos]     = useState<{ top?: number; bottom?: number; left: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => { if (members.length === 0) fetchMembers() }, []) // eslint-disable-line
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const owner  = members.find(m => m.id === ownerId)
+  const active = members.filter(m => m.status === 'active')
+
+  function handleClick(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!open && ref.current) {
+      const r      = ref.current.getBoundingClientRect()
+      const dropH  = Math.min(active.length * 34 + (ownerId ? 34 : 0) + 12, 260)
+      const below  = window.innerHeight - r.bottom - 8
+      const above  = r.top - 8
+      if (below >= dropH || below >= above) {
+        setPos({ top: r.bottom + 4, left: r.left })
+      } else {
+        setPos({ bottom: window.innerHeight - r.top + 4, left: r.left })
+      }
+    }
+    setOpen(o => !o)
+  }
+
+  const dropdown = mounted && open && pos ? createPortal(
+    <div
+      onMouseDown={e => e.stopPropagation()}
+      style={{
+        position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left,
+        zIndex: 10000, background: 'var(--white)', border: '1px solid var(--gray3)',
+        borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+        minWidth: 190, overflow: 'hidden', animation: 'panelUp 0.15s ease both',
+      }}
+    >
+      {ownerId && (
+        <div
+          onClick={() => { onSelect(null); setOpen(false) }}
+          style={{ padding: '7px 10px', fontSize: 11, color: 'var(--gray2)', cursor: 'pointer', borderBottom: '1px solid var(--gray3)', display: 'flex', alignItems: 'center', gap: 6 }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+        >
+          <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+          Remover responsável
+        </div>
+      )}
+      {active.map(m => (
+        <div
+          key={m.id}
+          onClick={() => { onSelect(m.id); setOpen(false) }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', background: m.id === ownerId ? 'var(--primary-dim)' : 'transparent' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--primary-dim)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = m.id === ownerId ? 'var(--primary-dim)' : 'transparent'}
+        >
+          <MemberAvatar member={m} size={20} />
+          <span style={{ fontSize: 12, fontWeight: m.id === ownerId ? 700 : 500, color: 'var(--black)', flex: 1 }}>{m.name}</span>
+          {m.id === ownerId && (
+            <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="var(--primary)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M2 5l2.5 2.5 4-4"/></svg>
+          )}
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null
+
+  return (
+    <div ref={ref} style={{ display: 'inline-flex', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      {owner
+        ? <div onClick={handleClick} style={{ cursor: 'pointer' }}><MemberAvatarTip member={owner} size={20} /></div>
+        : (
+          <div
+            onClick={handleClick}
+            title="Atribuir responsável"
+            style={{
+              width: 20, height: 20, borderRadius: '50%',
+              border: '1.5px dashed var(--gray3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'var(--gray3)', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { const el = e.currentTarget; el.style.borderColor = 'var(--gray)'; el.style.color = 'var(--gray)' }}
+            onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'var(--gray3)'; el.style.color = 'var(--gray3)' }}
+          >
+            <svg width={8} height={8} viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"><path d="M4 1v6M1 4h6"/></svg>
+          </div>
+        )
+      }
+      {dropdown}
+    </div>
+  )
+}
+
 // ── Kanban card ───────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  lead, color, isDragging, onDragStart, onDragEnd, onEdit, onDelete,
+  lead, color, isDragging, onDragStart, onDragEnd, onEdit, onDelete, onOwnerChange,
 }: {
   lead: Lead; color: string; isDragging: boolean
   onDragStart: () => void; onDragEnd: () => void
   onEdit: () => void; onDelete: () => void
+  onOwnerChange: (id: string | null) => void
 }) {
   const [hov, setHov] = useState(false)
 
@@ -984,11 +1108,14 @@ function KanbanCard({
           <PropensityBadge p={lead.propensity} />
           <TypeChips types={(lead.project_types ?? []).slice(0, 2)} />
         </div>
-        {lead.first_contact_date && (
-          <span style={{ fontSize: 10, color: 'var(--gray2)' }}>
-            {new Date(lead.first_contact_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {lead.first_contact_date && (
+            <span style={{ fontSize: 10, color: 'var(--gray2)' }}>
+              {new Date(lead.first_contact_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+            </span>
+          )}
+          <CardOwnerPicker ownerId={lead.owner_id} onSelect={onOwnerChange} />
+        </div>
       </div>
 
       {hov && !isDragging && (
@@ -1017,12 +1144,13 @@ function KanbanCard({
 // ── Kanban view ───────────────────────────────────────────────────────────────
 
 function KanbanView({
-  leads, onEdit, onDelete, onStageChange,
+  leads, onEdit, onDelete, onStageChange, onOwnerChange,
 }: {
   leads: Lead[]
   onEdit: (l: Lead) => void
   onDelete: (l: Lead) => void
   onStageChange: (id: string, stage: LeadFunnelStage) => void
+  onOwnerChange: (id: string, ownerId: string | null) => void
 }) {
   const [dragId,   setDragId]   = useState<string | null>(null)
   const [overZone, setOverZone] = useState<LeadFunnelStage | null>(null)
@@ -1086,6 +1214,7 @@ function KanbanView({
               onDragEnd={() => { setDragId(null); setOverZone(null) }}
               onEdit={() => onEdit(lead)}
               onDelete={() => onDelete(lead)}
+              onOwnerChange={id => onOwnerChange(lead.id, id)}
             />
           ))}
           {colLeads.length === 0 && (
@@ -1137,6 +1266,7 @@ const TABLE_COLS: { key: keyof Lead | 'actions'; label: string; width: number; s
   { key: 'name',               label: 'Contato',          width: 140 },
   { key: 'funnel_stage',       label: 'Etapa',            width: 140 },
   { key: 'propensity',         label: 'Propensão',        width: 90  },
+  { key: 'owner_id',           label: 'Responsável',      width: 130 },
   { key: 'estimated_value',    label: 'Valor',            width: 90  },
   { key: 'segment',            label: 'Segmento',         width: 110 },
   { key: 'project_types',      label: 'Tipo de Projeto',  width: 160 },
@@ -1243,6 +1373,15 @@ function TableView({
           <PropensityBadge p={lead.propensity} />
           {!lead.propensity && <span style={{ fontSize: 10, color: 'var(--gray3)' }}>—</span>}
         </span>
+      )
+    }
+
+    if (col.key === 'owner_id') {
+      return (
+        <CardOwnerPicker
+          ownerId={lead.owner_id}
+          onSelect={id => onFieldChange(lead.id, 'owner_id', id)}
+        />
       )
     }
 
@@ -1771,6 +1910,7 @@ export function LeadsView() {
               onEdit={l => { setEditingLead(l); setShowForm(true) }}
               onDelete={l => setDeletingLead(l)}
               onStageChange={handleStageChange}
+              onOwnerChange={(id, ownerId) => handleFieldChange(id, 'owner_id', ownerId)}
             />
           ) : (
             <TableView

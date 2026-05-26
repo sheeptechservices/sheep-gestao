@@ -229,5 +229,6 @@ export interface Lead {
   referred_by?: string
   notes?: string
   linkedin_id?: string
+  owner_id?: string
   created_at: string
 }

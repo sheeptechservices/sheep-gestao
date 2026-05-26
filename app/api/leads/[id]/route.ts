@@ -36,6 +36,7 @@ export async function PUT(
     if (body.referred_by        !== undefined) add('referred_by',         body.referred_by)
     if (body.notes              !== undefined) add('notes',               body.notes)
     if (body.linkedin_id        !== undefined) add('linkedin_id',         body.linkedin_id)
+    if (body.owner_id           !== undefined) add('owner_id',            body.owner_id || null)
 
     if (fields.length === 0) return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
 
