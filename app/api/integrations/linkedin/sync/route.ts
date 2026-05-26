@@ -98,7 +98,7 @@ export async function POST() {
         sql: `INSERT INTO leads
           (id, name, company, email, phone, first_contact_date,
            linkedin_id, commercial_origin, funnel_stage, project_types, created_at)
-          VALUES (?,?,?,?,?,?,?,'LinkedIn','contato_inicial','[]',?)`,
+          VALUES (?,?,?,?,?,?,?,'LinkedIn','novo_lead','[]',?)`,
         args: [id, name ?? null, company ?? null, email ?? null, phone ?? null, date, linkedinId, now],
       })
       imported++

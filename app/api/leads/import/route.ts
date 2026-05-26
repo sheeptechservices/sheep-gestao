@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         sql: `INSERT INTO leads
           (id, name, company, email, phone, first_contact_date,
            linkedin_id, commercial_origin, funnel_stage, project_types, created_at)
-          VALUES (?,?,?,?,?,?,?,?,'contato_inicial','[]',?)`,
+          VALUES (?,?,?,?,?,?,?,?,'novo_lead','[]',?)`,
         args: [
           id,
           row.name               ?? null,

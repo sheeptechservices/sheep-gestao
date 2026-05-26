@@ -224,7 +224,7 @@ interface LeadAttachment {
 
 const EMPTY_FORM: Omit<Lead, 'id' | 'created_at'> = {
   name: '', company: '', context: '', email: '', phone: '',
-  first_contact_date: '', funnel_stage: 'contato_inicial', propensity: null,
+  first_contact_date: '', funnel_stage: 'novo_lead', propensity: null,
   project_types: [], project_name: '', estimated_value: null,
   segment: '', sub_segment: '', commercial_origin: '', acquisition_channel: '',
   referred_by: '', notes: '', linkedin_id: '',
