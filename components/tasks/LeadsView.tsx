@@ -133,66 +133,135 @@ function ShimBar({ w, h, r = 6, mb = 0, style }: { w: number | string; h: number
   return (
     <div className="shimmer-bar" style={{
       width: w, height: h, borderRadius: r, marginBottom: mb,
-      flexShrink: 0, ...style,
+      background: 'var(--gray3)', flexShrink: 0, ...style,
     }} />
+  )
+}
+
+/** Card skeleton — espelha a estrutura real de um LeadCard */
+function SkeletonCard({ lines = 2 }: { lines?: number }) {
+  return (
+    <div style={{
+      background: 'var(--white)', borderRadius: 10, border: '1px solid var(--gray3)',
+      padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 6,
+    }}>
+      {/* nome (pequeno) + valor */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <ShimBar w="45%" h={9} r={4} />
+          <ShimBar w="75%" h={13} r={5} />
+        </div>
+        {lines >= 3 && <ShimBar w={36} h={13} r={5} style={{ marginLeft: 8 }} />}
+      </div>
+      {/* linha de projeto (opcional) */}
+      {lines >= 3 && <ShimBar w="60%" h={10} r={4} />}
+      {/* badges + avatar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <ShimBar w={44} h={18} r={100} />
+          {lines >= 2 && <ShimBar w={60} h={18} r={100} />}
+        </div>
+        <ShimBar w={24} h={24} r={100} />
+      </div>
+    </div>
   )
 }
 
 function Skeleton() {
   const { isMobile } = useBreakpoint()
-  const colCount = isMobile ? 3 : STAGES.length   // show 3 cols on mobile
+  const colCount = isMobile ? 3 : STAGES.length
+
+  // número variado de cards por coluna para parecer dados reais
+  const cardCounts = [0, 3, 2, 4, 2, 1, 0]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-      {/* Header shimmer */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-start', justifyContent: 'space-between', gap: isMobile ? 12 : 16 }}>
+      {/* LinkedIn banner shimmer */}
+      {!isMobile && (
+        <div className="shimmer-bar" style={{
+          height: 44, borderRadius: 10, border: '1px solid var(--gray3)',
+          background: 'var(--gray3)',
+        }} />
+      )}
+
+      {/* Header: título + botão Novo Lead */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <ShimBar w={isMobile ? 160 : 200} h={22} r={7} />
-          <ShimBar w={isMobile ? 220 : 300} h={13} r={5} />
+          <ShimBar w={isMobile ? 150 : 190} h={24} r={7} />
+          {!isMobile && <ShimBar w={280} h={13} r={5} />}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ShimBar w={120} h={30} r={8} />
-          <ShimBar w={isMobile ? 90 : 110} h={30} r={100} />
-        </div>
+        <ShimBar w={isMobile ? 100 : 120} h={34} r={100} />
       </div>
 
-      {/* KPI cards shimmer — 2×2 on mobile */}
+      {/* Filtros + toggle Kanban/Tabela */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ShimBar w={44} h={13} r={4} />
+          <ShimBar w={72} h={28} r={100} />
+          <ShimBar w={88} h={28} r={100} />
+          <ShimBar w={98} h={28} r={100} />
+        </div>
+        {!isMobile && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <ShimBar w={62} h={28} r={7} />
+            <ShimBar w={56} h={28} r={7} />
+          </div>
+        )}
+      </div>
+
+      {/* KPI cards — 2×2 em mobile, 4 colunas em desktop */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
         {[0,1,2,3].map(i => (
-          <div key={i} className="shimmer-bar" style={{
-            borderRadius: 12, height: isMobile ? 72 : 80,
-            border: '1px solid var(--gray3)',
-          }} />
+          <div key={i} style={{
+            background: 'var(--white)', borderRadius: 12, border: '1px solid var(--gray3)',
+            padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10,
+            height: isMobile ? 72 : 82,
+          }}>
+            <ShimBar w="55%" h={10} r={4} />
+            <ShimBar w="40%" h={22} r={6} />
+          </div>
         ))}
       </div>
 
-      {/* Kanban board shimmer — horizontal scroll on mobile */}
+      {/* Kanban board */}
       <div style={{ overflowX: isMobile ? 'auto' : 'visible', margin: isMobile ? '0 -2px' : 0 }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? `repeat(${colCount}, 172px)` : `repeat(${STAGES.length}, 1fr)`,
+          gridTemplateColumns: isMobile
+            ? `repeat(${colCount}, 172px)`
+            : `repeat(${STAGES.length}, 1fr)`,
           gap: 8, alignItems: 'start',
           minWidth: isMobile ? `${colCount * 180}px` : undefined,
         }}>
-          {STAGES.slice(0, colCount).map((s, ci) => (
-            <div key={s.id}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gray3)' }} />
-                  <ShimBar w={50} h={10} r={4} />
+          {STAGES.slice(0, colCount).map((s, ci) => {
+            const n = cardCounts[ci] ?? 2
+            return (
+              <div key={s.id}>
+                {/* Cabeçalho da coluna */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gray3)' }} />
+                    <ShimBar w={ci === 0 ? 64 : ci === 1 ? 52 : ci === 2 ? 58 : 72} h={10} r={4} />
+                  </div>
+                  <ShimBar w={22} h={18} r={5} />
                 </div>
-                <ShimBar w={22} h={18} r={5} />
+                {/* Cards */}
+                {n === 0 ? (
+                  <div style={{
+                    height: 56, borderRadius: 10, border: '1.5px dashed var(--gray3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <ShimBar w={80} h={10} r={4} />
+                  </div>
+                ) : (
+                  Array.from({ length: n }).map((_, i) => (
+                    <SkeletonCard key={i} lines={i === 0 && ci > 1 ? 3 : 2} />
+                  ))
+                )}
               </div>
-              {[1, 2, ci % 2 === 0 ? 3 : 0].filter(Boolean).map(i => (
-                <div key={i} className="shimmer-bar" style={{
-                  height: i === 3 ? 68 : 80,
-                  borderRadius: 10, marginBottom: 6,
-                  border: '1px solid var(--gray3)',
-                }} />
-              ))}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
