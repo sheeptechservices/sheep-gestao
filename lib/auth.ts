@@ -1,6 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose'
 import type { AppUser } from './types'
 
+/** E-mail do master protegido — nunca pode ter role ou active alterados */
+export const PROTECTED_MASTER_EMAIL = 'gestao.master@sheeptechnology.com.br'
+
 export interface JwtPayload {
   sub: string          // user id
   name: string

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
-import { ALL_PAGES } from '@/lib/auth'
+import { ALL_PAGES, PROTECTED_MASTER_EMAIL } from '@/lib/auth'
 import type { AppUser } from '@/lib/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -57,6 +57,7 @@ function UserFormModal({ existing, selfId, onClose, onSaved }: UserFormProps) {
   const [pages,         setPages]        = useState<string[]>(existing?.allowed_pages ?? [])
   const [saving,        setSaving]       = useState(false)
   const isEdit = !!existing
+  const isProtected = existing?.email === PROTECTED_MASTER_EMAIL
 
   function togglePage(slug: string) {
     setPages(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug])
@@ -184,40 +185,54 @@ function UserFormModal({ existing, selfId, onClose, onSaved }: UserFormProps) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {labelStyle('Nível de acesso')}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {(['user', 'master'] as const).map(r => (
-                  <button
-                    key={r} type="button"
-                    onClick={() => setRole(r)}
-                    style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8, border: `1.5px solid ${role === r ? (r === 'master' ? '#7C3AED' : 'var(--primary)') : 'var(--gray3)'}`,
-                      background: role === r ? (r === 'master' ? 'rgba(124,58,237,0.08)' : 'var(--primary-dim)') : 'transparent',
-                      color: role === r ? (r === 'master' ? '#7C3AED' : 'var(--primary)') : 'var(--gray2)',
-                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                    }}
-                  >{r === 'master' ? 'Master' : 'User'}</button>
-                ))}
-              </div>
+              {isProtected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(124,58,237,0.08)', border: '1.5px solid #7C3AED' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED' }}>Master (fixo)</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['user', 'master'] as const).map(r => (
+                    <button
+                      key={r} type="button"
+                      onClick={() => setRole(r)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, border: `1.5px solid ${role === r ? (r === 'master' ? '#7C3AED' : 'var(--primary)') : 'var(--gray3)'}`,
+                        background: role === r ? (r === 'master' ? 'rgba(124,58,237,0.08)' : 'var(--primary-dim)') : 'transparent',
+                        color: role === r ? (r === 'master' ? '#7C3AED' : 'var(--primary)') : 'var(--gray2)',
+                        fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                      }}
+                    >{r === 'master' ? 'Master' : 'User'}</button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               {labelStyle('Status')}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {([true, false] as const).map(a => (
-                  <button
-                    key={String(a)} type="button"
-                    disabled={isEdit && existing!.id === selfId && !a}
-                    onClick={() => setActive(a)}
-                    style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8,
-                      border: `1.5px solid ${active === a ? (a ? '#059669' : '#DC2626') : 'var(--gray3)'}`,
-                      background: active === a ? (a ? 'rgba(5,150,105,0.08)' : 'rgba(220,38,38,0.08)') : 'transparent',
-                      color: active === a ? (a ? '#059669' : '#DC2626') : 'var(--gray2)',
-                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                      opacity: isEdit && existing!.id === selfId && !a ? 0.4 : 1,
-                    }}
-                  >{a ? 'Ativo' : 'Inativo'}</button>
-                ))}
-              </div>
+              {isProtected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(5,150,105,0.08)', border: '1.5px solid #059669' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>Sempre ativo</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {([true, false] as const).map(a => (
+                    <button
+                      key={String(a)} type="button"
+                      disabled={isEdit && existing!.id === selfId && !a}
+                      onClick={() => setActive(a)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8,
+                        border: `1.5px solid ${active === a ? (a ? '#059669' : '#DC2626') : 'var(--gray3)'}`,
+                        background: active === a ? (a ? 'rgba(5,150,105,0.08)' : 'rgba(220,38,38,0.08)') : 'transparent',
+                        color: active === a ? (a ? '#059669' : '#DC2626') : 'var(--gray2)',
+                        fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                        opacity: isEdit && existing!.id === selfId && !a ? 0.4 : 1,
+                      }}
+                    >{a ? 'Ativo' : 'Inativo'}</button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -426,7 +441,7 @@ export function UsersTab({ selfId }: { selfId: string }) {
                 >
                   <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M8 2L10 4L4 10H2V8L8 2Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
-                {u.id !== selfId && (
+                {u.id !== selfId && u.email !== PROTECTED_MASTER_EMAIL && (
                   <button
                     onClick={() => setDeleting(u)}
                     style={{

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { initDb } from '@/lib/db'
+import { PROTECTED_MASTER_EMAIL } from '@/lib/auth'
 
 function isMaster(req: NextRequest) {
   return req.headers.get('x-user-role') === 'master'
@@ -19,20 +20,35 @@ export async function PUT(
     new_password?: string
   }
 
-  const db      = await initDb()
+  const db = await initDb()
+
+  // Verifica se o usuário alvo é o master protegido
+  const targetRes = await db.execute({ sql: `SELECT email FROM users WHERE id = ?`, args: [params.id] })
+  const targetEmail = (targetRes.rows[0] as unknown as { email: string } | undefined)?.email
+  const isProtected = targetEmail === PROTECTED_MASTER_EMAIL
+
+  if (isProtected) {
+    if (body.role !== undefined && body.role !== 'master') {
+      return NextResponse.json({ error: 'Este usuário não pode ter o nível de acesso alterado.' }, { status: 403 })
+    }
+    if (body.active !== undefined && !body.active) {
+      return NextResponse.json({ error: 'Este usuário não pode ser desativado.' }, { status: 403 })
+    }
+  }
+
   const clauses: string[] = []
   const args:    unknown[] = []
 
   if (body.name !== undefined) {
     clauses.push('name = ?'); args.push(body.name.trim())
   }
-  if (body.role !== undefined) {
+  if (body.role !== undefined && !isProtected) {
     clauses.push('role = ?'); args.push(body.role === 'master' ? 'master' : 'user')
   }
   if (body.allowed_pages !== undefined) {
     clauses.push('allowed_pages = ?'); args.push(JSON.stringify(body.allowed_pages))
   }
-  if (body.active !== undefined) {
+  if (body.active !== undefined && !isProtected) {
     clauses.push('active = ?'); args.push(body.active ? 1 : 0)
   }
   if (body.new_password) {
@@ -82,6 +98,14 @@ export async function DELETE(
   }
 
   const db = await initDb()
+
+  // Impede remoção do master protegido
+  const chkRes = await db.execute({ sql: `SELECT email FROM users WHERE id = ?`, args: [params.id] })
+  const chkEmail = (chkRes.rows[0] as unknown as { email: string } | undefined)?.email
+  if (chkEmail === PROTECTED_MASTER_EMAIL) {
+    return NextResponse.json({ error: 'Este usuário não pode ser removido.' }, { status: 403 })
+  }
+
   await db.execute({ sql: `DELETE FROM users WHERE id = ?`, args: [params.id] })
   return NextResponse.json({ ok: true })
 }

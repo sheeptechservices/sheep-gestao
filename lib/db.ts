@@ -420,16 +420,24 @@ async function migrateDb(db: Client) {
     args: [],
   })
 
-  // Seed do usuário master padrão (apenas se a tabela users estiver vazia)
+  // Seed / migração do usuário master protegido
   {
     const countRes = await db.execute({ sql: `SELECT COUNT(*) AS cnt FROM users`, args: [] })
     const cnt = (countRes.rows[0] as unknown as { cnt: number }).cnt
     if (cnt === 0) {
+      // Primeira vez: cria o master com o e-mail definitivo
       const hash = await bcrypt.hash('sheep2026', 10)
       await db.execute({
         sql: `INSERT INTO users (id, name, email, password_hash, role, allowed_pages, active, created_at)
               VALUES (?, ?, ?, ?, 'master', '[]', 1, ?)`,
-        args: ['usr-master-001', 'Guilherme Zaidan', 'guilhermezaidan@wearedux.com', hash, new Date().toISOString()],
+        args: ['usr-master-001', 'Guilherme Zaidan', 'gestao.master@sheeptechnology.com.br', hash, new Date().toISOString()],
+      })
+    } else {
+      // Migração: garante que o master protegido tem o e-mail correto (atualiza registros legados)
+      await db.execute({
+        sql: `UPDATE users SET email = 'gestao.master@sheeptechnology.com.br', role = 'master', active = 1
+              WHERE id = 'usr-master-001' AND email != 'gestao.master@sheeptechnology.com.br'`,
+        args: [],
       })
     }
   }
