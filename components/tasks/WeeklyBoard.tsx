@@ -1476,7 +1476,7 @@ function FilterPill({ label, value, options, onChange }: {
           border: `1px solid ${active ? 'var(--primary)' : 'var(--gray3)'}`,
           background: active ? 'var(--primary-dim)' : 'var(--white)',
           color: active ? 'var(--primary)' : 'var(--gray)',
-          fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          fontSize: 11, fontWeight: 500, cursor: 'pointer',
           fontFamily: 'inherit', transition: 'all 0.15s',
           whiteSpace: 'nowrap',
         }}
