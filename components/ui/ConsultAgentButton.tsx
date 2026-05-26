@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useChatStore } from '@/stores/chatStore'
 import { useAgentsStore } from '@/stores/agentsStore'
 import { stripHtml } from '@/lib/stripHtml'
-import type { Task, Project, AgentType, TaskUrgency } from '@/lib/types'
+import type { Task, Project, Lead, AgentType, TaskUrgency } from '@/lib/types'
 
 // ── Urgency labels ─────────────────────────────────────────────────────────────
 const URGENCY_LABEL: Record<TaskUrgency, string> = {
@@ -29,10 +29,34 @@ function buildContext(task: Task, project?: Project): string {
   return lines.join('\n')
 }
 
+// ── Build lead context message ────────────────────────────────────────────────
+const STAGE_LABEL: Record<string, string> = {
+  novo_lead: 'Novo Lead', contato_inicial: 'Contato Inicial', proposta: 'Proposta',
+  negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
+}
+const PROPENSITY_LABEL: Record<string, string> = {
+  high: 'Alta', medium: 'Média', low: 'Baixa',
+}
+function buildLeadContext(lead: Lead): string {
+  const lines: string[] = []
+  lines.push('Quero analisar este lead:\n')
+  lines.push(`**Nome:** ${lead.name || '—'}`)
+  if (lead.company) lines.push(`**Empresa:** ${lead.company}`)
+  lines.push(`**Etapa:** ${STAGE_LABEL[lead.funnel_stage] ?? lead.funnel_stage}`)
+  if (lead.propensity) lines.push(`**Propensão:** ${PROPENSITY_LABEL[lead.propensity] ?? lead.propensity}`)
+  if (lead.segment) lines.push(`**Segmento:** ${lead.segment}`)
+  if (lead.project_name) lines.push(`**Projeto / Solução:** ${lead.project_name}`)
+  if (lead.estimated_value) lines.push(`**Valor estimado:** R$ ${Number(lead.estimated_value).toLocaleString('pt-BR')}`)
+  if (lead.notes?.trim()) lines.push(`\n**Observações:** ${lead.notes.trim()}`)
+  lines.push('\n')
+  return lines.join('\n')
+}
+
 // ── Props ──────────────────────────────────────────────────────────────────────
 interface ConsultAgentButtonProps {
   task?: Task
   project?: Project
+  lead?: Lead
   /** 'icon' = compact icon only (for cards). 'full' = labeled button (for modals). */
   variant?: 'icon' | 'full'
   /** Popover opens upward by default; set to 'down' if card is at the top */
@@ -137,7 +161,7 @@ function PopoverPortal({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function ConsultAgentButton({
-  task, project,
+  task, project, lead,
   variant = 'icon',
   direction = 'up',
 }: ConsultAgentButtonProps) {
@@ -148,11 +172,15 @@ export function ConsultAgentButton({
   const setPendingInput = useChatStore(s => s.setPendingInput)
   const setProject      = useChatStore(s => s.setProject)
   const setTask         = useChatStore(s => s.setTask)
+  const setLead         = useChatStore(s => s.setLead)
   const agents          = useAgentsStore(s => s.agents).filter(a => a.enabled)
 
   const handleSelectAgent = (agentType: AgentType) => {
     setOpen(false)
-    if (task) {
+    if (lead) {
+      setLead(agentType, lead.id)
+      setPendingInput(agentType, buildLeadContext(lead))
+    } else if (task) {
       // Pre-select project + task context dropdowns
       if (task.project_id) setProject(agentType, task.project_id)
       setTask(agentType, task.id)

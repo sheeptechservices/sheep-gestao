@@ -10,6 +10,7 @@ import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
 import { MemberPicker } from '@/components/ui/MemberPicker'
 import { LeadMeetingsTab } from '@/components/ui/LeadMeetingsTab'
+import { ConsultAgentButton } from '@/components/ui/ConsultAgentButton'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -329,12 +330,14 @@ const EMPTY_FORM: Omit<Lead, 'id' | 'created_at'> = {
 }
 
 function LeadFormModal({
-  initial, defaultStage, onClose, onSave,
+  initial, defaultStage, onClose, onSave, onDelete, onDuplicate,
 }: {
   initial?: Lead | null
   defaultStage?: LeadFunnelStage
   onClose: () => void
   onSave: (data: Omit<Lead, 'id' | 'created_at'>) => Promise<void>
+  onDelete?: () => void
+  onDuplicate?: () => void
 }) {
   const [form, setForm] = useState<Omit<Lead, 'id' | 'created_at'>>(() =>
     initial
@@ -1006,10 +1009,49 @@ function LeadFormModal({
         {/* Footer — only on Dados tab */}
         <div style={{
           padding: '14px 28px 22px', borderTop: '1px solid var(--gray3)',
-          display: activeTab === 'dados' ? 'flex' : 'none', justifyContent: 'flex-end', gap: 8,
+          display: activeTab === 'dados' ? 'flex' : 'none', alignItems: 'center', gap: 8,
           position: 'sticky', bottom: 0, background: 'var(--white)',
           borderRadius: '0 0 16px 16px',
         }}>
+          {/* Left actions — only when editing */}
+          {initial && (
+            <>
+              {/* Delete */}
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  title="Excluir lead"
+                  style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(217,48,37,0.08)'; e.currentTarget.style.borderColor = '#D93025'; e.currentTarget.style.color = '#D93025' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+                >
+                  <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                    <path d="M1.5 3.5h11M5 3.5V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1M5.5 6.5v4M8.5 6.5v4M2.5 3.5l.7 8a.5.5 0 00.5.5h6.6a.5.5 0 00.5-.5l.7-8" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+              {/* Duplicate */}
+              {onDuplicate && (
+                <button
+                  onClick={onDuplicate}
+                  title="Duplicar lead"
+                  style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.borderColor = 'var(--gray2)'; e.currentTarget.style.color = 'var(--black)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+                >
+                  <svg width={14} height={14} viewBox="0 0 16 16" fill="none">
+                    <rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" strokeWidth={1.4}/>
+                    <path d="M11 5V3a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+              {/* Specialist */}
+              <ConsultAgentButton lead={initial} variant="full" direction="up" />
+            </>
+          )}
+
+          <div style={{ flex: 1 }} />
+
           <button onClick={onClose} style={{
             padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gray3)',
             background: 'transparent', fontSize: 12, fontWeight: 600,
@@ -1931,6 +1973,22 @@ export function LeadsView() {
     toast.success('Lead removido.')
   }
 
+  // ── Duplicate ──
+  const handleDuplicate = async (lead: Lead) => {
+    const { id: _id, created_at: _ca, ...data } = lead
+    const res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, name: `${data.name} (cópia)` }),
+    })
+    if (!res.ok) { toast.error('Erro ao duplicar lead'); return }
+    const created = await res.json() as Lead
+    setLeads(prev => [created, ...prev])
+    setShowForm(false)
+    setEditingLead(null)
+    toast.success('Lead duplicado!')
+  }
+
   // ── Stage change (kanban drag) ──
   const handleStageChange = async (id: string, stage: LeadFunnelStage) => {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, funnel_stage: stage } : l))
@@ -2160,6 +2218,8 @@ export function LeadsView() {
           defaultStage={newLeadStage}
           onClose={() => { setShowForm(false); setEditingLead(null); setNewLeadStage(undefined) }}
           onSave={handleSave}
+          onDelete={editingLead ? () => { setShowForm(false); setDeletingLead(editingLead) } : undefined}
+          onDuplicate={editingLead ? () => handleDuplicate(editingLead) : undefined}
         />
       )}
       {deletingLead && (
