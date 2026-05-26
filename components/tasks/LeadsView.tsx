@@ -9,6 +9,7 @@ import { useTeamStore } from '@/stores/teamStore'
 import { MemberAvatarTip } from '@/components/ui/MemberAvatarTip'
 import { MemberAvatar } from '@/components/ui/MemberAvatar'
 import { MemberPicker } from '@/components/ui/MemberPicker'
+import { LeadMeetingsTab } from '@/components/ui/LeadMeetingsTab'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 const STAGES: { id: LeadFunnelStage; label: string; short: string; color: string; bg: string }[] = [
   { id: 'novo_lead',        label: '1. Novo Lead',        short: 'Novo Lead',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.07)'  },
   { id: 'contato_inicial',  label: '2. Contato Inicial',  short: 'Contato',      color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
-  { id: 'proposta',         label: '3. Proposta',         short: 'Proposta',     color: '#D97706', bg: 'rgba(217,119,6,0.07)'   },
+  { id: 'proposta',         label: '3. Proposta',         short: 'Proposta',     color: '#CA8A04', bg: 'rgba(234,179,8,0.09)'   },
   { id: 'negociacao',       label: '4. Negociação',       short: 'Negociação',   color: '#EA580C', bg: 'rgba(234,88,12,0.07)'   },
   { id: 'venda_realizada',  label: 'Venda Realizada',     short: 'Venda',        color: '#1E8A3E', bg: 'rgba(30,138,62,0.07)'   },
   { id: 'perdido',          label: 'Perdido',             short: 'Perdido',      color: '#9CA3AF', bg: 'rgba(156,163,175,0.07)' },
@@ -352,6 +353,7 @@ function LeadFormModal({
         }
       : { ...EMPTY_FORM, funnel_stage: defaultStage ?? EMPTY_FORM.funnel_stage }
   )
+  const [activeTab,        setActiveTab]       = useState<'dados' | 'reunioes'>('dados')
   const [saving,          setSaving]          = useState(false)
   const [attachments,     setAttachments]     = useState<LeadAttachment[]>([])
   const [attFetching,     setAttFetching]     = useState(false)
@@ -464,22 +466,62 @@ function LeadFormModal({
       >
         {/* Header */}
         <div style={{
-          padding: '22px 28px 18px', borderBottom: '1px solid var(--gray3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 28px 0', borderBottom: '1px solid var(--gray3)',
           position: 'sticky', top: 0, background: 'var(--white)', zIndex: 1,
           borderRadius: '16px 16px 0 0',
         }}>
-          <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
-            {initial ? 'Editar Lead' : 'Novo Lead'}
-          </h2>
-          <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: '50%', border: 'none',
-            background: 'var(--bg)', cursor: 'pointer', fontSize: 14, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
-          }}>×</button>
+          {/* Title row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
+              {initial ? 'Editar Lead' : 'Novo Lead'}
+            </h2>
+            <button onClick={onClose} style={{
+              width: 28, height: 28, borderRadius: '50%', border: 'none',
+              background: 'var(--bg)', cursor: 'pointer', fontSize: 14, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+            }}>×</button>
+          </div>
+          {/* Tabs — only when editing an existing lead */}
+          {initial?.id && (
+            <div style={{ display: 'flex', gap: 0 }}>
+              {(['dados', 'reunioes'] as const).map(tab => {
+                const isActive = activeTab === tab
+                const label    = tab === 'dados' ? 'Dados' : 'Reuniões'
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      padding: '8px 18px', fontSize: 12, fontWeight: 700,
+                      border: 'none', background: 'transparent',
+                      color: isActive ? 'var(--primary)' : 'var(--gray2)',
+                      borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      transition: 'color 0.15s, border-color 0.15s',
+                      marginBottom: -1,
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--black)' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--gray2)' }}
+                  >{label}</button>
+                )
+              })}
+            </div>
+          )}
+          {/* If creating new lead, add bottom padding to match */}
+          {!initial?.id && <div style={{ height: 4 }} />}
         </div>
 
-        <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* Aba Reuniões */}
+        {activeTab === 'reunioes' && initial?.id && (
+          <div style={{ padding: '20px 28px', flex: 1, overflowY: 'auto' }}>
+            <LeadMeetingsTab
+              leadId={initial.id}
+              leadColor={STAGES.find(s => s.id === form.funnel_stage)?.color}
+            />
+          </div>
+        )}
+
+        <div style={{ padding: '22px 28px', display: activeTab === 'dados' ? 'flex' : 'none', flexDirection: 'column', gap: 18 }}>
 
           {/* Row: name + company */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -961,10 +1003,10 @@ function LeadFormModal({
 
         </div>
 
-        {/* Footer */}
+        {/* Footer — only on Dados tab */}
         <div style={{
           padding: '14px 28px 22px', borderTop: '1px solid var(--gray3)',
-          display: 'flex', justifyContent: 'flex-end', gap: 8,
+          display: activeTab === 'dados' ? 'flex' : 'none', justifyContent: 'flex-end', gap: 8,
           position: 'sticky', bottom: 0, background: 'var(--white)',
           borderRadius: '0 0 16px 16px',
         }}>

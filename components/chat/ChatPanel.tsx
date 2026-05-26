@@ -6,7 +6,7 @@ import { useChatStore, type ChatMessage } from '@/stores/chatStore'
 import { DEFAULT_AGENTS, getAgent, type AgentDefinition } from '@/lib/agents'
 import { calcProgress } from '@/lib/utils'
 import { useAgentsStore } from '@/stores/agentsStore'
-import type { AgentType, Project, Week, Client, Task } from '@/lib/types'
+import type { AgentType, Project, Week, Client, Task, Lead, LeadFile } from '@/lib/types'
 import { useTasksStore } from '@/stores/tasksStore'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { WeekPickerSelect } from '@/components/ui/WeekPickerSelect'
@@ -1345,12 +1345,14 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const setStreaming = useChatStore(s => s.setStreaming)
   const setProject      = useChatStore(s => s.setProject)
   const setTask         = useChatStore(s => s.setTask)
+  const setLead         = useChatStore(s => s.setLead)
   const setPendingInput = useChatStore(s => s.setPendingInput)
 
   const messages   = instance?.messages   ?? []
   const streaming  = instance?.streaming  ?? false
   const selectedProjectId = instance?.selectedProjectId ?? null
   const selectedTaskId    = instance?.selectedTaskId    ?? null
+  const selectedLeadId    = instance?.selectedLeadId    ?? null
   const pendingInput      = instance?.pendingInput      ?? null
 
   const [projects,  setProjects]            = useState<Project[]>([])
@@ -1378,6 +1380,8 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const [githubLoading, setGithubLoading]   = useState(false)
   const [projectFiles,    setProjectFiles]    = useState<{ filename: string; text_content: string }[]>([])
   const [projectMeetings, setProjectMeetings] = useState<{ title: string; date: string | null; summary: string | null; action_items: string | null }[]>([])
+  const [leads,           setLeads]           = useState<Lead[]>([])
+  const [leadFiles,       setLeadFiles]       = useState<LeadFile[]>([])
   const [cmdIndex, setCmdIndex]             = useState(0)
   const [activeSlashCmd, setActiveSlashCmd] = useState<typeof SLASH_COMMANDS[number] | null>(null)
   const recognitionRef   = useRef<unknown>(null)
@@ -1393,6 +1397,23 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       fetch('/api/clients').then(r => r.json()),
     ]).then(([p, w, c]) => { setProjects(p); setWeeks(w); setClients(c) })
   }, [])
+
+  // Fetch leads for lead context dropdown (exclude 'perdido')
+  useEffect(() => {
+    fetch('/api/leads')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Lead[]) => setLeads(Array.isArray(data) ? data.filter(l => l.funnel_stage !== 'perdido') : []))
+      .catch(() => setLeads([]))
+  }, [])
+
+  // Fetch lead files when a lead is selected
+  useEffect(() => {
+    if (!selectedLeadId) { setLeadFiles([]); return }
+    fetch(`/api/leads/${selectedLeadId}/files`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: LeadFile[]) => setLeadFiles(Array.isArray(data) ? data : []))
+      .catch(() => setLeadFiles([]))
+  }, [selectedLeadId])
 
   // Fetch project knowledge-base files whenever the selected project changes
   useEffect(() => {
@@ -1622,8 +1643,35 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
   const taskOptions     = useMemo(() => projectTasks.map(t => ({ id: t.id, label: t.title })), [projectTasks])
   const selectedTask    = useMemo(() => storeTasks.find(t => t.id === selectedTaskId) ?? null, [storeTasks, selectedTaskId])
 
+  const selectedLead = useMemo(() => leads.find(l => l.id === selectedLeadId) ?? null, [leads, selectedLeadId])
+
   const buildSystemPrompt = useCallback((agentDef: AgentDefinition) => {
     let prompt = agentDef.systemPrompt
+
+    // Lead context (mutually exclusive with project context)
+    if (selectedLead) {
+      prompt += `\n\n--- CONTEXTO DO LEAD ---`
+      prompt += `\nNome: ${selectedLead.name || '—'} | Empresa: ${selectedLead.company || '—'}`
+      prompt += ` | Etapa: ${selectedLead.funnel_stage}`
+      if (selectedLead.propensity) prompt += ` | Propensão: ${selectedLead.propensity}`
+      if (selectedLead.segment)    prompt += ` | Segmento: ${selectedLead.segment}`
+      if (selectedLead.email)      prompt += `\nE-mail: ${selectedLead.email}`
+      if (selectedLead.phone)      prompt += ` | Telefone: ${selectedLead.phone}`
+      if (selectedLead.context)    prompt += `\nContexto: ${selectedLead.context}`
+      if (selectedLead.notes)      prompt += `\nNotas: ${selectedLead.notes}`
+      if (selectedLead.project_types?.length) prompt += `\nTipos de projeto: ${selectedLead.project_types.join(', ')}`
+      if (leadFiles.length > 0) {
+        prompt += '\n\n--- ARQUIVOS DO LEAD (BASE DE CONHECIMENTO) ---'
+        leadFiles.forEach(f => {
+          if (f.text_content?.trim()) {
+            prompt += `\n\n[Arquivo: "${f.filename}"]\n${f.text_content.trim()}`
+          }
+        })
+        prompt += '\n--- FIM DOS ARQUIVOS ---'
+      }
+      return prompt
+    }
+
     if (selectedProject) {
       prompt += `\n\n--- CONTEXTO DO PROJETO ---\nNome: ${selectedProject.name}`
       if (selectedProject.client?.name) prompt += ` | Cliente: ${selectedProject.client.name}`
@@ -1665,7 +1713,7 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
       }
     }
     return prompt
-  }, [selectedProject, projectTasks, selectedTask, githubContext, projectFiles, projectMeetings])
+  }, [selectedProject, projectTasks, selectedTask, githubContext, projectFiles, projectMeetings, selectedLead, leadFiles])
 
   const runStream = useCallback(async (
     systemPrompt: string, history: { role: string; content: string; images?: { data: string; mediaType: string; name: string }[] }[],
@@ -2227,6 +2275,13 @@ function ChatPanelInner({ agentType, rightOffset, isMobile }: ChatPanelProps) {
           <span style={{ fontSize: 10, fontWeight: 700, color: agent.color, textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 2, opacity: 0.8 }}>Contexto</span>
           <ContextDropdown label="Conversa geral" value={selectedProjectId} options={projectOptions} onChange={id => setProject(agentType, id)} color={agent.color} />
           {selectedProjectId && <ContextDropdown label="Todos os entregáveis" value={selectedTaskId} options={taskOptions} onChange={id => setTask(agentType, id)} color={agent.color} disabled={taskOptions.length === 0} />}
+          <ContextDropdown
+            label="Lead"
+            value={selectedLeadId}
+            options={leads.map(l => ({ id: l.id, label: l.company || l.name || l.id, sublabel: l.funnel_stage.replace('_', ' ') }))}
+            onChange={id => setLead(agentType, id)}
+            color="#8B5CF6"
+          />
           {/* GitHub badge — só aparece para o agente Dev quando há repo configurado */}
           {agentType === 'dev' && selectedProject?.github_repo && (
             <div style={{

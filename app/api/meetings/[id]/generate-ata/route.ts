@@ -31,10 +31,12 @@ export async function POST(
     const row = mtgRes.rows[0] as Record<string, unknown> | undefined
     if (!row) return NextResponse.json({ error: 'Reunião não encontrada' }, { status: 404 })
 
-    // Busca o projeto vinculado
+    // Busca o projeto ou lead vinculado
     const projectId = row.project_id as string | null
+    const leadId    = row.lead_id    as string | null
     let projectName = ''
     let clientName  = ''
+    let leadContext = ''   // bloco de contexto para reuniões de lead
     if (projectId) {
       const projRes = await db.execute({
         sql: `SELECT p.name AS pname, c.name AS cname
@@ -45,6 +47,25 @@ export async function POST(
       const pr = projRes.rows[0] as Record<string, unknown> | undefined
       projectName = (pr?.pname as string) ?? ''
       clientName  = (pr?.cname as string) ?? ''
+    } else if (leadId) {
+      const leadRes = await db.execute({
+        sql: `SELECT name, company, funnel_stage, propensity, segment FROM leads WHERE id = ? LIMIT 1`,
+        args: [leadId],
+      })
+      const lr = leadRes.rows[0] as Record<string, unknown> | undefined
+      if (lr) {
+        const leadName    = (lr.name    as string) ?? ''
+        const leadCompany = (lr.company as string) ?? ''
+        projectName = leadName || leadCompany
+        clientName  = leadCompany || leadName
+        leadContext = [
+          `Lead: ${leadName || '—'}`,
+          `Empresa: ${leadCompany || '—'}`,
+          `Etapa: ${(lr.funnel_stage as string) ?? '—'}`,
+          lr.propensity ? `Propensão: ${lr.propensity}` : '',
+          lr.segment    ? `Segmento: ${lr.segment}`    : '',
+        ].filter(Boolean).join(' | ')
+      }
     }
 
     const title       = row.title        as string
@@ -150,8 +171,7 @@ Escreva 1 a 2 parágrafos descrevendo os próximos passos esperados após esta r
     const userMessage = `Gere a ata da seguinte reunião:
 
 **Título:** ${title}
-**Projeto:** ${projectName || '—'}
-**Cliente:** ${clientName || '—'}
+${leadContext ? `**Contexto do Lead:** ${leadContext}` : `**Projeto:** ${projectName || '—'}\n**Cliente:** ${clientName || '—'}`}
 **Data:** ${fmtDateLong(date)} (${date ? new Date(date).toLocaleDateString('pt-BR') : '—'})
 **Horário:** ${fmtTime(date)}
 

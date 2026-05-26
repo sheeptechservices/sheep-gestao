@@ -187,8 +187,19 @@ export interface Meeting {
   participants?: string[]             // convidados (calendário)
   meeting_attendees?: MeetingAttendee[] // quem entrou de fato na chamada
   project_id?: string
+  lead_id?: string
   project?: Project
   auto_matched?: boolean
+  created_at: string
+}
+
+export interface LeadFile {
+  id: string
+  lead_id: string
+  filename: string
+  mime_type: string
+  size: number
+  text_content: string
   created_at: string
 }
 

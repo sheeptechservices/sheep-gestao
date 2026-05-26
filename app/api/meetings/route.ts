@@ -15,6 +15,7 @@ function rowToMeeting(row: Record<string, unknown>): Meeting {
     participants:      row.participants      ? JSON.parse(row.participants      as string) : [],
     meeting_attendees: row.meeting_attendees ? JSON.parse(row.meeting_attendees as string) : [],
     project_id:        row.project_id   as string | undefined,
+    lead_id:           row.lead_id      as string | undefined,
     auto_matched:      Boolean(row.auto_matched),
     created_at:        row.created_at   as string,
   }
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
   try {
     const db        = await initDb()
     const projectId = req.nextUrl.searchParams.get('project_id')
+    const leadId    = req.nextUrl.searchParams.get('lead_id')
     const limitParam = req.nextUrl.searchParams.get('limit')
     const limit      = limitParam ? parseInt(limitParam, 10) : null
 
@@ -39,6 +41,11 @@ export async function GET(req: NextRequest) {
       ? await db.execute({
           sql:  `SELECT * FROM meetings WHERE project_id = ? ${orderBy}${limitSql}`,
           args: [projectId],
+        })
+      : leadId
+      ? await db.execute({
+          sql:  `SELECT * FROM meetings WHERE lead_id = ? ${orderBy}${limitSql}`,
+          args: [leadId],
         })
       : await db.execute({
           sql:  `SELECT * FROM meetings ${orderBy}${limitSql}`,

@@ -237,6 +237,18 @@ async function createTables(db: Client) {
 
     CREATE INDEX IF NOT EXISTS idx_lead_attachments_lead_id ON lead_attachments(lead_id);
 
+    CREATE TABLE IF NOT EXISTS lead_files (
+      id           TEXT PRIMARY KEY,
+      lead_id      TEXT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+      filename     TEXT NOT NULL,
+      mime_type    TEXT NOT NULL DEFAULT '',
+      size         INTEGER NOT NULL DEFAULT 0,
+      text_content TEXT NOT NULL DEFAULT '',
+      created_at   TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_lead_files_lead_id ON lead_files(lead_id);
+
     CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
     CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(read);
@@ -298,6 +310,7 @@ async function migrateDb(db: Client) {
     tryAlter(db, `ALTER TABLE tasks ADD COLUMN member_ids   TEXT`),
     // meetings
     tryAlter(db, `ALTER TABLE meetings ADD COLUMN meeting_attendees TEXT DEFAULT '[]'`),
+    tryAlter(db, `ALTER TABLE meetings ADD COLUMN lead_id TEXT REFERENCES leads(id)`),
     // leads
     tryAlter(db, `ALTER TABLE leads ADD COLUMN owner_id TEXT`),
     // team_members — expanded profile fields
