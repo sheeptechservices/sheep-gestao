@@ -14,7 +14,6 @@ const STAGES: { id: LeadFunnelStage; label: string; short: string; color: string
   { id: 'contato_inicial',  label: '2. Contato Inicial',  short: 'Contato',      color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
   { id: 'proposta',         label: '3. Proposta',         short: 'Proposta',     color: '#7C3AED', bg: 'rgba(124,58,237,0.07)'  },
   { id: 'negociacao',       label: '4. Negociação',       short: 'Negociação',   color: '#EA580C', bg: 'rgba(234,88,12,0.07)'   },
-  { id: 'fechamento',       label: '5. Fechamento',       short: 'Fechamento',   color: '#D97706', bg: 'rgba(217,119,6,0.07)'   },
   { id: 'venda_realizada',  label: 'Venda Realizada',     short: 'Venda',        color: '#1E8A3E', bg: 'rgba(30,138,62,0.07)'   },
   { id: 'perdido',          label: 'Perdido',             short: 'Perdido',      color: '#9CA3AF', bg: 'rgba(156,163,175,0.07)' },
 ]
@@ -1502,7 +1501,7 @@ export function LeadsView() {
 
   // ── KPIs ──
   const activeLeads     = leads.filter(l => !['venda_realizada', 'perdido'].includes(l.funnel_stage))
-  const negotiating     = leads.filter(l => ['negociacao', 'fechamento'].includes(l.funnel_stage))
+  const negotiating     = leads.filter(l => l.funnel_stage === 'negociacao')
   const totalPipeline   = activeLeads.reduce((s, l) => s + (l.estimated_value ?? 0), 0)
   const wonValue        = leads.filter(l => l.funnel_stage === 'venda_realizada').reduce((s, l) => s + (l.estimated_value ?? 0), 0)
 

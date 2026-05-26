@@ -204,7 +204,6 @@ export type LeadFunnelStage =
   | 'contato_inicial'
   | 'proposta'
   | 'negociacao'
-  | 'fechamento'
   | 'venda_realizada'
   | 'perdido'
 
