@@ -66,6 +66,32 @@ const SUB_SEGMENT_OPTIONS = [
   { value: 'Outro',                  label: 'Outro'                  },
 ]
 
+const COMMERCIAL_ORIGIN_OPTIONS = [
+  { value: '',               label: '— Sem origem —'       },
+  { value: 'Indicação',      label: 'Indicação'             },
+  { value: 'LinkedIn',       label: 'LinkedIn'              },
+  { value: 'Evento',         label: 'Evento'                },
+  { value: 'Site / Blog',    label: 'Site / Blog'           },
+  { value: 'Cold Outreach',  label: 'Cold Outreach'         },
+  { value: 'Parceria',       label: 'Parceria'              },
+  { value: 'Rede Social',    label: 'Rede Social'           },
+  { value: 'Prospecção Ativa', label: 'Prospecção Ativa'    },
+  { value: 'Outro',          label: 'Outro'                 },
+]
+
+const ACQUISITION_CHANNEL_OPTIONS = [
+  { value: '',          label: '— Sem canal —'  },
+  { value: 'Inbound',   label: 'Inbound'        },
+  { value: 'Outbound',  label: 'Outbound'       },
+  { value: 'Indicação', label: 'Indicação'      },
+  { value: 'LinkedIn',  label: 'LinkedIn'       },
+  { value: 'E-mail',    label: 'E-mail'         },
+  { value: 'WhatsApp',  label: 'WhatsApp'       },
+  { value: 'Evento',    label: 'Evento'         },
+  { value: 'Instagram', label: 'Instagram'      },
+  { value: 'Outro',     label: 'Outro'          },
+]
+
 const PROJECT_TYPES = [
   'Alocação Time', 'Consultoria BI', 'Dev.Software', 'Transformação Digital',
   'Power Platform', 'IA', 'SaaS', 'TaaS', 'BI', 'Outro',
@@ -476,11 +502,21 @@ function LeadFormModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               {label('Origem Comercial')}
-              <input style={inputStyle} value={form.commercial_origin ?? ''} onChange={e => set('commercial_origin', e.target.value)} placeholder="Indicação, LinkedIn, Evento…" />
+              <AppSelect
+                value={form.commercial_origin ?? ''}
+                onChange={v => set('commercial_origin', v)}
+                options={COMMERCIAL_ORIGIN_OPTIONS}
+                placeholder="— Sem origem —"
+              />
             </div>
             <div>
               {label('Canal de Aquisição')}
-              <input style={inputStyle} value={form.acquisition_channel ?? ''} onChange={e => set('acquisition_channel', e.target.value)} placeholder="Inbound, Outbound…" />
+              <AppSelect
+                value={form.acquisition_channel ?? ''}
+                onChange={v => set('acquisition_channel', v)}
+                options={ACQUISITION_CHANNEL_OPTIONS}
+                placeholder="— Sem canal —"
+              />
             </div>
           </div>
 
