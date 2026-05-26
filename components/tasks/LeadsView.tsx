@@ -1362,6 +1362,85 @@ function LinkedInBanner({ onConnect }: { onConnect: () => void }) {
   )
 }
 
+// ── FilterPill ────────────────────────────────────────────────────────────────
+
+function FilterPill({ label, value, options, onChange }: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [open])
+
+  const active   = value !== ''
+  const selected = options.find(o => o.value === value)
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '5px 10px', borderRadius: 8,
+          border: `1px solid ${active ? 'var(--primary)' : 'var(--gray3)'}`,
+          background: active ? 'var(--primary-dim)' : 'var(--white)',
+          color: active ? 'var(--primary)' : 'var(--gray)',
+          fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          fontFamily: 'inherit', transition: 'all 0.15s',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {active ? selected?.label ?? label : label}
+        {active && (
+          <span
+            onClick={e => { e.stopPropagation(); onChange('') }}
+            style={{ marginLeft: 2, opacity: 0.6, fontWeight: 400, fontSize: 13, lineHeight: 1 }}
+          >×</span>
+        )}
+        {!active && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M2 4l3 3 3-3"/>
+          </svg>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          background: 'var(--white)', border: '1px solid var(--gray3)',
+          borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+          minWidth: 160, overflow: 'hidden',
+        }}>
+          {options.map(opt => (
+            <div
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              style={{
+                padding: '8px 12px', fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', color: opt.value === value ? 'var(--primary)' : 'var(--black)',
+                background: opt.value === value ? 'var(--primary-dim)' : 'transparent',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'var(--bg)' }}
+              onMouseLeave={e => { if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function LeadsView() {
@@ -1374,6 +1453,8 @@ export function LeadsView() {
   const [linkedInConn,  setLinkedInConn]  = useState<boolean | null>(null)
   const [syncing,       setSyncing]       = useState(false)
   const [hovNewLead,    setHovNewLead]    = useState(false)
+  const [filterStage,      setFilterStage]      = useState('')
+  const [filterPropensity, setFilterPropensity] = useState('')
   const { isMobile } = useBreakpoint()
 
   // ── Load leads ──
@@ -1430,6 +1511,25 @@ export function LeadsView() {
     { label: 'Em negociação',  value: negotiating.length,    color: '#EA580C' },
     { label: 'Pipeline total', value: fmtValue(totalPipeline), color: '#0891B2' },
     { label: 'Vendas',         value: fmtValue(wonValue),      color: '#1E8A3E' },
+  ]
+
+  // ── Filtered leads ──
+  const filteredLeads = leads.filter(l => {
+    if (filterStage      && l.funnel_stage !== filterStage)      return false
+    if (filterPropensity && l.propensity   !== filterPropensity) return false
+    return true
+  })
+
+  const stageFilterOptions = [
+    { value: '', label: 'Todas as etapas' },
+    ...STAGES.map(s => ({ value: s.id, label: s.label })),
+  ]
+
+  const propensityFilterOptions = [
+    { value: '',       label: 'Todas' },
+    { value: 'frio',   label: 'Frio'   },
+    { value: 'morno',  label: 'Morno'  },
+    { value: 'quente', label: 'Quente 🔥' },
   ]
 
   // ── Create / Update ──
@@ -1529,35 +1629,7 @@ export function LeadsView() {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
-              {/* View toggle — sliding pill */}
-              <div style={{ position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
-                <div style={{
-                  position: 'absolute', top: 2, bottom: 2,
-                  width: 'calc(50% - 2px)',
-                  left: view === 'kanban' ? 2 : 'calc(50%)',
-                  background: 'var(--white)', borderRadius: 6,
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-                  transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
-                  pointerEvents: 'none',
-                }} />
-                {(['kanban', 'table'] as const).map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    style={{
-                      position: 'relative', zIndex: 1,
-                      width: 56, padding: '4px 0',
-                      borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontSize: 11, fontWeight: 700, textAlign: 'center',
-                      background: 'transparent',
-                      color: view === v ? 'var(--black)' : 'var(--gray2)',
-                      transition: 'color 0.2s ease',
-                    }}
-                  >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
-                ))}
-              </div>
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'flex-end' : 'flex-end' }}>
               {/* LinkedIn sync */}
               {linkedInConn && (
                 <button
@@ -1608,6 +1680,64 @@ export function LeadsView() {
             </div>
           </div>
 
+          {/* Filter bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 4 }}>
+              Filtrar
+            </span>
+            <FilterPill
+              label="Etapa"
+              value={filterStage}
+              options={stageFilterOptions}
+              onChange={setFilterStage}
+            />
+            <FilterPill
+              label="Propensão"
+              value={filterPropensity}
+              options={propensityFilterOptions}
+              onChange={setFilterPropensity}
+            />
+            {(filterStage || filterPropensity) && (
+              <button
+                onClick={() => { setFilterStage(''); setFilterPropensity('') }}
+                style={{
+                  fontSize: 11, fontWeight: 600, color: 'var(--gray2)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '4px 6px', borderRadius: 6,
+                }}
+              >
+                Limpar filtros
+              </button>
+            )}
+            {/* View toggle — sliding pill — pushed to the right */}
+            <div style={{ marginLeft: 'auto', position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
+              <div style={{
+                position: 'absolute', top: 2, bottom: 2,
+                width: 'calc(50% - 2px)',
+                left: view === 'kanban' ? 2 : 'calc(50%)',
+                background: 'var(--white)', borderRadius: 6,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+                transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: 'none',
+              }} />
+              {(['kanban', 'table'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  style={{
+                    position: 'relative', zIndex: 1,
+                    width: 56, padding: '4px 0',
+                    borderRadius: 6, border: 'none', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, textAlign: 'center',
+                    background: 'transparent',
+                    color: view === v ? 'var(--black)' : 'var(--gray2)',
+                    transition: 'color 0.2s ease',
+                  }}
+                >{v === 'kanban' ? 'Kanban' : 'Tabela'}</button>
+              ))}
+            </div>
+          </div>
+
           {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 8 : 10 }}>
             {KPIS.map(kpi => (
@@ -1638,14 +1768,14 @@ export function LeadsView() {
           {/* Board / Table */}
           {view === 'kanban' ? (
             <KanbanView
-              leads={leads}
+              leads={filteredLeads}
               onEdit={l => { setEditingLead(l); setShowForm(true) }}
               onDelete={l => setDeletingLead(l)}
               onStageChange={handleStageChange}
             />
           ) : (
             <TableView
-              leads={leads}
+              leads={filteredLeads}
               onEdit={l => { setEditingLead(l); setShowForm(true) }}
               onDelete={l => setDeletingLead(l)}
               onFieldChange={handleFieldChange}
