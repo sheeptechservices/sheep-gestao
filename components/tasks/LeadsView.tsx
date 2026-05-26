@@ -114,8 +114,7 @@ function ShimBar({ w, h, r = 6, mb = 0, style }: { w: number | string; h: number
 
 function Skeleton() {
   const { isMobile } = useBreakpoint()
-  const activeStages = STAGES.filter(s => s.id !== 'perdido')
-  const colCount     = isMobile ? 3 : activeStages.length   // show 3 cols on mobile
+  const colCount = isMobile ? 3 : STAGES.length   // show 3 cols on mobile
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -146,11 +145,11 @@ function Skeleton() {
       <div style={{ overflowX: isMobile ? 'auto' : 'visible', margin: isMobile ? '0 -2px' : 0 }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? `repeat(${colCount}, 172px)` : `repeat(${activeStages.length}, 1fr)`,
+          gridTemplateColumns: isMobile ? `repeat(${colCount}, 172px)` : `repeat(${STAGES.length}, 1fr)`,
           gap: 8, alignItems: 'start',
           minWidth: isMobile ? `${colCount * 180}px` : undefined,
         }}>
-          {activeStages.slice(0, colCount).map((s, ci) => (
+          {STAGES.slice(0, colCount).map((s, ci) => (
             <div key={s.id}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1209,8 +1208,6 @@ function KanbanView({
   const [overZone, setOverZone] = useState<LeadFunnelStage | null>(null)
   const { isMobile } = useBreakpoint()
 
-  const activeStages = STAGES.filter(s => s.id !== 'perdido')
-  const lostStage    = STAGES.find(s => s.id === 'perdido')!
   const COL_W = 188   // fixed column width on mobile
 
   function dropProps(stageId: LeadFunnelStage) {
@@ -1303,17 +1300,9 @@ function KanbanView({
 
   return (
     <div style={{ overflowX: isMobile ? 'auto' : 'visible', margin: isMobile ? '0 -2px' : 0, paddingBottom: isMobile ? 8 : 0 }}>
-      <div style={{ minWidth: isMobile ? `${activeStages.length * (COL_W + 8)}px` : undefined }}>
-        <div style={gridStyle(activeStages.length)}>
-          {activeStages.map(s => renderCol(s, leads.filter(l => l.funnel_stage === s.id)))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0' }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perdidos</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
-        </div>
-        <div style={gridStyle(activeStages.length)}>
-          {renderCol(lostStage, leads.filter(l => l.funnel_stage === 'perdido'), true)}
+      <div style={{ minWidth: isMobile ? `${STAGES.length * (COL_W + 8)}px` : undefined }}>
+        <div style={gridStyle(STAGES.length)}>
+          {STAGES.map(s => renderCol(s, leads.filter(l => l.funnel_stage === s.id)))}
         </div>
       </div>
     </div>
