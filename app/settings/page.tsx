@@ -331,7 +331,8 @@ function HotkeyRecorder({ value, onChange }: {
 export default function SettingsPage() {
   const { title, description, primaryColor, setTitle, setDescription, setPrimaryColor,
           quickSearchHotkey, setQuickSearchHotkey } = useSettings()
-  const authUser = useAuth(s => s.user)
+  const authUser    = useAuth(s => s.user)
+  const authLoading = useAuth(s => s.loading)
 
   const [localTitle, setLocalTitle]       = useState(title)
   const [localDesc, setLocalDesc]         = useState(description)
@@ -378,6 +379,9 @@ export default function SettingsPage() {
 
   // Build a small live preview of the color
   const [pr, pg, pb] = hexToRgb(localColor)
+
+  // Aguarda identidade ser resolvida antes de renderizar qualquer coisa
+  if (authLoading) return null
 
   // Usuários comuns veem só a seção de perfil
   if (authUser && authUser.role !== 'master') {

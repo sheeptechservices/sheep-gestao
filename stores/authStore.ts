@@ -15,6 +15,7 @@ export const useAuth = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
 
   fetchMe: async () => {
+    set({ loading: true })
     try {
       const res = await fetch('/api/auth/me')
       if (res.ok) {

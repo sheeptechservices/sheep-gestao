@@ -92,21 +92,25 @@ export function Sidebar() {
   const pathname = usePathname()
   const { open, pinned, setOpen } = useSidebar()
   const { isMobile, isTablet } = useBreakpoint()
-  const authUser = useAuth(s => s.user)
+  const authUser  = useAuth(s => s.user)
+  const authLoading = useAuth(s => s.loading)
 
   // Filtra itens conforme permissões: masters veem tudo, users só o que foi liberado
   // /settings sempre visível — usuários podem editar nome/senha
-  const visibleNavItems = navItems
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => {
-        if (!authUser || authUser.role === 'master') return true
-        const slug = PAGE_SLUGS[item.href]
-        if (slug === 'settings') return true   // sempre visível
-        return slug ? authUser.allowed_pages.includes(slug) : true
-      }),
-    }))
-    .filter(group => group.items.length > 0)
+  // Enquanto authLoading=true renderiza lista vazia para evitar flash de itens proibidos
+  const visibleNavItems = authLoading
+    ? []
+    : navItems
+        .map(group => ({
+          ...group,
+          items: group.items.filter(item => {
+            if (authUser?.role === 'master') return true
+            const slug = PAGE_SLUGS[item.href]
+            if (slug === 'settings') return true   // sempre visível
+            return slug ? (authUser?.allowed_pages ?? []).includes(slug) : true
+          }),
+        }))
+        .filter(group => group.items.length > 0)
 
   // Pinned desktop: always in-grid — open/close is handled by the grid column width
   // Overlay (mobile / tablet / not-pinned): position:fixed with translateX slide

@@ -71,16 +71,19 @@ const NAV = [
 export function BottomNav() {
   const pathname   = usePathname()
   const { open: openSearch } = useQuickSearch()
-  const authUser = useAuth(s => s.user)
+  const authUser    = useAuth(s => s.user)
+  const authLoading = useAuth(s => s.loading)
 
   if (pathname === '/login') return null
 
   // Filtra itens por permissão (mantém sempre o botão de busca que não tem href)
+  // Enquanto authLoading=true renderiza só o botão de busca para evitar flash
   const visibleNav = NAV.filter(item => {
-    if (!item.href) return true                          // busca — sempre visível
-    if (!authUser || authUser.role === 'master') return true
+    if (!item.href) return true                        // busca — sempre visível
+    if (authLoading) return false                      // aguarda identidade ser resolvida
+    if (authUser?.role === 'master') return true
     const slug = PAGE_SLUGS[item.href]
-    return slug ? authUser.allowed_pages.includes(slug) : true
+    return slug ? (authUser?.allowed_pages ?? []).includes(slug) : true
   })
 
   return (
