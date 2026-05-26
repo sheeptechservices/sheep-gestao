@@ -200,8 +200,8 @@ export interface AgentConfig {
 }
 
 export type LeadFunnelStage =
+  | 'novo_lead'
   | 'contato_inicial'
-  | 'apresentacao'
   | 'proposta'
   | 'negociacao'
   | 'fechamento'

@@ -10,8 +10,8 @@ import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STAGES: { id: LeadFunnelStage; label: string; short: string; color: string; bg: string }[] = [
-  { id: 'contato_inicial',  label: '1. Contato Inicial',  short: 'Contato',      color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
-  { id: 'apresentacao',     label: '2. Apresentação',     short: 'Apresentação', color: '#0891B2', bg: 'rgba(8,145,178,0.07)'   },
+  { id: 'novo_lead',        label: '1. Novo Lead',        short: 'Novo Lead',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.07)'  },
+  { id: 'contato_inicial',  label: '2. Contato Inicial',  short: 'Contato',      color: '#6366F1', bg: 'rgba(99,102,241,0.07)'  },
   { id: 'proposta',         label: '3. Proposta',         short: 'Proposta',     color: '#7C3AED', bg: 'rgba(124,58,237,0.07)'  },
   { id: 'negociacao',       label: '4. Negociação',       short: 'Negociação',   color: '#EA580C', bg: 'rgba(234,88,12,0.07)'   },
   { id: 'fechamento',       label: '5. Fechamento',       short: 'Fechamento',   color: '#D97706', bg: 'rgba(217,119,6,0.07)'   },
