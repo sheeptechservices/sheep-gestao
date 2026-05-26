@@ -467,8 +467,9 @@ function KnowledgeBase({
   color: string
   refresh: number
 }) {
-  const [files,   setFiles]   = useState<LeadFile[]>([])
-  const [loading, setLoading] = useState(true)
+  const [files,       setFiles]       = useState<LeadFile[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [previewFile, setPreviewFile] = useState<LeadFile | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -481,6 +482,7 @@ function KnowledgeBase({
   const handleDelete = async (fileId: string) => {
     await fetch(`/api/leads/${leadId}/files/${fileId}`, { method: 'DELETE' })
     setFiles(prev => prev.filter(f => f.id !== fileId))
+    if (previewFile?.id === fileId) setPreviewFile(null)
   }
 
   if (loading) return (
@@ -489,6 +491,53 @@ function KnowledgeBase({
 
   return (
     <div style={{ marginTop: 24 }}>
+
+      {/* ── Preview modal ── */}
+      {previewFile && createPortal(
+        <div
+          onClick={() => setPreviewFile(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'fadeIn 0.18s ease both' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', width: '90vw', maxWidth: 860, maxHeight: '90vh', background: 'var(--white)', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.45)', overflow: 'hidden', animation: 'msgLeft 0.22s cubic-bezier(0.34,1.2,0.64,1) both' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--gray3)', flexShrink: 0 }}>
+              <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/>
+                <path d="M4 6h8M4 9h8M4 12h4"/>
+              </svg>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewFile.filename}</div>
+                <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{fmtDateShort(previewFile.created_at)} · {(previewFile.size / 1024).toFixed(1)} KB</div>
+              </div>
+              {/* Close */}
+              <button
+                onClick={() => setPreviewFile(null)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.12s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+              {previewFile.text_content?.trim() ? (
+                <MarkdownPreview text={previewFile.text_content} />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--gray2)' }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Conteúdo não disponível</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <svg width={13} height={13} viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 2h5l1 2h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Z"/>
@@ -516,10 +565,24 @@ function KnowledgeBase({
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.filename}</div>
                 <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>{fmtDateShort(f.created_at)} · {(f.size / 1024).toFixed(1)} KB</div>
               </div>
+              {/* Preview */}
+              <button
+                onClick={() => setPreviewFile(f)}
+                title="Visualizar conteúdo"
+                style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.12s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = color + '12'; e.currentTarget.style.borderColor = color + '60'; e.currentTarget.style.color = color }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={11} height={11} viewBox="0 0 14 14" fill="none">
+                  <ellipse cx="7" cy="7" rx="5.5" ry="3.5" stroke="currentColor" strokeWidth={1.4}/>
+                  <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
+              {/* Delete */}
               <button
                 onClick={() => handleDelete(f.id)}
                 title="Excluir arquivo"
-                style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0 }}
+                style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--gray3)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.12s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fecaca'; e.currentTarget.style.color = '#dc2626' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
               >

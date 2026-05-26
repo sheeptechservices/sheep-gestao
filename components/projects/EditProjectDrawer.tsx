@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import type { Project, ProjectStatus, ProjectType, Client } from '@/lib/types'
 import { calcProgress } from '@/lib/utils'
 import { AppSelect } from '@/components/ui/AppSelect'
@@ -157,6 +158,7 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
   const [loadingDocxId, setLoadingDocxId]   = useState<string | null>(null)
   const [renamingId, setRenamingId]         = useState<string | null>(null)
   const [renameValue, setRenameValue]       = useState('')
+  const [previewFile, setPreviewFile]       = useState<ProjectFile | null>(null)
   const dlRef                               = useRef<HTMLDivElement>(null)
   const renameInputRef                      = useRef<HTMLInputElement>(null)
   const fileRef                             = useRef<HTMLInputElement>(null)
@@ -375,6 +377,85 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
         </>
       )}
 
+      {/* ── File preview modal ── */}
+      {previewFile && createPortal(
+        <div
+          onClick={() => setPreviewFile(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'fadeIn 0.18s ease both' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', width: '90vw', maxWidth: 860, maxHeight: '90vh', background: 'var(--white)', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.45)', overflow: 'hidden', animation: 'msgLeft 0.22s cubic-bezier(0.34,1.2,0.64,1) both' }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--gray3)', flexShrink: 0 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{fileIcon(previewFile.mime_type, previewFile.filename)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewFile.filename}</div>
+                <div style={{ fontSize: 10, color: 'var(--gray2)', fontWeight: 500, marginTop: 1 }}>{fmtSize(previewFile.size)}</div>
+              </div>
+              {/* Download buttons */}
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {[
+                  { label: 'TXT',  action: () => handleDownloadTxt(previewFile) },
+                  { label: 'DOCX', action: () => handleDownloadDocx(previewFile) },
+                  { label: 'PDF',  action: () => handleDownloadPdf(previewFile) },
+                ].map(opt => (
+                  <button key={opt.label} onClick={opt.action}
+                    style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid var(--gray3)', background: 'var(--bg)', fontSize: 11, fontWeight: 700, color: 'var(--black)', cursor: 'pointer', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = color }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                  >{opt.label}</button>
+                ))}
+              </div>
+              {/* Close */}
+              <button
+                onClick={() => setPreviewFile(null)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray2)', flexShrink: 0, transition: 'all 0.12s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--gray3)'; e.currentTarget.style.color = 'var(--black)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={13} height={13} viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+              {previewFile.text_content?.trim() ? (
+                <div className="md-preview" dangerouslySetInnerHTML={{ __html: `<style>
+                  .md-preview{font-size:13px;line-height:1.75;color:var(--black);font-family:inherit}
+                  .md-preview h1{font-size:20px;font-weight:900;color:var(--black);margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid ${color}30}
+                  .md-preview h2{font-size:14px;font-weight:800;color:var(--black);text-transform:uppercase;letter-spacing:.06em;margin:24px 0 8px;padding-bottom:5px;border-bottom:1.5px solid var(--gray3)}
+                  .md-preview h3{font-size:13px;font-weight:700;color:var(--gray);margin:16px 0 5px}
+                  .md-preview p{margin:4px 0 8px;color:var(--gray)}
+                  .md-preview ul,.md-preview ol{padding-left:20px;margin:4px 0 10px}
+                  .md-preview li{margin-bottom:4px;color:var(--gray)}
+                  .md-preview strong{font-weight:700;color:var(--black)}
+                  .md-preview em{font-style:italic;color:var(--gray2)}
+                  .md-preview code{font-family:'Courier New',monospace;font-size:11.5px;background:var(--bg);color:var(--black);padding:2px 5px;border-radius:3px;border:1px solid var(--gray3)}
+                  .md-preview pre{background:var(--bg);border:1px solid var(--gray3);border-left:3px solid ${color}60;border-radius:6px;padding:12px 14px;margin:10px 0;overflow-x:auto;font-size:11.5px;line-height:1.6}
+                  .md-preview pre code{background:none;border:none;padding:0}
+                  .md-preview blockquote{border-left:3px solid ${color};background:${color}08;margin:10px 0;padding:8px 12px;border-radius:0 5px 5px 0;color:var(--gray);font-style:normal;font-weight:500}
+                  .md-preview hr{border:none;border-top:1px solid var(--gray3);margin:18px 0}
+                  .md-preview table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px}
+                  .md-preview thead{background:${color}10}
+                  .md-preview th{padding:7px 11px;text-align:left;font-weight:700;color:var(--black);border-bottom:2px solid ${color}30;white-space:nowrap}
+                  .md-preview td{padding:6px 11px;border-bottom:1px solid var(--gray3);color:var(--gray);vertical-align:top}
+                  .md-preview tr:last-child td{border-bottom:none}
+                  .md-preview a{color:${color};text-decoration:underline}
+                </style>${markdownToHtml(previewFile.text_content)}` }}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--gray2)' }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Conteúdo não disponível para prévia</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <label style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         Base de conhecimento do agente
       </label>
@@ -464,6 +545,24 @@ function ProjectFilesSection({ projectId, color }: { projectId: string; color: s
                 )}
                 <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>{fmtSize(f.size)}</div>
               </div>
+              {/* Preview */}
+              <button
+                onClick={() => setPreviewFile(f)}
+                title="Visualizar conteúdo"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, border: '1px solid var(--gray3)',
+                  background: 'transparent', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', color: 'var(--gray2)',
+                  flexShrink: 0, transition: 'all 0.12s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = color + '12'; e.currentTarget.style.borderColor = color + '60'; e.currentTarget.style.color = color }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' }}
+              >
+                <svg width={11} height={11} viewBox="0 0 14 14" fill="none">
+                  <ellipse cx="7" cy="7" rx="5.5" ry="3.5" stroke="currentColor" strokeWidth={1.4}/>
+                  <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
               {/* Download dropdown */}
               <div ref={dlOpenId === f.id ? dlRef : undefined} style={{ position: 'relative', flexShrink: 0 }}>
                 <button
