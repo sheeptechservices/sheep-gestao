@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
 import { AppSelect } from '@/components/ui/AppSelect'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { Lead, LeadFunnelStage, LeadPropensity } from '@/lib/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -109,55 +110,62 @@ function ShimBar({ w, h, r = 6, mb = 0, style }: { w: number | string; h: number
 }
 
 function Skeleton() {
+  const { isMobile } = useBreakpoint()
   const activeStages = STAGES.filter(s => s.id !== 'perdido')
+  const colCount     = isMobile ? 3 : activeStages.length   // show 3 cols on mobile
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
       {/* Header shimmer */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'flex-start', justifyContent: 'space-between', gap: isMobile ? 12 : 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <ShimBar w={200} h={22} r={7} />
-          <ShimBar w={300} h={13} r={5} />
+          <ShimBar w={isMobile ? 160 : 200} h={22} r={7} />
+          <ShimBar w={isMobile ? 220 : 300} h={13} r={5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ShimBar w={120} h={30} r={8} />
-          <ShimBar w={110} h={30} r={100} />
+          <ShimBar w={isMobile ? 90 : 110} h={30} r={100} />
         </div>
       </div>
 
-      {/* KPI cards shimmer */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {/* KPI cards shimmer — 2×2 on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
         {[0,1,2,3].map(i => (
           <div key={i} className="shimmer-bar" style={{
-            borderRadius: 12, height: 80,
+            borderRadius: 12, height: isMobile ? 72 : 80,
             border: '1px solid var(--gray3)',
           }} />
         ))}
       </div>
 
-      {/* Kanban board shimmer */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`, gap: 8, alignItems: 'start' }}>
-        {activeStages.map((s, ci) => (
-          <div key={s.id}>
-            {/* Column header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gray3)' }} />
-                <ShimBar w={50} h={10} r={4} />
+      {/* Kanban board shimmer — horizontal scroll on mobile */}
+      <div style={{ overflowX: isMobile ? 'auto' : 'visible', margin: isMobile ? '0 -2px' : 0 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? `repeat(${colCount}, 172px)` : `repeat(${activeStages.length}, 1fr)`,
+          gap: 8, alignItems: 'start',
+          minWidth: isMobile ? `${colCount * 180}px` : undefined,
+        }}>
+          {activeStages.slice(0, colCount).map((s, ci) => (
+            <div key={s.id}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gray3)' }} />
+                  <ShimBar w={50} h={10} r={4} />
+                </div>
+                <ShimBar w={22} h={18} r={5} />
               </div>
-              <ShimBar w={22} h={18} r={5} />
+              {[1, 2, ci % 2 === 0 ? 3 : 0].filter(Boolean).map(i => (
+                <div key={i} className="shimmer-bar" style={{
+                  height: i === 3 ? 68 : 80,
+                  borderRadius: 10, marginBottom: 6,
+                  border: '1px solid var(--gray3)',
+                }} />
+              ))}
             </div>
-            {/* Cards */}
-            {[1, 2, ci % 2 === 0 ? 3 : 0].filter(Boolean).map(i => (
-              <div key={i} className="shimmer-bar" style={{
-                height: i === 3 ? 68 : 80,
-                borderRadius: 10, marginBottom: 6,
-                border: '1px solid var(--gray3)',
-              }} />
-            ))}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
     </div>
@@ -1019,9 +1027,11 @@ function KanbanView({
 }) {
   const [dragId,   setDragId]   = useState<string | null>(null)
   const [overZone, setOverZone] = useState<LeadFunnelStage | null>(null)
+  const { isMobile } = useBreakpoint()
 
   const activeStages = STAGES.filter(s => s.id !== 'perdido')
   const lostStage    = STAGES.find(s => s.id === 'perdido')!
+  const COL_W = 188   // fixed column width on mobile
 
   function dropProps(stageId: LeadFunnelStage) {
     const canDrop = dragId !== null && leads.find(l => l.id === dragId)?.funnel_stage !== stageId
@@ -1092,18 +1102,30 @@ function KanbanView({
     )
   }
 
+  const gridStyle = (cols: number): React.CSSProperties => isMobile ? {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${cols}, ${COL_W}px)`,
+    gap: 8, alignItems: 'start',
+  } : {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gap: 8, alignItems: 'start',
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`, gap: 8, alignItems: 'start' }}>
-        {activeStages.map(s => renderCol(s, leads.filter(l => l.funnel_stage === s.id)))}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0' }}>
-        <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perdidos</span>
-        <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${activeStages.length}, 1fr)`, gap: 8 }}>
-        {renderCol(lostStage, leads.filter(l => l.funnel_stage === 'perdido'), true)}
+    <div style={{ overflowX: isMobile ? 'auto' : 'visible', margin: isMobile ? '0 -2px' : 0, paddingBottom: isMobile ? 8 : 0 }}>
+      <div style={{ minWidth: isMobile ? `${activeStages.length * (COL_W + 8)}px` : undefined }}>
+        <div style={gridStyle(activeStages.length)}>
+          {activeStages.map(s => renderCol(s, leads.filter(l => l.funnel_stage === s.id)))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Perdidos</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--gray3)' }} />
+        </div>
+        <div style={gridStyle(activeStages.length)}>
+          {renderCol(lostStage, leads.filter(l => l.funnel_stage === 'perdido'), true)}
+        </div>
       </div>
     </div>
   )
@@ -1352,6 +1374,7 @@ export function LeadsView() {
   const [linkedInConn,  setLinkedInConn]  = useState<boolean | null>(null)
   const [syncing,       setSyncing]       = useState(false)
   const [hovNewLead,    setHovNewLead]    = useState(false)
+  const { isMobile } = useBreakpoint()
 
   // ── Load leads ──
   const loadLeads = useCallback(async () => {
@@ -1487,24 +1510,26 @@ export function LeadsView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
       {/* LinkedIn banner — always visible (null = not yet checked, false = not connected) */}
-      {linkedInConn === false && (
+      {linkedInConn === false && !isMobile && (
         <LinkedInBanner onConnect={() => { window.location.href = '/api/integrations/linkedin/auth' }} />
       )}
 
       {loading ? <Skeleton /> : (
         <>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: isMobile ? 10 : 16 }}>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--black)', margin: 0, letterSpacing: '-0.3px' }}>
+              <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 900, color: 'var(--black)', margin: 0, letterSpacing: '-0.3px' }}>
                 Pipeline de Leads
               </h1>
-              <p style={{ fontSize: 12, color: 'var(--gray2)', marginTop: 3, lineHeight: 1.5 }}>
-                Funil comercial — do primeiro contato até a conversão em cliente
-              </p>
+              {!isMobile && (
+                <p style={{ fontSize: 12, color: 'var(--gray2)', marginTop: 3, lineHeight: 1.5 }}>
+                  Funil comercial — do primeiro contato até a conversão em cliente
+                </p>
+              )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
               {/* View toggle — sliding pill */}
               <div style={{ position: 'relative', display: 'flex', background: 'var(--bg)', border: '1px solid var(--gray3)', borderRadius: 8, padding: 2 }}>
                 <div style={{
@@ -1584,7 +1609,7 @@ export function LeadsView() {
           </div>
 
           {/* KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 8 : 10 }}>
             {KPIS.map(kpi => (
               <div
                 key={kpi.label}
@@ -1599,13 +1624,13 @@ export function LeadsView() {
                 style={{
                   background: 'var(--white)', border: '1px solid var(--gray3)',
                   borderLeft: `4px solid ${kpi.color}`, borderRadius: 12,
-                  padding: '16px 18px', boxShadow: 'var(--shadow)',
+                  padding: isMobile ? '12px 14px' : '16px 18px', boxShadow: 'var(--shadow)',
                   transition: 'transform 0.22s ease, box-shadow 0.22s ease',
                   cursor: 'default',
                 }}
               >
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{kpi.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: kpi.color, marginTop: 6 }}>{kpi.value}</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{kpi.label}</div>
+                <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: kpi.color, marginTop: 5, lineHeight: 1.1 }}>{kpi.value}</div>
               </div>
             ))}
           </div>
