@@ -1038,7 +1038,31 @@ function CardOwnerPicker({ ownerId, onSelect }: {
   )
 }
 
-// ── Add-to-stage button ───────────────────────────────────────────────────────
+// ── Add-to-stage buttons ──────────────────────────────────────────────────────
+
+function HeaderAddButton({ color, onClick }: { color: string; onClick: () => void }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onClick() }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      title="Adicionar lead nesta etapa"
+      style={{
+        width: 18, height: 18, borderRadius: 5, border: 'none',
+        background: hov ? color + '28' : 'transparent',
+        color: hov ? color : 'var(--gray2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s',
+        fontFamily: 'inherit', padding: 0,
+      }}
+    >
+      <svg width={10} height={10} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+        <path d="M5 1.5v7M1.5 5h7"/>
+      </svg>
+    </button>
+  )
+}
 
 function AddToStageButton({ color, onClick }: { color: string; onClick: () => void }) {
   const [hov, setHov] = useState(false)
@@ -1226,6 +1250,9 @@ function KanbanView({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 800, border: `1px solid ${stage.color}33`,
             }}>{colLeads.length}</span>
+            {!dimmed && (
+              <HeaderAddButton color={stage.color} onClick={() => onAdd(stage.id)} />
+            )}
           </div>
         </div>
 
