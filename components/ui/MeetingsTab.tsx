@@ -365,14 +365,36 @@ function MeetingCard({
   meeting,
   color,
   projectId,
+  onDelete,
+  onUnlink,
 }: {
   meeting: Meeting
   color: string
   projectId: string
+  onDelete: (id: string) => void
+  onUnlink: (id: string) => void
 }) {
-  const [expanded,      setExpanded]  = useState(false)
+  const [expanded,       setExpanded]  = useState(false)
   const [showTranscript, setShowTrans] = useState(false)
-  const [showAtaModal,  setAtaModal]  = useState(false)
+  const [showAtaModal,   setAtaModal]  = useState(false)
+  const [confirm,        setConfirm]   = useState<'delete' | 'unlink' | null>(null)
+  const [busy,           setBusy]      = useState(false)
+
+  const handleDelete = async () => {
+    setBusy(true)
+    await fetch(`/api/meetings/${meeting.id}`, { method: 'DELETE' })
+    onDelete(meeting.id)
+  }
+
+  const handleUnlink = async () => {
+    setBusy(true)
+    await fetch(`/api/meetings/${meeting.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: null }),
+    })
+    onUnlink(meeting.id)
+  }
 
   const actionLines = meeting.action_items
     ?.split('\n')
@@ -382,18 +404,19 @@ function MeetingCard({
   return (
     <>
       <div style={{
-        border: '1px solid var(--gray3)',
+        border: `1px solid ${confirm ? (confirm === 'delete' ? 'rgba(220,38,38,0.3)' : 'rgba(234,179,8,0.4)') : 'var(--gray3)'}`,
         borderRadius: 10,
         overflow: 'hidden',
         background: 'var(--white)',
+        transition: 'border-color 0.15s',
       }}>
         {/* Header do card */}
         <div
-          onClick={() => setExpanded(e => !e)}
+          onClick={() => { if (!confirm) setExpanded(e => !e) }}
           style={{
             padding: '12px 14px',
             display: 'flex', alignItems: 'flex-start', gap: 10,
-            cursor: 'pointer',
+            cursor: confirm ? 'default' : 'pointer',
             background: expanded ? 'var(--bg)' : 'transparent',
             transition: 'background 0.15s',
           }}
@@ -466,12 +489,90 @@ function MeetingCard({
             Gerar Ata
           </button>
 
+          {/* Desvincular */}
+          <button
+            onClick={e => { e.stopPropagation(); setConfirm(c => c === 'unlink' ? null : 'unlink') }}
+            title="Desvincular do projeto"
+            style={{
+              width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+              border: `1px solid ${confirm === 'unlink' ? 'rgba(234,179,8,0.6)' : 'var(--gray3)'}`,
+              background: confirm === 'unlink' ? 'rgba(234,179,8,0.10)' : 'transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: confirm === 'unlink' ? '#CA8A04' : 'var(--gray2)', transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { if (confirm !== 'unlink') { e.currentTarget.style.background = 'rgba(234,179,8,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,179,8,0.5)'; e.currentTarget.style.color = '#CA8A04' } }}
+            onMouseLeave={e => { if (confirm !== 'unlink') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' } }}
+          >
+            <svg width={11} height={11} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8.5 5.5l-3 3"/>
+              <path d="M5 3.5L6.5 2A3.5 3.5 0 0 1 11.5 7l-1.5 1.5"/>
+              <path d="M9 10.5L7.5 12A3.5 3.5 0 0 1 2.5 7L4 5.5"/>
+              <path d="M1 1l12 12" />
+            </svg>
+          </button>
+
+          {/* Excluir */}
+          <button
+            onClick={e => { e.stopPropagation(); setConfirm(c => c === 'delete' ? null : 'delete') }}
+            title="Excluir reunião"
+            style={{
+              width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+              border: `1px solid ${confirm === 'delete' ? 'rgba(220,38,38,0.5)' : 'var(--gray3)'}`,
+              background: confirm === 'delete' ? 'rgba(220,38,38,0.08)' : 'transparent',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: confirm === 'delete' ? '#DC2626' : 'var(--gray2)', transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { if (confirm !== 'delete') { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.5)'; e.currentTarget.style.color = '#DC2626' } }}
+            onMouseLeave={e => { if (confirm !== 'delete') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--gray3)'; e.currentTarget.style.color = 'var(--gray2)' } }}
+          >
+            <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+              <path d="M2 3h8M4.5 3V2h3v1M3.5 3l.6 7h3.8l.6-7" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
           {/* Chevron */}
           <svg width={12} height={12} viewBox="0 0 12 12" fill="none"
             style={{ flexShrink: 0, marginTop: 2, opacity: 0.4, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}>
             <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
+
+        {/* Faixa de confirmação */}
+        {confirm && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 14px',
+            background: confirm === 'delete' ? 'rgba(220,38,38,0.05)' : 'rgba(234,179,8,0.06)',
+            borderTop: `1px solid ${confirm === 'delete' ? 'rgba(220,38,38,0.15)' : 'rgba(234,179,8,0.2)'}`,
+            animation: 'fadeIn 0.14s ease both',
+          }}>
+            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 600, color: confirm === 'delete' ? '#DC2626' : '#92400E' }}>
+              {confirm === 'delete'
+                ? 'Excluir permanentemente esta reunião?'
+                : 'Desvincular do projeto? A reunião continuará no sistema.'}
+            </span>
+            <button
+              onClick={() => setConfirm(null)}
+              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--gray3)', background: 'transparent', fontSize: 11, fontWeight: 600, color: 'var(--gray)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >Cancelar</button>
+            <button
+              onClick={confirm === 'delete' ? handleDelete : handleUnlink}
+              disabled={busy}
+              style={{
+                padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
+                background: confirm === 'delete' ? '#DC2626' : '#CA8A04',
+                color: '#fff', cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit',
+                opacity: busy ? 0.7 : 1, transition: 'opacity 0.12s',
+              }}
+              onMouseEnter={e => { if (!busy) e.currentTarget.style.opacity = '0.85' }}
+              onMouseLeave={e => { if (!busy) e.currentTarget.style.opacity = '1' }}
+            >
+              {busy ? '…' : confirm === 'delete' ? 'Excluir' : 'Desvincular'}
+            </button>
+          </div>
+        )}
 
         {/* Conteúdo expandido */}
         {expanded && (
@@ -591,6 +692,9 @@ export function MeetingsTab({ projectId, projectColor }: Props) {
       .catch(() => setLoading(false))
   }, [projectId])
 
+  const handleDelete = (id: string) => setMeetings(prev => prev.filter(m => m.id !== id))
+  const handleUnlink = (id: string) => setMeetings(prev => prev.filter(m => m.id !== id))
+
   const filtered = query.trim()
     ? meetings.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))
     : meetings
@@ -678,7 +782,10 @@ export function MeetingsTab({ projectId, projectColor }: Props) {
         </div>
       ) : (
         filtered.map(m => (
-          <MeetingCard key={m.id} meeting={m} color={projectColor} projectId={projectId} />
+          <MeetingCard
+            key={m.id} meeting={m} color={projectColor} projectId={projectId}
+            onDelete={handleDelete} onUnlink={handleUnlink}
+          />
         ))
       )}
     </div>
