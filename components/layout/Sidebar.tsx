@@ -11,6 +11,11 @@ const navItems = [
       {
         href: '/',
         label: 'Dashboard',
+        icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>,
+      },
+      {
+        href: '/tasks',
+        label: 'Gestão',
         icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
@@ -22,18 +27,6 @@ const navItems = [
             <path d="M19.938 10.5a4 4 0 0 1 .585.396"/>
             <path d="M6 18a4 4 0 0 1-1.967-.516"/>
             <path d="M19.967 17.484A4 4 0 0 1 18 18"/>
-          </svg>
-        ),
-      },
-      {
-        href: '/tasks',
-        label: 'Gestão',
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <rect x="1" y="3" width="2.2" height="10" rx="1"/>
-            <rect x="4.7" y="3" width="2.2" height="10" rx="1"/>
-            <rect x="8.4" y="3" width="2.2" height="10" rx="1"/>
-            <rect x="12.1" y="3" width="2.2" height="10" rx="1"/>
           </svg>
         ),
       },
