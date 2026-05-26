@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
-import type { AppUser } from './types'
+import type { AppUser, PagePermission } from './types'
+export type { PagePermission }
 
 /** E-mail do master protegido — nunca pode ter role ou active alterados */
 export const PROTECTED_MASTER_EMAIL = 'gestao.master@sheeptechnology.com.br'
@@ -9,7 +10,7 @@ export interface JwtPayload {
   name: string
   email: string
   role: 'master' | 'user'
-  pages: string[]      // allowed_pages
+  pages: Record<string, PagePermission>   // { slug: 'viewer' | 'editor' }
   active: boolean
   iat?: number
   exp?: number

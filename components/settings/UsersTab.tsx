@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '@/stores/toastStore'
 import { ALL_PAGES, PROTECTED_MASTER_EMAIL } from '@/lib/auth'
-import type { AppUser } from '@/lib/types'
+import type { AppUser, PagePermission } from '@/lib/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,13 +54,18 @@ function UserFormModal({ existing, selfId, onClose, onSaved }: UserFormProps) {
   const [showPass,      setShowPass]     = useState(false)
   const [role,          setRole]         = useState<'master' | 'user'>(existing?.role ?? 'user')
   const [active,        setActive]       = useState(existing?.active ?? true)
-  const [pages,         setPages]        = useState<string[]>(existing?.allowed_pages ?? [])
+  const [pages,         setPages]        = useState<Record<string, PagePermission>>(existing?.allowed_pages ?? {})
   const [saving,        setSaving]       = useState(false)
   const isEdit = !!existing
   const isProtected = existing?.email === PROTECTED_MASTER_EMAIL
 
-  function togglePage(slug: string) {
-    setPages(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug])
+  function setPagePerm(slug: string, perm: PagePermission | null) {
+    setPages(prev => {
+      const next = { ...prev }
+      if (perm === null) delete next[slug]
+      else next[slug] = perm
+      return next
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -240,32 +245,58 @@ function UserFormModal({ existing, selfId, onClose, onSaved }: UserFormProps) {
           {role === 'user' && (
             <div>
               {labelStyle('Páginas liberadas')}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Header */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px', gap: 6, padding: '4px 8px' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Página</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>Visualizador</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gray2)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>Editor</span>
+                </div>
                 {ALL_PAGES.map(p => {
-                  const on = pages.includes(p.slug)
+                  const perm = pages[p.slug] ?? null
                   return (
-                    <button
-                      key={p.slug} type="button"
-                      onClick={() => togglePage(p.slug)}
-                      style={{
-                        padding: '7px 10px', borderRadius: 8, textAlign: 'left',
-                        border: `1px solid ${on ? 'var(--primary)' : 'var(--gray3)'}`,
-                        background: on ? 'var(--primary-dim)' : 'transparent',
-                        color: on ? 'var(--primary)' : 'var(--gray2)',
-                        fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.12s',
-                      }}
-                    >
-                      <span style={{
-                        width: 12, height: 12, borderRadius: 3, flexShrink: 0,
-                        border: on ? '2px solid var(--primary)' : '1.5px solid var(--gray2)',
-                        background: on ? 'var(--primary)' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        {on && <svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    <div key={p.slug} style={{
+                      display: 'grid', gridTemplateColumns: '1fr 100px 100px', gap: 6,
+                      alignItems: 'center', padding: '7px 8px', borderRadius: 8,
+                      background: perm ? 'var(--bg)' : 'transparent',
+                      border: `1px solid ${perm ? 'var(--gray3)' : 'transparent'}`,
+                      transition: 'all 0.12s',
+                    }}>
+                      {/* Page name */}
+                      <span style={{ fontSize: 12, fontWeight: 600, color: perm ? 'var(--black)' : 'var(--gray2)' }}>
+                        {p.label}
                       </span>
-                      {p.label}
-                    </button>
+                      {/* Viewer button */}
+                      <button type="button"
+                        onClick={() => setPagePerm(p.slug, perm === 'viewer' ? null : 'viewer')}
+                        style={{
+                          padding: '5px 0', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                          border: `1.5px solid ${perm === 'viewer' ? '#2563EB' : 'var(--gray3)'}`,
+                          background: perm === 'viewer' ? 'rgba(37,99,235,0.10)' : 'transparent',
+                          color: perm === 'viewer' ? '#2563EB' : 'var(--gray2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Ver
+                      </button>
+                      {/* Editor button */}
+                      <button type="button"
+                        onClick={() => setPagePerm(p.slug, perm === 'editor' ? null : 'editor')}
+                        style={{
+                          padding: '5px 0', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+                          border: `1.5px solid ${perm === 'editor' ? '#059669' : 'var(--gray3)'}`,
+                          background: perm === 'editor' ? 'rgba(5,150,105,0.10)' : 'transparent',
+                          color: perm === 'editor' ? '#059669' : 'var(--gray2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M8 2L10 4L4 10H2V8L8 2Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Editar
+                      </button>
+                    </div>
                   )
                 })}
               </div>
@@ -415,14 +446,18 @@ export function UsersTab({ selfId }: { selfId: string }) {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--gray2)', marginTop: 2 }}>
                   {u.email}
-                  {u.role === 'user' && u.allowed_pages.length > 0 && (
-                    <span style={{ marginLeft: 8 }}>
-                      {u.allowed_pages.length} página{u.allowed_pages.length !== 1 ? 's' : ''} liberada{u.allowed_pages.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                  {u.role === 'user' && u.allowed_pages.length === 0 && (
-                    <span style={{ marginLeft: 8, color: '#DC2626' }}>Sem acesso a nenhuma página</span>
-                  )}
+                  {u.role === 'user' && (() => {
+                    const entries = Object.entries(u.allowed_pages)
+                    if (entries.length === 0) return <span style={{ marginLeft: 8, color: '#DC2626' }}>Sem acesso a nenhuma página</span>
+                    const viewers = entries.filter(([,v]) => v === 'viewer').length
+                    const editors = entries.filter(([,v]) => v === 'editor').length
+                    return (
+                      <span style={{ marginLeft: 8, display: 'inline-flex', gap: 6 }}>
+                        {editors > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: 'rgba(5,150,105,0.1)', color: '#059669' }}>{editors} editor{editors !== 1 ? 'es' : ''}</span>}
+                        {viewers > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: 'rgba(37,99,235,0.1)', color: '#2563EB' }}>{viewers} visualizador{viewers !== 1 ? 'es' : ''}</span>}
+                      </span>
+                    )
+                  })()}
                 </div>
               </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { initDb } from '@/lib/db'
 import { PROTECTED_MASTER_EMAIL } from '@/lib/auth'
+import type { PagePermission } from '@/lib/types'
 
 function isMaster(req: NextRequest) {
   return req.headers.get('x-user-role') === 'master'
@@ -16,7 +17,7 @@ export async function PUT(
 
   const body = await req.json() as {
     name?: string; role?: string
-    allowed_pages?: string[]; active?: boolean
+    allowed_pages?: Record<string, PagePermission>; active?: boolean
     new_password?: string
   }
 
@@ -73,12 +74,15 @@ export async function PUT(
   if (updated.rows.length === 0) return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 })
 
   const r = updated.rows[0] as unknown as Record<string, unknown>
+  const rawPages = JSON.parse((r.allowed_pages as string) || '{}')
   return NextResponse.json({
     id:            r.id,
     name:          r.name,
     email:         r.email,
     role:          r.role,
-    allowed_pages: JSON.parse((r.allowed_pages as string) || '[]'),
+    allowed_pages: Array.isArray(rawPages)
+      ? Object.fromEntries(rawPages.map((s: string) => [s, 'editor']))
+      : rawPages,
     active:        Boolean(r.active),
     created_at:    r.created_at,
     last_login:    r.last_login ?? undefined,

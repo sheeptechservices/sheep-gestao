@@ -107,7 +107,7 @@ export function Sidebar() {
             if (authUser?.role === 'master') return true
             const slug = PAGE_SLUGS[item.href]
             if (slug === 'settings') return true   // sempre visível
-            return slug ? (authUser?.allowed_pages ?? []).includes(slug) : true
+            return slug ? slug in (authUser?.allowed_pages ?? {}) : true
           }),
         }))
         .filter(group => group.items.length > 0)

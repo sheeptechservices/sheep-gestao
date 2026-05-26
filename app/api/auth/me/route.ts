@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { verifyUserJwt, signUserJwt } from '@/lib/auth'
 import { initDb } from '@/lib/db'
-import type { AppUser } from '@/lib/types'
+import type { AppUser, PagePermission } from '@/lib/types'
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('sheep_auth')?.value
@@ -69,7 +69,12 @@ export async function PUT(req: NextRequest) {
     name:          r.name as string,
     email:         r.email as string,
     role:          r.role as 'master' | 'user',
-    allowed_pages: JSON.parse((r.allowed_pages as string) || '[]'),
+    allowed_pages: (() => {
+      const raw = JSON.parse((r.allowed_pages as string) || '{}')
+      return Array.isArray(raw)
+        ? Object.fromEntries(raw.map((s: string) => [s, 'editor' as PagePermission]))
+        : raw as Record<string, PagePermission>
+    })(),
     active:        Boolean(r.active),
     created_at:    '',
   }

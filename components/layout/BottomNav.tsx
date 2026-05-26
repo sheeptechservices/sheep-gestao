@@ -83,7 +83,7 @@ export function BottomNav() {
     if (authLoading) return false                      // aguarda identidade ser resolvida
     if (authUser?.role === 'master') return true
     const slug = PAGE_SLUGS[item.href]
-    return slug ? (authUser?.allowed_pages ?? []).includes(slug) : true
+    return slug ? slug in (authUser?.allowed_pages ?? {}) : true
   })
 
   return (

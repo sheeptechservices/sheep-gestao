@@ -1,13 +1,15 @@
 // ── App Users ─────────────────────────────────────────────────────────────────
 
 export type AppUserRole = 'master' | 'user'
+export type PagePermission = 'viewer' | 'editor'
 
 export interface AppUser {
   id: string
   name: string
   email: string
   role: AppUserRole
-  allowed_pages: string[]   // only enforced when role='user'
+  /** Record<slug, permission> — only enforced when role='user' */
+  allowed_pages: Record<string, PagePermission>
   active: boolean
   created_at: string
   last_login?: string
