@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useQuickSearch } from '@/stores/quickSearchStore'
+import { useAuth } from '@/stores/authStore'
+import { PAGE_SLUGS } from '@/lib/auth'
 
 const NAV = [
   {
@@ -69,8 +71,17 @@ const NAV = [
 export function BottomNav() {
   const pathname   = usePathname()
   const { open: openSearch } = useQuickSearch()
+  const authUser = useAuth(s => s.user)
 
   if (pathname === '/login') return null
+
+  // Filtra itens por permissão (mantém sempre o botão de busca que não tem href)
+  const visibleNav = NAV.filter(item => {
+    if (!item.href) return true                          // busca — sempre visível
+    if (!authUser || authUser.role === 'master') return true
+    const slug = PAGE_SLUGS[item.href]
+    return slug ? authUser.allowed_pages.includes(slug) : true
+  })
 
   return (
     <nav style={{
@@ -85,7 +96,7 @@ export function BottomNav() {
       paddingBottom: 'env(safe-area-inset-bottom)',
       boxShadow: '0 -2px 12px rgba(0,0,0,0.07)',
     }}>
-      {NAV.map(item => {
+      {visibleNav.map(item => {
         const active = item.href
           ? (item.href === '/' ? pathname === '/' : pathname === item.href || pathname.startsWith(item.href + '/'))
           : false

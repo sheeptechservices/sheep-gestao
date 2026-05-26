@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/stores/sidebarStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useAuth } from '@/stores/authStore'
+import { PAGE_SLUGS } from '@/lib/auth'
 
 const navItems = [
   {
@@ -90,6 +92,19 @@ export function Sidebar() {
   const pathname = usePathname()
   const { open, pinned, setOpen } = useSidebar()
   const { isMobile, isTablet } = useBreakpoint()
+  const authUser = useAuth(s => s.user)
+
+  // Filtra itens conforme permissões: masters veem tudo, users só o que foi liberado
+  const visibleNavItems = navItems
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        if (!authUser || authUser.role === 'master') return true
+        const slug = PAGE_SLUGS[item.href]
+        return slug ? authUser.allowed_pages.includes(slug) : true
+      }),
+    }))
+    .filter(group => group.items.length > 0)
 
   // Pinned desktop: always in-grid — open/close is handled by the grid column width
   // Overlay (mobile / tablet / not-pinned): position:fixed with translateX slide
@@ -121,7 +136,7 @@ export function Sidebar() {
         transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
       }),
     }}>
-{navItems.map((group) => (
+{visibleNavItems.map((group) => (
         <div key={group.section}>
           <div style={{
             fontSize: 10, fontWeight: 800, textTransform: 'uppercase',
