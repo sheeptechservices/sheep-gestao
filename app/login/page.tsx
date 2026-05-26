@@ -11,7 +11,7 @@ function LoginForm() {
   const from         = searchParams.get('from') ?? '/'
 
   const [greet,    setGreet]    = useState('')
-  const [user,     setUser]     = useState('')
+  const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading,  setLoading]  = useState(false)
@@ -41,7 +41,7 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, pass }),
+        body: JSON.stringify({ email, password: pass }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -76,11 +76,11 @@ function LoginForm() {
 
         <div style={{ ...stagger(2), display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray)', letterSpacing: '0.04em' }}>
-            USUÁRIO <span style={{ color: 'var(--red)', marginLeft: 2 }}>*</span>
+            E-MAIL <span style={{ color: 'var(--red)', marginLeft: 2 }}>*</span>
           </label>
           <input
-            type="text" value={user} onChange={e => setUser(e.target.value)}
-            placeholder="seu usuário" required autoComplete="username" style={inputStyle}
+            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="seu@email.com" required autoComplete="email" style={inputStyle}
             onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px var(--primary-dim)' }}
             onBlur={e =>  { e.target.style.borderColor = 'var(--gray3)';   e.target.style.boxShadow = 'none' }}
           />

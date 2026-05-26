@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSettings, applyTheme, hexToRgb, hotkeyLabel, type HotkeyConfig } from '@/stores/settingsStore'
 import { toast } from '@/stores/toastStore'
+import { useAuth } from '@/stores/authStore'
+import { UsersTab } from '@/components/settings/UsersTab'
 
 // ── Preset palette ────────────────────────────────────────────────────────────
 const PRESETS = [
@@ -219,6 +221,7 @@ function HotkeyRecorder({ value, onChange }: {
 export default function SettingsPage() {
   const { title, description, primaryColor, setTitle, setDescription, setPrimaryColor,
           quickSearchHotkey, setQuickSearchHotkey } = useSettings()
+  const authUser = useAuth(s => s.user)
 
   const [localTitle, setLocalTitle]       = useState(title)
   const [localDesc, setLocalDesc]         = useState(description)
@@ -456,6 +459,13 @@ export default function SettingsPage() {
           />
         </Field>
       </SectionCard>
+
+      {/* ── Usuários — apenas para Master ── */}
+      {authUser?.role === 'master' && (
+        <SectionCard title="Usuários">
+          <UsersTab selfId={authUser.id} />
+        </SectionCard>
+      )}
     </div>
   )
 }

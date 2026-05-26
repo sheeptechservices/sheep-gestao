@@ -9,13 +9,15 @@ import type { ColorMode } from '@/stores/settingsStore'
 import { useQuickSearch } from '@/stores/quickSearchStore'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { NotificationBell } from '@/components/ui/NotificationBell'
+import { useAuth } from '@/stores/authStore'
 
 export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [themeAnim, setThemeAnim] = useState<'idle' | 'out' | 'in'>('idle')
   const { toggle } = useSidebar()
-  const userName = 'Guilherme Zaidan'
+  const authUser = useAuth(s => s.user)
+  const userName = authUser?.name ?? 'Carregando…'
   const router = useRouter()
   const { title, description, quickSearchHotkey, colorMode, toggleColorMode } = useSettings()
   const { open: openSearch } = useQuickSearch()
@@ -223,8 +225,16 @@ export function Topbar() {
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--black)' }}>{userName}</div>
                   <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--gray2)', marginTop: 1 }}>
-                    Sheep Tech
+                    {authUser?.email ?? 'Sheep Tech'}
                   </div>
+                  {authUser?.role === 'master' && (
+                    <span style={{
+                      display: 'inline-block', marginTop: 4,
+                      fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 100,
+                      background: 'rgba(124,58,237,0.12)', color: '#7C3AED',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>Master</span>
+                  )}
                 </div>
                 <button
                   onClick={async () => {

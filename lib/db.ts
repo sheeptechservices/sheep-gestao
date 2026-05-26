@@ -1,5 +1,6 @@
 import { createClient, type Client } from '@libsql/client'
 import path from 'path'
+import bcrypt from 'bcryptjs'
 import { DEFAULT_AGENTS } from './agents'
 
 let _client: Client | null = null
@@ -239,6 +240,20 @@ async function createTables(db: Client) {
     CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
     CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(read);
+
+    CREATE TABLE IF NOT EXISTS users (
+      id            TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      email         TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role          TEXT NOT NULL DEFAULT 'user',
+      allowed_pages TEXT NOT NULL DEFAULT '[]',
+      active        INTEGER NOT NULL DEFAULT 1,
+      created_at    TEXT NOT NULL,
+      last_login    TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `)
 }
 
@@ -404,6 +419,20 @@ async function migrateDb(db: Client) {
              AND (member_ids IS NULL OR member_ids = '')`,
     args: [],
   })
+
+  // Seed do usuário master padrão (apenas se a tabela users estiver vazia)
+  {
+    const countRes = await db.execute({ sql: `SELECT COUNT(*) AS cnt FROM users`, args: [] })
+    const cnt = (countRes.rows[0] as unknown as { cnt: number }).cnt
+    if (cnt === 0) {
+      const hash = await bcrypt.hash('sheep2026', 10)
+      await db.execute({
+        sql: `INSERT INTO users (id, name, email, password_hash, role, allowed_pages, active, created_at)
+              VALUES (?, ?, ?, ?, 'master', '[]', 1, ?)`,
+        args: ['usr-master-001', 'Guilherme Zaidan', 'guilhermezaidan@wearedux.com', hash, new Date().toISOString()],
+      })
+    }
+  }
 
   // Seed de agentes — INSERT OR IGNORE garante idempotência.
   // Agentes novos adicionados no código aparecem automaticamente no próximo boot.

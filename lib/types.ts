@@ -1,3 +1,20 @@
+// ── App Users ─────────────────────────────────────────────────────────────────
+
+export type AppUserRole = 'master' | 'user'
+
+export interface AppUser {
+  id: string
+  name: string
+  email: string
+  role: AppUserRole
+  allowed_pages: string[]   // only enforced when role='user'
+  active: boolean
+  created_at: string
+  last_login?: string
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+
 export type ProjectStatus = "active" | "negotiation" | "paused" | "completed" | "cancelled";
 export type ProjectType = "AI" | "SaaS" | "TaaS" | "BI" | "PowerPlatform" | "Other";
 export type AgentType = "designer" | "po_pm" | "qa" | "dev" | "devops" | "sales" | "juridico" | "marketing" | "secretaria";
