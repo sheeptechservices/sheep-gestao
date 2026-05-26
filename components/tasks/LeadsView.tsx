@@ -1280,11 +1280,11 @@ function AddToStageButton({ color, onClick }: { color: string; onClick: () => vo
 // ── Kanban card ───────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  lead, color, isDragging, onDragStart, onDragEnd, onEdit, onDelete, onOwnerChange,
+  lead, color, isDragging, onDragStart, onDragEnd, onEdit, onDelete, onDuplicate, onOwnerChange,
 }: {
   lead: Lead; color: string; isDragging: boolean
   onDragStart: () => void; onDragEnd: () => void
-  onEdit: () => void; onDelete: () => void
+  onEdit: () => void; onDelete: () => void; onDuplicate: () => void
   onOwnerChange: (id: string | null) => void
 }) {
   const [hov, setHov] = useState(false)
@@ -1372,16 +1372,38 @@ function KanbanCard({
       </div>
 
       {hov && !isDragging && (
-        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 3 }}>
+        <div style={{ position: 'absolute', top: 7, right: 7, display: 'flex', gap: 4, animation: 'fadeIn 0.12s ease both' }}>
+          {/* Specialist */}
+          <ConsultAgentButton lead={lead} variant="icon" direction="down" />
+          {/* Duplicate */}
+          <div
+            onClick={e => { e.stopPropagation(); onDuplicate() }}
+            title="Duplicar lead"
+            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--gray3)' }}
+            style={{
+              width: 20, height: 20, borderRadius: 5, cursor: 'pointer',
+              background: 'var(--white)', border: '1px solid var(--gray3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)', transition: 'all 0.12s',
+            }}
+          >
+            <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+              <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="var(--gray)" strokeWidth={1.3}/>
+              <path d="M2.5 8V2.5A1.5 1.5 0 014 1h5.5" stroke="var(--gray)" strokeWidth={1.3} strokeLinecap="round"/>
+            </svg>
+          </div>
+          {/* Delete */}
           <div
             onClick={e => { e.stopPropagation(); onDelete() }}
+            title="Excluir lead"
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.10)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.5)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.25)' }}
             style={{
               width: 20, height: 20, borderRadius: 5, cursor: 'pointer',
               background: 'var(--white)', border: '1px solid rgba(220,38,38,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.15s',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)', transition: 'all 0.15s',
             }}
           >
             <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
@@ -1397,11 +1419,12 @@ function KanbanCard({
 // ── Kanban view ───────────────────────────────────────────────────────────────
 
 function KanbanView({
-  leads, onEdit, onDelete, onStageChange, onOwnerChange, onAdd,
+  leads, onEdit, onDelete, onDuplicate, onStageChange, onOwnerChange, onAdd,
 }: {
   leads: Lead[]
   onEdit: (l: Lead) => void
   onDelete: (l: Lead) => void
+  onDuplicate: (l: Lead) => void
   onStageChange: (id: string, stage: LeadFunnelStage) => void
   onOwnerChange: (id: string, ownerId: string | null) => void
   onAdd: (stage: LeadFunnelStage) => void
@@ -1469,6 +1492,7 @@ function KanbanView({
               onDragEnd={() => { setDragId(null); setOverZone(null) }}
               onEdit={() => onEdit(lead)}
               onDelete={() => onDelete(lead)}
+              onDuplicate={() => onDuplicate(lead)}
               onOwnerChange={id => onOwnerChange(lead.id, id)}
             />
           ))}
@@ -2196,6 +2220,7 @@ export function LeadsView() {
               leads={filteredLeads}
               onEdit={l => { setEditingLead(l); setShowForm(true) }}
               onDelete={l => setDeletingLead(l)}
+              onDuplicate={l => handleDuplicate(l)}
               onStageChange={handleStageChange}
               onOwnerChange={(id, ownerId) => handleFieldChange(id, 'owner_id', ownerId)}
               onAdd={stage => { setNewLeadStage(stage); setEditingLead(null); setShowForm(true) }}
