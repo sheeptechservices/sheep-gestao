@@ -103,15 +103,24 @@ export async function POST(
     })
 
     // ── Prompt ───────────────────────────────────────────────────────────────
-    const systemPrompt = `Você é um assistente especialista em produzir atas de reunião profissionais para a Sheep Tech, uma consultoria especializada em IA.
+    const systemPrompt = `Você é um assistente especialista em síntese de reuniões para a Sheep Tech, consultoria de IA.
 
-Gere a ata em Markdown, seguindo EXATAMENTE a estrutura abaixo. Preencha cada seção com base nos dados fornecidos. Quando uma informação não estiver disponível, use "—". Não adicione seções extras nem remova nenhuma existente.
+## Princípio fundamental
+Produza uma ata **enxuta e densa**. Cada linha deve carregar informação real — corte cumprimentos, repetições, efeitos de estilo e qualquer frase que não acrescente conteúdo novo. Se algo foi dito três vezes na reunião, escreva uma vez. Se um ponto foi levantado mas não gerou decisão nem encaminhamento, omita-o.
+
+## Regras de formatação
+- Use Markdown conforme a estrutura abaixo — **nem mais, nem menos seções**
+- Tópicos discutidos: **máximo 2 linhas** por item; prefira 1
+- Objetivo: **máximo 3 frases**
+- Próximos passos: lista de bullet, sem parágrafos
+- Ausentes/presentes: só liste se houver dados reais
+- Se uma informação não existir, use "—" e siga em frente — não explique a ausência
+
+## Estrutura obrigatória
 
 ---
-# Ata de Reunião — {{TITULO}} | {{CLIENTE}}
+# Ata — {{TITULO}} | {{CLIENTE}}
 {{DATA_EXTENSO}}
-
-## ATA DE REUNIÃO — {{TITULO_UPPER}} | {{CLIENTE_UPPER}}
 
 | Campo | |
 |---|---|
@@ -121,83 +130,70 @@ Gere a ata em Markdown, seguindo EXATAMENTE a estrutura abaixo. Preencha cada se
 | **Horário** | {{HORARIO}} |
 | **Modalidade** | Videoconferência |
 
-## PARTICIPANTES
-
-Se houver dados de presença, organize em dois grupos:
+## Participantes
 
 ### ✅ Presentes
-- Nome — Papel/Cargo (se identificado)
+- Nome — Empresa / Cargo (se identificado)
 
 ### ❌ Ausentes
-- Nome — (convidado, não compareceu)
+- Nome — (convidado, ausente)
 
-Se não houver dados de presença, liste todos os participantes identificados na transcrição agrupados por empresa (Sheep Tech e cliente). Se não for possível distinguir as empresas, liste todos juntos.
+## Objetivo
 
-## OBJETIVO DA REUNIÃO
+_Síntese em até 3 frases do que a reunião se propunha a resolver ou avançar._
 
-Escreva 1 a 2 parágrafos descrevendo o objetivo principal da reunião, inferido do contexto.
+## Tópicos discutidos
 
-## PRINCIPAIS TÓPICOS DISCUTIDOS
+- **Tópico:** síntese objetiva — 1 a 2 linhas, sem repetir o que já está nas decisões/encaminhamentos.
 
-Para cada tópico relevante discutido, use o formato:
-- **Nome do Tópico:** Descrição detalhada do que foi abordado, decisões parciais e informações relevantes.
-
-Liste todos os tópicos substanciais encontrados na transcrição/resumo.
-
-## DECISÕES TOMADAS
+## Decisões
 
 | # | Decisão |
 |---|---------|
-| 1 | [decisão] |
+| 1 | |
 
-Liste todas as decisões formais tomadas durante a reunião.
-
-## ENCAMINHAMENTOS
+## Encaminhamentos
 
 | # | Ação | Responsável | Prazo |
 |---|------|-------------|-------|
-| 1 | [ação] | [responsável] | [prazo ou "A combinar"] |
+| 1 | | | |
 
-Liste todos os encaminhamentos e action items identificados.
+## Próximos passos
 
-## PRÓXIMOS PASSOS
-
-Escreva 1 a 2 parágrafos descrevendo os próximos passos esperados após esta reunião.
+- bullet curto por item
 
 ---
-*Ata elaborada por Sheep Tech. Dúvidas ou correções, favor retornar até 2 dias úteis após o recebimento.*
----`
+*Ata Sheep Tech — dúvidas ou correções em até 2 dias úteis.*`
 
-    const userMessage = `Gere a ata da seguinte reunião:
+    const userMessage = `Gere a ata da reunião abaixo. Seja sintético: capture o essencial, descarte o acessório.
 
 **Título:** ${title}
 ${leadContext ? `**Contexto do Lead:** ${leadContext}` : `**Projeto:** ${projectName || '—'}\n**Cliente:** ${clientName || '—'}`}
 **Data:** ${fmtDateLong(date)} (${date ? new Date(date).toLocaleDateString('pt-BR') : '—'})
 **Horário:** ${fmtTime(date)}
 
-**Convidados (lista do calendário):** ${participants.length > 0 ? participants.join(', ') : '—'}
-**Presentes na chamada:** ${attendeeNames.length > 0 ? attendeeNames.join(', ') : '(não disponível — use os speakers da transcrição)'}
-**Ausentes:** ${absentNames.length > 0 ? absentNames.join(', ') : absentNames.length === 0 && attendeeNames.length > 0 ? 'Nenhum' : '(não disponível)'}
+**Convidados:** ${participants.length > 0 ? participants.join(', ') : '—'}
+**Presentes:** ${attendeeNames.length > 0 ? attendeeNames.join(', ') : '(use os speakers da transcrição)'}
+**Ausentes:** ${absentNames.length > 0 ? absentNames.join(', ') : attendeeNames.length > 0 ? 'Nenhum' : '—'}
 
-**Resumo:**
+**Resumo automático:**
 ${summary || '(não disponível)'}
 
-**Action Items:**
+**Action items:**
 ${actionItems || '(não disponível)'}
 
-**Transcrição completa:**
+**Transcrição:**
 ${transcript ? transcript.slice(0, 12000) : '(não disponível)'}
 
 ---
-Substitua os placeholders {{TITULO}}, {{CLIENTE}}, {{PROJETO}}, {{DATA_EXTENSO}}, {{DATA_CURTA}}, {{HORARIO}}, {{TITULO_UPPER}}, {{CLIENTE_UPPER}} pelos valores corretos.
-Na seção PARTICIPANTES, organize em três grupos: "Presentes", "Ausentes" e (se não houver dados de presença) "Participantes".
-Produza uma ata completa, profissional e bem estruturada.`
+Preencha os placeholders {{TITULO}}, {{CLIENTE}}, {{PROJETO}}, {{DATA_EXTENSO}}, {{DATA_CURTA}}, {{HORARIO}} com os valores reais.
+Lembre: ata enxuta — cada linha deve justificar sua presença.`
 
     // ── Chamada à API ─────────────────────────────────────────────────────────
     const client   = await createAnthropicClient()
     const response = await client.messages.create({
       model:      'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 2048,
       system:     systemPrompt,
       messages:   [{ role: 'user', content: userMessage }],
     })
