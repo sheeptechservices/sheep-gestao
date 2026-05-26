@@ -1183,6 +1183,19 @@ function KanbanCard({
         )}
       </div>
 
+      {lead.project_name && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="var(--primary)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <rect x="2" y="3" width="12" height="10" rx="1.5"/>
+            <path d="M5 3V2M11 3V2"/><line x1="2" y1="6.5" x2="14" y2="6.5"/>
+          </svg>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: 'var(--primary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{lead.project_name}</span>
+        </div>
+      )}
+
       {lead.notes && (
         <div style={{
           fontSize: 11, color: 'var(--gray2)', lineHeight: 1.4,
