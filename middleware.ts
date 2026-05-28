@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyUserJwt, PAGE_SLUGS } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/webhooks/']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/webhooks/', '/api/integrations/linkedin/webhook']
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
