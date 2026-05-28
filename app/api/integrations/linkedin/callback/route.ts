@@ -11,7 +11,10 @@ function freshDb() {
 /** GET /api/integrations/linkedin/callback — handle OAuth callback */
 export async function GET(req: NextRequest) {
   const reqUrl = new URL(req.url)
-  const appUrl = `${reqUrl.protocol}//${reqUrl.host}`
+  // No Vercel, req.url pode chegar com http:// mesmo sendo HTTPS.
+  // x-forwarded-proto é a fonte confiável em ambientes proxy.
+  const proto  = req.headers.get('x-forwarded-proto') ?? reqUrl.protocol.replace(':', '')
+  const appUrl = `${proto}://${reqUrl.host}`
 
   try {
     const { searchParams } = reqUrl
