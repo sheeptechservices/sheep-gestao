@@ -887,6 +887,52 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
   )
 }
 
+// ── Description indicator icon (linhas) com tooltip ──────────────────────────
+
+function DescriptionDot({ description }: { description: string }) {
+  const plain = stripHtml(description).trim()
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  if (!plain) return null
+  const preview = plain.length > 160 ? plain.slice(0, 160) + '…' : plain
+  return (
+    <span
+      onMouseEnter={e => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        setPos({ x: r.left + r.width / 2, y: r.top })
+      }}
+      onMouseLeave={() => setPos(null)}
+      style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, cursor: 'default' }}
+    >
+      <svg width={12} height={10} viewBox="0 0 12 10" fill="none" style={{ display: 'block' }}>
+        <path d="M1 1h10M1 5h10M1 9h7" stroke="var(--gray2)" strokeWidth={1.1} strokeLinecap="round"/>
+      </svg>
+      {pos && createPortal(
+        <span style={{
+          position: 'fixed', left: pos.x, top: pos.y,
+          transform: 'translate(-50%, calc(-100% - 8px))',
+          background: 'var(--black)', color: '#fff',
+          fontSize: 11.5, fontWeight: 500, lineHeight: 1.55,
+          padding: '8px 12px', borderRadius: 9, width: 260,
+          whiteSpace: 'pre-wrap' as React.CSSProperties['whiteSpace'],
+          boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+          zIndex: 99999, pointerEvents: 'none',
+        }}>
+          {preview}
+          <span style={{
+            position: 'absolute', top: '100%', left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0, height: 0,
+            borderLeft: '6px solid transparent',
+            borderRight: '6px solid transparent',
+            borderTop: '6px solid var(--black)',
+          }} />
+        </span>,
+        document.body
+      )}
+    </span>
+  )
+}
+
 // ── Weekly board card (top-level — avoids remount-during-drag bug) ─────────────
 
 export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDragEnd, onClick, onToggleDone, onDelete, onMembersChange }: {
@@ -996,8 +1042,8 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
         </div>
       )}
 
-      {/* Urgency + assigned + flags + attachments */}
-      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao || (task.attachment_count ?? 0) > 0 || onMembersChange) && (
+      {/* Urgency + assigned + flags + description + attachments */}
+      {(task.urgency || task.assigned_to || bloqueado || revisar || atencao || (task.attachment_count ?? 0) > 0 || onMembersChange || task.description) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingLeft: 22, flexWrap: 'wrap' }}>
           {bloqueado && (
             <span style={{
@@ -1038,6 +1084,7 @@ export function WeeklyBoardCard({ task, project, isDragging, onDragStart, onDrag
               background: URGENCY_CONFIG[task.urgency].bg,
             }}>{URGENCY_CONFIG[task.urgency].label}</span>
           )}
+          {task.description && <DescriptionDot description={task.description} />}
           {onMembersChange
             ? <TaskMemberPicker
                 memberIds={task.member_ids?.length ? task.member_ids : task.member_id ? [task.member_id] : []}
