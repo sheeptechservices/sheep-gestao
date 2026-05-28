@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       client_id:     clientId,
       redirect_uri:  redirectUri,
       state,
-      scope:         'r_ads_leadgen_automation r_organization_social',
+      scope:         'r_ads rw_ads r_liteprofile r_emailaddress',
     })
 
     return NextResponse.redirect(
