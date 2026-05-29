@@ -467,7 +467,7 @@ function NotifItem({
                 onMouseEnter={e => { e.currentTarget.style.background = '#6366F1'; e.currentTarget.style.color = '#fff' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6366F1' }}
               >
-                Vincular projeto
+                Vincular
               </button>
             )
           )}
