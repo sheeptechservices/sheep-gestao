@@ -102,15 +102,17 @@ function ContextPicker({
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          company:       newCompany || undefined,
-          name:          newName    || undefined,
-          funnel_stage:  'novo_lead',
+          company:      newCompany || undefined,
+          name:         newName    || undefined,
+          funnel_stage: 'novo_lead',
         }),
       })
       const lead = await res.json() as Lead
       setLeads(prev => [lead, ...prev])
       setSelected(lead.id)
       setCreating(false)
+      // Vincula automaticamente à reunião
+      await onLink(notif.payload.meeting_id, { lead_id: lead.id })
     } finally {
       setCreateBusy(false)
     }
