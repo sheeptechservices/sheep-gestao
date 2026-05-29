@@ -2,25 +2,71 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNotificationsStore } from '@/stores/notificationsStore'
-import type { Notification, Project } from '@/lib/types'
+import type { Notification, Project, Lead } from '@/lib/types'
 
-// ── Custom inline project picker ──────────────────────────────────────────────
+// ── Shared search input ───────────────────────────────────────────────────────
 
-function ProjectPicker({
+function SearchInput({
+  inputRef,
+  value,
+  onChange,
+  onEscape,
+  placeholder,
+}: {
+  inputRef: React.RefObject<HTMLInputElement>
+  value: string
+  onChange: (v: string) => void
+  onEscape: () => void
+  placeholder: string
+}) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg width={11} height={11} viewBox="0 0 12 12" fill="none"
+        style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
+        <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth={1.4}/>
+        <path d="M8.5 8.5l2 2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
+      </svg>
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Escape') onEscape() }}
+        placeholder={placeholder}
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          padding: '6px 8px 6px 28px',
+          fontSize: 11, fontFamily: 'inherit',
+          border: '1px solid var(--primary)', borderRadius: 7,
+          background: 'var(--bg)', color: 'var(--black)',
+          outline: 'none',
+          boxShadow: '0 0 0 3px var(--primary-dim)',
+        }}
+      />
+    </div>
+  )
+}
+
+// ── Context picker (Projeto ou Lead) ─────────────────────────────────────────
+
+type LinkData = { project_id: string } | { lead_id: string }
+
+function ContextPicker({
   notif,
   onLink,
   onCancel,
 }: {
   notif: Notification
-  onLink: (meetingId: string, projectId: string) => Promise<void>
+  onLink: (meetingId: string, data: LinkData) => Promise<void>
   onCancel: () => void
 }) {
-  const [projects,  setProjects]  = useState<Project[]>([])
-  const [selected,  setSelected]  = useState(notif.payload.suggested_project_id ?? '')
-  const [query,     setQuery]     = useState('')
-  const [open,      setOpen]      = useState(false)
-  const [saving,    setSaving]    = useState(false)
-  const [hovId,     setHovId]     = useState('')
+  const [tab,      setTab]      = useState<'project' | 'lead'>('project')
+  const [projects, setProjects] = useState<Project[]>([])
+  const [leads,    setLeads]    = useState<Lead[]>([])
+  const [selected, setSelected] = useState(notif.payload.suggested_project_id ?? '')
+  const [query,    setQuery]    = useState('')
+  const [open,     setOpen]     = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [hovId,    setHovId]    = useState('')
   const inputRef  = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -29,9 +75,20 @@ function ProjectPicker({
       .then(r => r.json())
       .then((p: Project[]) => setProjects(p.filter(x => x.status !== 'cancelled')))
       .catch(() => {})
+    fetch('/api/leads')
+      .then(r => r.json())
+      .then((l: Lead[]) => setLeads(l.filter(x => x.funnel_stage !== 'perdido')))
+      .catch(() => {})
   }, [])
 
-  // Fecha a lista ao clicar fora do picker
+  // Reset selection when tab changes
+  useEffect(() => {
+    setSelected(tab === 'project' ? (notif.payload.suggested_project_id ?? '') : '')
+    setQuery('')
+    setOpen(false)
+  }, [tab, notif.payload.suggested_project_id])
+
+  // Close dropdown on outside click
   useEffect(() => {
     if (!open) return
     const h = (e: MouseEvent) => {
@@ -41,14 +98,38 @@ function ProjectPicker({
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  const filtered = projects.filter(p => {
+  const STAGE_LABELS: Record<string, string> = {
+    novo_lead:        'Novo lead',
+    em_negociacao:    'Em negociação',
+    proposta_enviada: 'Proposta enviada',
+    fechado:          'Fechado',
+  }
+
+  const filteredProjects = projects.filter(p => {
     if (!query) return true
     const q = query.toLowerCase()
     return p.name.toLowerCase().includes(q) || (p.client?.name ?? '').toLowerCase().includes(q)
   })
 
-  const selectedProject = projects.find(p => p.id === selected) ?? null
-  const isSugg = (id: string) => id === notif.payload.suggested_project_id
+  const filteredLeads = leads.filter(l => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (l.company ?? '').toLowerCase().includes(q) || (l.name ?? '').toLowerCase().includes(q)
+  })
+
+  const selectedProject = tab === 'project' ? (projects.find(p => p.id === selected) ?? null) : null
+  const selectedLead    = tab === 'lead'    ? (leads.find(l => l.id === selected) ?? null) : null
+  const isSugg = (id: string) => tab === 'project' && id === notif.payload.suggested_project_id
+
+  const triggerLabel = tab === 'project'
+    ? (selectedProject ? selectedProject.name : 'Selecionar projeto…')
+    : (selectedLead ? (selectedLead.company || selectedLead.name || 'Lead') : 'Selecionar lead…')
+
+  const triggerSublabel = tab === 'project'
+    ? selectedProject?.client?.name
+    : (selectedLead ? STAGE_LABELS[selectedLead.funnel_stage] : undefined)
+
+  const hasSelection = !!selected
 
   const handleOpenToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -68,9 +149,15 @@ function ProjectPicker({
     e.stopPropagation()
     if (!selected || saving) return
     setSaving(true)
-    await onLink(notif.payload.meeting_id, selected)
+    const data: LinkData = tab === 'project'
+      ? { project_id: selected }
+      : { lead_id: selected }
+    await onLink(notif.payload.meeting_id, data)
     setSaving(false)
   }
+
+  const accentColor = tab === 'project' ? '#6366F1' : '#F59E0B'
+  const items       = tab === 'project' ? filteredProjects : filteredLeads
 
   return (
     <div
@@ -78,8 +165,33 @@ function ProjectPicker({
       onClick={e => e.stopPropagation()}
       style={{ marginTop: 10 }}
     >
-      {/* Sugestão */}
-      {notif.payload.suggested_project_name && (
+      {/* Tab toggle */}
+      <div style={{
+        display: 'flex', gap: 4, marginBottom: 8,
+        background: 'var(--bg)', borderRadius: 7, padding: 3,
+        border: '1px solid var(--gray3)',
+      }}>
+        {(['project', 'lead'] as const).map(t => (
+          <button
+            key={t}
+            onClick={e => { e.stopPropagation(); setTab(t) }}
+            style={{
+              flex: 1, padding: '3px 0', borderRadius: 5,
+              border: 'none', cursor: 'pointer',
+              fontSize: 10, fontWeight: 700, fontFamily: 'inherit',
+              background: tab === t ? 'var(--white)' : 'transparent',
+              color: tab === t ? 'var(--black)' : 'var(--gray2)',
+              boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.12s',
+            }}
+          >
+            {t === 'project' ? 'Projeto' : 'Lead'}
+          </button>
+        ))}
+      </div>
+
+      {/* Suggestion (projects only) */}
+      {tab === 'project' && notif.payload.suggested_project_name && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
           fontSize: 10, fontWeight: 700, color: '#7B5EA7',
@@ -96,66 +208,48 @@ function ProjectPicker({
       {/* Trigger / search input */}
       <div style={{ position: 'relative' }}>
         {open ? (
-          /* Campo de busca — visível quando aberto */
-          <div style={{ position: 'relative' }}>
-            <svg width={11} height={11} viewBox="0 0 12 12" fill="none"
-              style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }}>
-              <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth={1.4}/>
-              <path d="M8.5 8.5l2 2" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
-            </svg>
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
-              placeholder="Buscar projeto…"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: '6px 8px 6px 28px',
-                fontSize: 11, fontFamily: 'inherit',
-                border: '1px solid var(--primary)', borderRadius: 7,
-                background: 'var(--bg)', color: 'var(--black)',
-                outline: 'none',
-                boxShadow: '0 0 0 3px var(--primary-dim)',
-              }}
-            />
-          </div>
+          <SearchInput
+            inputRef={inputRef}
+            value={query}
+            onChange={setQuery}
+            onEscape={() => setOpen(false)}
+            placeholder={tab === 'project' ? 'Buscar projeto…' : 'Buscar lead…'}
+          />
         ) : (
-          /* Trigger colapsado — mostra projeto selecionado ou placeholder */
           <div
             onClick={handleOpenToggle}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '6px 10px', borderRadius: 7, cursor: 'pointer',
-              border: `1px solid ${selectedProject ? 'var(--primary)' : 'var(--gray3)'}`,
+              border: `1px solid ${hasSelection ? accentColor : 'var(--gray3)'}`,
               background: 'var(--bg)', gap: 8,
               transition: 'border-color 0.12s',
             }}
-            onMouseEnter={e => { if (!selectedProject) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray2)' }}
-            onMouseLeave={e => { if (!selectedProject) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray3)' }}
+            onMouseEnter={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray2)' }}
+            onMouseLeave={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray3)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
               <div style={{
                 width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: selectedProject ? '#6366F1' : 'var(--gray3)',
+                background: hasSelection ? accentColor : 'var(--gray3)',
               }} />
               <div style={{ minWidth: 0 }}>
-                {selectedProject ? (
+                {hasSelection ? (
                   <>
                     <div style={{
                       fontSize: 11, fontWeight: 700, color: 'var(--black)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {selectedProject.name}
+                      {triggerLabel}
                     </div>
-                    {selectedProject.client?.name && (
+                    {triggerSublabel && (
                       <div style={{ fontSize: 10, color: 'var(--gray2)' }}>
-                        {selectedProject.client.name}
+                        {triggerSublabel}
                       </div>
                     )}
                   </>
                 ) : (
-                  <span style={{ fontSize: 11, color: 'var(--gray2)' }}>Selecionar projeto…</span>
+                  <span style={{ fontSize: 11, color: 'var(--gray2)' }}>{triggerLabel}</span>
                 )}
               </div>
             </div>
@@ -165,7 +259,7 @@ function ProjectPicker({
           </div>
         )}
 
-        {/* Dropdown list — aparece sob o trigger */}
+        {/* Dropdown list */}
         {open && (
           <div style={{
             marginTop: 3,
@@ -175,33 +269,39 @@ function ProjectPicker({
             scrollbarWidth: 'auto',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           }}>
-            {filtered.length === 0 ? (
+            {items.length === 0 ? (
               <div style={{ padding: '10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
-                Nenhum projeto encontrado
+                {tab === 'project' ? 'Nenhum projeto encontrado' : 'Nenhum lead encontrado'}
               </div>
             ) : (
-              filtered.map(p => {
-                const isSel = p.id === selected
-                const isHov = p.id === hovId
+              items.map(item => {
+                const isSel = item.id === selected
+                const isHov = item.id === hovId
+                const label    = tab === 'project'
+                  ? (item as Project).name
+                  : ((item as Lead).company || (item as Lead).name || 'Lead')
+                const sublabel = tab === 'project'
+                  ? (item as Project).client?.name
+                  : STAGE_LABELS[(item as Lead).funnel_stage]
                 return (
                   <div
-                    key={p.id}
-                    onClick={() => handleSelect(p.id)}
-                    onMouseEnter={() => setHovId(p.id)}
+                    key={item.id}
+                    onClick={() => handleSelect(item.id)}
+                    onMouseEnter={() => setHovId(item.id)}
                     onMouseLeave={() => setHovId('')}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7,
                       padding: '7px 9px', cursor: 'pointer',
                       borderBottom: '1px solid var(--gray3)',
                       background: isSel
-                        ? 'rgba(99,102,241,0.07)'
+                        ? `${accentColor}12`
                         : isHov ? 'var(--bg)' : 'transparent',
                       transition: 'background 0.1s',
                     }}
                   >
                     <div style={{
                       width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                      background: isSel ? '#6366F1' : 'var(--gray3)',
+                      background: isSel ? accentColor : 'var(--gray3)',
                     }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
@@ -209,15 +309,15 @@ function ProjectPicker({
                         color: isSel ? 'var(--black)' : 'var(--gray)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {p.name}
+                        {label}
                       </div>
-                      {p.client?.name && (
+                      {sublabel && (
                         <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
-                          {p.client.name}
+                          {sublabel}
                         </div>
                       )}
                     </div>
-                    {isSugg(p.id) && (
+                    {isSugg(item.id) && (
                       <span style={{
                         fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
                         background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
@@ -226,7 +326,7 @@ function ProjectPicker({
                     )}
                     {isSel && (
                       <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
-                        <path d="M2 5l2.5 2.5L8 3" stroke="#6366F1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M2 5l2.5 2.5L8 3" stroke={accentColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     )}
                   </div>
@@ -259,17 +359,17 @@ function ProjectPicker({
           style={{
             flex: 2, padding: '5px 0', borderRadius: 7,
             border: 'none',
-            background: selected ? '#6366F1' : 'var(--gray3)',
+            background: hasSelection ? accentColor : 'var(--gray3)',
             fontSize: 11, fontWeight: 700, color: '#fff',
-            cursor: selected && !saving ? 'pointer' : 'default',
+            cursor: hasSelection && !saving ? 'pointer' : 'default',
             fontFamily: 'inherit',
             transition: 'background 0.15s, opacity 0.15s',
             opacity: saving ? 0.7 : 1,
           }}
-          onMouseEnter={e => { if (selected && !saving) e.currentTarget.style.background = '#4f46e5' }}
-          onMouseLeave={e => { if (selected && !saving) e.currentTarget.style.background = '#6366F1' }}
+          onMouseEnter={e => { if (hasSelection && !saving) e.currentTarget.style.opacity = '0.88' }}
+          onMouseLeave={e => { if (hasSelection && !saving) e.currentTarget.style.opacity = '1' }}
         >
-          {saving ? 'Vinculando…' : 'Vincular projeto'}
+          {saving ? 'Vinculando…' : tab === 'project' ? 'Vincular projeto' : 'Vincular lead'}
         </button>
       </div>
     </div>
@@ -284,7 +384,7 @@ function NotifItem({
   onRead,
 }: {
   notif: Notification
-  onLink: (meetingId: string, projectId: string) => Promise<void>
+  onLink: (meetingId: string, data: LinkData) => Promise<void>
   onRead: (id: string) => void
 }) {
   const [linking, setLinking] = useState(false)
@@ -348,9 +448,9 @@ function NotifItem({
           {/* Vincular picker / button — só para unlinked_meeting */}
           {!notif.read && !isLinked && (
             linking ? (
-              <ProjectPicker
+              <ContextPicker
                 notif={notif}
-                onLink={async (mId, pId) => { await onLink(mId, pId); setLinking(false) }}
+                onLink={async (mId, data) => { await onLink(mId, data); setLinking(false) }}
                 onCancel={() => setLinking(false)}
               />
             ) : (
@@ -447,11 +547,11 @@ export function NotificationBell() {
     setOpen(true)
   }
 
-  const handleLink = async (meetingId: string, projectId: string) => {
+  const handleLink = async (meetingId: string, data: LinkData) => {
     await window.fetch(`/api/meetings/${meetingId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project_id: projectId }),
+      body: JSON.stringify(data),
     })
     fetchNotifs()
   }
@@ -535,7 +635,7 @@ export function NotificationBell() {
             <NotifItem
               key={n.id}
               notif={n}
-              onLink={async (mId, pId) => { await handleLink(mId, pId); markRead(n.id) }}
+              onLink={async (mId, data) => { await handleLink(mId, data); markRead(n.id) }}
               onRead={markRead}
             />
           ))
