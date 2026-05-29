@@ -59,16 +59,21 @@ function ContextPicker({
   onLink: (meetingId: string, data: LinkData) => Promise<void>
   onCancel: () => void
 }) {
-  const [tab,      setTab]      = useState<'project' | 'lead'>('project')
-  const [projects, setProjects] = useState<Project[]>([])
-  const [leads,    setLeads]    = useState<Lead[]>([])
-  const [selected, setSelected] = useState(notif.payload.suggested_project_id ?? '')
-  const [query,    setQuery]    = useState('')
-  const [open,     setOpen]     = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [hovId,    setHovId]    = useState('')
-  const inputRef  = useRef<HTMLInputElement>(null)
-  const pickerRef = useRef<HTMLDivElement>(null)
+  const [tab,        setTab]        = useState<'project' | 'lead'>('project')
+  const [projects,   setProjects]   = useState<Project[]>([])
+  const [leads,      setLeads]      = useState<Lead[]>([])
+  const [selected,   setSelected]   = useState(notif.payload.suggested_project_id ?? '')
+  const [query,      setQuery]      = useState('')
+  const [open,       setOpen]       = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [hovId,      setHovId]      = useState('')
+  // criação rápida de lead
+  const [creating,   setCreating]   = useState(false)
+  const [newCompany, setNewCompany] = useState('')
+  const [newName,    setNewName]    = useState('')
+  const [createBusy, setCreateBusy] = useState(false)
+  const inputRef   = useRef<HTMLInputElement>(null)
+  const pickerRef  = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/api/projects')
@@ -86,7 +91,30 @@ function ContextPicker({
     setSelected(tab === 'project' ? (notif.payload.suggested_project_id ?? '') : '')
     setQuery('')
     setOpen(false)
+    setCreating(false)
   }, [tab, notif.payload.suggested_project_id])
+
+  const handleCreateLead = async () => {
+    if (!newCompany && !newName) return
+    setCreateBusy(true)
+    try {
+      const res  = await fetch('/api/leads', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          company:       newCompany || undefined,
+          name:          newName    || undefined,
+          funnel_stage:  'novo_lead',
+        }),
+      })
+      const lead = await res.json() as Lead
+      setLeads(prev => [lead, ...prev])
+      setSelected(lead.id)
+      setCreating(false)
+    } finally {
+      setCreateBusy(false)
+    }
+  }
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -205,137 +233,233 @@ function ContextPicker({
         </div>
       )}
 
-      {/* Trigger / search input */}
-      <div style={{ position: 'relative' }}>
-        {open ? (
-          <SearchInput
-            inputRef={inputRef}
-            value={query}
-            onChange={setQuery}
-            onEscape={() => setOpen(false)}
-            placeholder={tab === 'project' ? 'Buscar projeto…' : 'Buscar lead…'}
-          />
-        ) : (
-          <div
-            onClick={handleOpenToggle}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '6px 10px', borderRadius: 7, cursor: 'pointer',
-              border: `1px solid ${hasSelection ? accentColor : 'var(--gray3)'}`,
-              background: 'var(--bg)', gap: 8,
-              transition: 'border-color 0.12s',
-            }}
-            onMouseEnter={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray2)' }}
-            onMouseLeave={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray3)' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
-              <div style={{
-                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: hasSelection ? accentColor : 'var(--gray3)',
-              }} />
-              <div style={{ minWidth: 0 }}>
-                {hasSelection ? (
-                  <>
-                    <div style={{
-                      fontSize: 11, fontWeight: 700, color: 'var(--black)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {triggerLabel}
-                    </div>
-                    {triggerSublabel && (
-                      <div style={{ fontSize: 10, color: 'var(--gray2)' }}>
-                        {triggerSublabel}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <span style={{ fontSize: 11, color: 'var(--gray2)' }}>{triggerLabel}</span>
-                )}
-              </div>
-            </div>
-            <svg width={10} height={10} viewBox="0 0 8 8" fill="none" style={{ opacity: 0.45, flexShrink: 0 }}>
-              <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+      {/* Mini-form: criar novo lead */}
+      {creating && tab === 'lead' ? (
+        <div style={{
+          border: '1px solid #F59E0B', borderRadius: 7,
+          padding: '8px 10px', background: 'rgba(245,158,11,0.04)',
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
+            Novo lead
           </div>
-        )}
-
-        {/* Dropdown list */}
-        {open && (
-          <div style={{
-            marginTop: 3,
-            maxHeight: 150, overflowY: 'auto',
-            border: '1px solid var(--gray3)', borderRadius: 7,
-            background: 'var(--white)',
-            scrollbarWidth: 'auto',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          }}>
-            {items.length === 0 ? (
-              <div style={{ padding: '10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
-                {tab === 'project' ? 'Nenhum projeto encontrado' : 'Nenhum lead encontrado'}
-              </div>
-            ) : (
-              items.map(item => {
-                const isSel = item.id === selected
-                const isHov = item.id === hovId
-                const label    = tab === 'project'
-                  ? (item as Project).name
-                  : ((item as Lead).company || (item as Lead).name || 'Lead')
-                const sublabel = tab === 'project'
-                  ? (item as Project).client?.name
-                  : STAGE_LABELS[(item as Lead).funnel_stage]
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelect(item.id)}
-                    onMouseEnter={() => setHovId(item.id)}
-                    onMouseLeave={() => setHovId('')}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7,
-                      padding: '7px 9px', cursor: 'pointer',
-                      borderBottom: '1px solid var(--gray3)',
-                      background: isSel
-                        ? `${accentColor}12`
-                        : isHov ? 'var(--bg)' : 'transparent',
-                      transition: 'background 0.1s',
-                    }}
-                  >
-                    <div style={{
-                      width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                      background: isSel ? accentColor : 'var(--gray3)',
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+          <input
+            autoFocus
+            value={newCompany}
+            onChange={e => setNewCompany(e.target.value)}
+            placeholder="Empresa"
+            style={{
+              width: '100%', boxSizing: 'border-box', marginBottom: 5,
+              padding: '5px 8px', fontSize: 11, fontFamily: 'inherit',
+              border: '1px solid var(--gray3)', borderRadius: 6,
+              background: 'var(--white)', color: 'var(--black)', outline: 'none',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F59E0B' }}
+            onBlur={e  => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
+          />
+          <input
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="Nome do contato (opcional)"
+            onKeyDown={e => { if (e.key === 'Enter') handleCreateLead() }}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '5px 8px', fontSize: 11, fontFamily: 'inherit',
+              border: '1px solid var(--gray3)', borderRadius: 6,
+              background: 'var(--white)', color: 'var(--black)', outline: 'none',
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F59E0B' }}
+            onBlur={e  => { e.currentTarget.style.borderColor = 'var(--gray3)' }}
+          />
+          <div style={{ display: 'flex', gap: 5, marginTop: 7 }}>
+            <button
+              onClick={e => { e.stopPropagation(); setCreating(false) }}
+              style={{
+                flex: 1, padding: '4px 0', borderRadius: 6,
+                border: '1px solid var(--gray3)', background: 'transparent',
+                fontSize: 10, fontWeight: 600, color: 'var(--gray)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); handleCreateLead() }}
+              disabled={(!newCompany && !newName) || createBusy}
+              style={{
+                flex: 2, padding: '4px 0', borderRadius: 6,
+                border: 'none',
+                background: (newCompany || newName) ? '#F59E0B' : 'var(--gray3)',
+                fontSize: 10, fontWeight: 700, color: '#fff',
+                cursor: (newCompany || newName) && !createBusy ? 'pointer' : 'default',
+                fontFamily: 'inherit',
+                opacity: createBusy ? 0.7 : 1,
+              }}
+            >
+              {createBusy ? 'Criando…' : 'Criar lead'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Trigger / search input */
+        <div style={{ position: 'relative' }}>
+          {open ? (
+            <SearchInput
+              inputRef={inputRef}
+              value={query}
+              onChange={setQuery}
+              onEscape={() => setOpen(false)}
+              placeholder={tab === 'project' ? 'Buscar projeto…' : 'Buscar lead…'}
+            />
+          ) : (
+            <div
+              onClick={handleOpenToggle}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '6px 10px', borderRadius: 7, cursor: 'pointer',
+                border: `1px solid ${hasSelection ? accentColor : 'var(--gray3)'}`,
+                background: 'var(--bg)', gap: 8,
+                transition: 'border-color 0.12s',
+              }}
+              onMouseEnter={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray2)' }}
+              onMouseLeave={e => { if (!hasSelection) (e.currentTarget as HTMLElement).style.borderColor = 'var(--gray3)' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: hasSelection ? accentColor : 'var(--gray3)',
+                }} />
+                <div style={{ minWidth: 0 }}>
+                  {hasSelection ? (
+                    <>
                       <div style={{
-                        fontSize: 11, fontWeight: isSel ? 700 : 500,
-                        color: isSel ? 'var(--black)' : 'var(--gray)',
+                        fontSize: 11, fontWeight: 700, color: 'var(--black)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {label}
+                        {triggerLabel}
                       </div>
-                      {sublabel && (
-                        <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
-                          {sublabel}
+                      {triggerSublabel && (
+                        <div style={{ fontSize: 10, color: 'var(--gray2)' }}>
+                          {triggerSublabel}
                         </div>
                       )}
-                    </div>
-                    {isSugg(item.id) && (
-                      <span style={{
-                        fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
-                        background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
-                        border: '1px solid rgba(123,94,167,0.2)', flexShrink: 0,
-                      }}>★</span>
-                    )}
-                    {isSel && (
-                      <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
-                        <path d="M2 5l2.5 2.5L8 3" stroke={accentColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--gray2)' }}>{triggerLabel}</span>
+                  )}
+                </div>
+              </div>
+              <svg width={10} height={10} viewBox="0 0 8 8" fill="none" style={{ opacity: 0.45, flexShrink: 0 }}>
+                <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          )}
+
+          {/* Dropdown list */}
+          {open && (
+            <div style={{
+              marginTop: 3,
+              maxHeight: 170, overflowY: 'auto',
+              border: '1px solid var(--gray3)', borderRadius: 7,
+              background: 'var(--white)',
+              scrollbarWidth: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}>
+              {items.length === 0 && tab !== 'lead' ? (
+                <div style={{ padding: '10px', fontSize: 11, color: 'var(--gray2)', textAlign: 'center' }}>
+                  Nenhum projeto encontrado
+                </div>
+              ) : (
+                <>
+                  {items.map(item => {
+                    const isSel = item.id === selected
+                    const isHov = item.id === hovId
+                    const label    = tab === 'project'
+                      ? (item as Project).name
+                      : ((item as Lead).company || (item as Lead).name || 'Lead')
+                    const sublabel = tab === 'project'
+                      ? (item as Project).client?.name
+                      : STAGE_LABELS[(item as Lead).funnel_stage]
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelect(item.id)}
+                        onMouseEnter={() => setHovId(item.id)}
+                        onMouseLeave={() => setHovId('')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 7,
+                          padding: '7px 9px', cursor: 'pointer',
+                          borderBottom: '1px solid var(--gray3)',
+                          background: isSel
+                            ? `${accentColor}12`
+                            : isHov ? 'var(--bg)' : 'transparent',
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        <div style={{
+                          width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                          background: isSel ? accentColor : 'var(--gray3)',
+                        }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: 11, fontWeight: isSel ? 700 : 500,
+                            color: isSel ? 'var(--black)' : 'var(--gray)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {label}
+                          </div>
+                          {sublabel && (
+                            <div style={{ fontSize: 10, color: 'var(--gray2)', marginTop: 1 }}>
+                              {sublabel}
+                            </div>
+                          )}
+                        </div>
+                        {isSugg(item.id) && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 100,
+                            background: 'rgba(123,94,167,0.1)', color: '#7B5EA7',
+                            border: '1px solid rgba(123,94,167,0.2)', flexShrink: 0,
+                          }}>★</span>
+                        )}
+                        {isSel && (
+                          <svg width={10} height={10} viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
+                            <path d="M2 5l2.5 2.5L8 3" stroke={accentColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {/* "+ Criar lead" — sempre visível na aba Lead */}
+                  {tab === 'lead' && (
+                    <div
+                      onClick={() => {
+                        setNewCompany(query)
+                        setNewName('')
+                        setOpen(false)
+                        setCreating(true)
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(245,158,11,0.07)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7,
+                        padding: '7px 9px', cursor: 'pointer',
+                        background: 'transparent', transition: 'background 0.1s',
+                      }}
+                    >
+                      <svg width={12} height={12} viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#F59E0B' }}>
+                        <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth={1.4}/>
+                        <path d="M6 4v4M4 6h4" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round"/>
                       </svg>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#92400E' }}>
+                        {query ? `Criar lead "${query}"` : 'Criar novo lead'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
