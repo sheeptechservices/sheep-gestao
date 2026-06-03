@@ -197,7 +197,7 @@ export function AppSelect({
         minWidth: Math.max(rect.width, mode === 'badge' ? 150 : 180),
         maxHeight: rect.maxHeight,
         overflowY: 'auto',
-        zIndex:   4000,
+        zIndex:   9200,
         background:   'var(--white)',
         border:       '1px solid var(--gray3)',
         borderRadius: 10,
