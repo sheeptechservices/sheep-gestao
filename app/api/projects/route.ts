@@ -92,14 +92,14 @@ export async function POST(req: NextRequest) {
         INSERT INTO projects
           (id, client_id, name, description, status, type, color_hex,
            start_date, end_date, progress, created_at, gestor, observacoes, links,
-           team_members, github_repo, project_member_ids)
+           team_members, github_repo, project_member_ids, display_order)
         VALUES
           (:id, :client_id, :name, :description, :status, :type, :color_hex,
            :start_date, :end_date, :progress, :created_at, :gestor, :observacoes, :links,
-           :team_members, :github_repo, :project_member_ids)
+           :team_members, :github_repo, :project_member_ids, :display_order)
       `,
       args: {
-        description: null, end_date: null, gestor: null, observacoes: null, links: null, github_repo: null,
+        description: null, end_date: null, gestor: null, observacoes: null, links: null, github_repo: null, display_order: null,
         ...body,
         progress:           body.progress ?? 0,
         team_members:       body.team_members?.length       ? JSON.stringify(body.team_members)       : null,
