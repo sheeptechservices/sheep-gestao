@@ -90,11 +90,16 @@ export function AppDatePicker({
       }
       const rect = triggerRef.current?.getBoundingClientRect()
       if (rect) {
+        const calWidth   = Math.max(rect.width, 256)
         const spaceBelow = window.innerHeight - rect.bottom
+        const overflowRight = rect.left + calWidth > window.innerWidth - 8
+        const left = overflowRight
+          ? Math.max(8, rect.right - calWidth)
+          : rect.left
         if (spaceBelow < 320) {
-          setDropPos({ bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width })
+          setDropPos({ bottom: window.innerHeight - rect.top + 4, left, width: rect.width })
         } else {
-          setDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+          setDropPos({ top: rect.bottom + 4, left, width: rect.width })
         }
       }
     }
