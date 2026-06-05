@@ -132,7 +132,7 @@ export function AppCombobox({
         bottom:       dropPos.bottom,
         left:         dropPos.left,
         width:        Math.max(dropPos.width, 180),
-        zIndex:       4000,
+        zIndex:       9200,
         background:   'var(--white)',
         border:       '1px solid var(--gray3)',
         borderRadius: 10,
