@@ -83,9 +83,25 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as Omit<Project, 'client'>
-    if (!body.id || !body.name || !body.client_id) {
-      return NextResponse.json({ error: 'id, name and client_id are required' }, { status: 400 })
+
+    // Validação explícita de campos obrigatórios
+    const REQUIRED: Array<{ key: keyof typeof body; label: string }> = [
+      { key: 'id',         label: 'ID do projeto (id)'          },
+      { key: 'name',       label: 'Nome do projeto (name)'      },
+      { key: 'client_id',  label: 'Cliente (client_id)'         },
+      { key: 'status',     label: 'Status (status)'             },
+      { key: 'type',       label: 'Tipo (type)'                 },
+      { key: 'color_hex',  label: 'Cor (color_hex)'             },
+      { key: 'created_at', label: 'Data de criação (created_at)'},
+    ]
+    const missing = REQUIRED.filter(f => !body[f.key]).map(f => f.label)
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `Campos obrigatórios ausentes: ${missing.join(', ')}` },
+        { status: 400 }
+      )
     }
+
     const db = await initDb()
     await db.execute({
       sql: `
