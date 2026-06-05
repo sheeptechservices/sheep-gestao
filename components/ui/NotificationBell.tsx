@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNotificationsStore } from '@/stores/notificationsStore'
+import { toast } from '@/stores/toastStore'
 import type { Notification, Project, Lead } from '@/lib/types'
 
 // ── Shared search input ───────────────────────────────────────────────────────
@@ -113,6 +114,7 @@ function ContextPicker({
       setCreating(false)
       // Vincula automaticamente à reunião
       await onLink(notif.payload.meeting_id, { lead_id: lead.id })
+      toast.success('Reunião vinculada', `Vinculada ao lead ${lead.company || lead.name || 'novo lead'}`)
     } finally {
       setCreateBusy(false)
     }
@@ -184,6 +186,11 @@ function ContextPicker({
       : { lead_id: selected }
     await onLink(notif.payload.meeting_id, data)
     setSaving(false)
+    if (tab === 'project' && selectedProject) {
+      toast.success('Reunião vinculada', `Vinculada ao projeto ${selectedProject.name}`)
+    } else if (tab === 'lead' && selectedLead) {
+      toast.success('Reunião vinculada', `Vinculada ao lead ${selectedLead.company || selectedLead.name || 'lead'}`)
+    }
   }
 
   const accentColor = tab === 'project' ? '#6366F1' : '#F59E0B'
