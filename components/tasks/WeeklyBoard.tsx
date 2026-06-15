@@ -343,15 +343,18 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--white)',
         borderRadius: isMobile ? '20px 20px 0 0' : 16,
-        padding: isMobile ? '20px 20px 32px' : '28px 32px 24px',
         width: isMobile ? '100%' : 560,
         boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
         animation: isMobile ? 'panelUp 0.25s ease both' : 'modalSlideUp 0.22s ease both',
-        display: 'flex', flexDirection: 'column', gap: 18,
-        maxHeight: isMobile ? '92vh' : '90vh', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column',
+        maxHeight: isMobile ? '92vh' : '90vh', overflow: 'hidden',
       }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Header — fixo */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+          padding: isMobile ? '20px 20px 0' : '28px 32px 0',
+        }}>
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--black)', margin: 0 }}>
             {isEdit ? 'Editar entregável' : 'Novo entregável'}
           </h2>
@@ -362,6 +365,12 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
             color: 'var(--gray2)', fontSize: 14, fontWeight: 700,
           }}>×</button>
         </div>
+        {/* Body scrollável */}
+        <div style={{
+          flex: 1, overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 18,
+          padding: isMobile ? '18px 20px' : '18px 32px',
+        }}>
 
         {/* Title */}
         <div>
@@ -814,8 +823,15 @@ export function WBTaskModal({ task, onSave, onClose, onDelete, weeks, projects, 
           document.body
         )}
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+        </div>{/* fim body scrollável */}
+
+        {/* Footer — fixo */}
+        <div style={{
+          display: 'flex', gap: 8, alignItems: 'center',
+          flexShrink: 0,
+          padding: isMobile ? '12px 20px 32px' : '12px 32px 24px',
+          borderTop: '1px solid var(--gray3)',
+        }}>
           {/* Delete — only in edit mode */}
           {isEdit && onDelete && (
             <button onClick={onDelete} title="Excluir entregável" style={{
