@@ -115,11 +115,24 @@ export async function POST(req: NextRequest) {
            :team_members, :github_repo, :project_member_ids, :display_order)
       `,
       args: {
-        description: null, end_date: null, gestor: null, observacoes: null, links: null, github_repo: null, display_order: null,
-        ...body,
-        progress:           body.progress ?? 0,
+        id:                 body.id,
+        client_id:          body.client_id,
+        name:               body.name,
+        description:        body.description        ?? null,
+        status:             body.status,
+        type:               body.type,
+        color_hex:          body.color_hex,
+        start_date:         body.start_date,
+        end_date:           body.end_date            ?? null,
+        progress:           body.progress            ?? 0,
+        created_at:         body.created_at,
+        gestor:             body.gestor              ?? null,
+        observacoes:        body.observacoes         ?? null,
+        links:              body.links               ?? null,
         team_members:       body.team_members?.length       ? JSON.stringify(body.team_members)       : null,
+        github_repo:        body.github_repo         ?? null,
         project_member_ids: body.project_member_ids?.length ? JSON.stringify(body.project_member_ids) : null,
+        display_order:      body.display_order       ?? null,
       },
     })
     const res = await db.execute({ sql: SQL_SINGLE_PROJECT, args: [body.id] })
